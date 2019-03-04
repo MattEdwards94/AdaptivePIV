@@ -13,7 +13,7 @@ class ImageInfo:
         self._max_n_images = 0
         self._img_dim = [0, 0]
 
-    def printDetails(self):
+    def print_details(self):
         """ Neatly display information about the image type including
             Filename format
             Folder
