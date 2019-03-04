@@ -4,14 +4,14 @@ class ImageInfo:
     """
 
     def __init__(self):
-        """initialises 
+        """initialises
         """
-        self._fname_fmt = ""
-        self._folder = ""
-        self._mask_file = ""
-        self._known_vel_field_fname = ""
-        self._max_n_images = 0
-        self._img_dim = [0, 0]
+        self.fname_fmt = ""
+        self.folder = ""
+        self.mask_file = ""
+        self.ref_vel_field_fname = ""
+        self.max_n_images = 0
+        self.img_dim = [0, 0]
 
     def print_details(self):
         """ Neatly display information about the image type including
@@ -22,12 +22,28 @@ class ImageInfo:
             The maximm number of images in the ensemble
             The image dimensions
         """
-        print("The filename format: ", self._fname_fmt)
-        print("The folder location: ", self._folder)
-        print("The mask file: ", self._mask_file)
-        print("The reference velocity field location: ", self._known_vel_field_fname)
-        print("The number of images in the ensemble: ", self._max_n_images)
-        print("The image dimensions: ", self._img_dim)
+        print("The filename format: ", self.fname_fmt)
+        print("The folder location: ", self.folder)
+        print("The mask file: ", self.mask_file)
+        print("The ref. vel. field filename: ", self.ref_vel_field_fname)
+        print("The number of images in the ensemble: ", self.max_n_images)
+        print("The image dimensions: ", self.img_dim)
+
+        def n_cols():
+            """returns the number of columns in the image
+
+            Returns:
+                INT: number of columns
+            """
+            return self._img_dim[1]
+
+        def n_rows():
+            """returns the number of rows in the image
+
+            Returns:
+                INT: number of rows
+            """
+            return self._img_dim[0]
 
 
 def bfs():
@@ -39,6 +55,7 @@ def bfs():
     img = ImageInfo()
     img.fname_fmt = "test"
     return img
+
 
 def vor_array():
     """Summary
@@ -56,6 +73,7 @@ switcher = {
     1: vor_array
 }
 
+
 def get_image_information(flow_type):
     """Summary
 
@@ -71,6 +89,6 @@ def get_image_information(flow_type):
 
 if __name__ == "__main__":
     obj = get_image_information(0)
-    obj.printDetails()
+    obj.print_details()
     obj = get_image_information(1)
-    obj.printDetails()
+    obj.print_details()
