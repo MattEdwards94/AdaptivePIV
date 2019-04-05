@@ -1,6 +1,9 @@
+import csv
+
+
 def loadImageFilename(flowType):
     """ Switches based upon the input flowType
-        
+
         Options:
         Experimental
             1   - Backwards Facing Step
@@ -35,11 +38,11 @@ def loadImageFilename(flowType):
     """
 
 
-
-
-
-
+with open('C:/Users/me12288/Local Documents/PhD - Local/images/imageDB/index.csv') as csvfile:
+    file_info = csv.reader(csvfile, delimiter=',', quotechar='|')
+    for row in file_info:
+        print(row)
 
 
 if __name__ == "__main__":
-    print("hello")
+    loadImageFilename(1)
