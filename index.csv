@@ -1,0 +1,27 @@
+ID,flow description,folder,filename format,mask file,vel field file,image dimensions,number of images,is synthetic,time resolved
+1, Backwards Facing Step,BFS,image_8bit_%03d%c.tif,image_8bit_001mask.png,none,640x1280,320,n,n
+2, Experimental Vortex,expVortex,A_%04d_%c.tif,none,none,1024x1280,1,n,n
+3, Corner flow,cornerFlow,corner_%03d%c.tif,none,none,500x500,1,n,n
+4, Jet Flow from PIV Challenge,Aall,A%03d%c.tif,none,none,1004x992,100,n,n
+5, Buildings flow,Buildings,m1_8bs_%05d%c.tif,refinedMask.png,none,800x1024,,n,
+6, High Pressure Jet,highPressureJet,25bar_adj_%03d%c.tif,none,none,544x1280,,n,
+7, Wall Jet,wallJet,re07%04d_%c.tif,none,none,621x981,,n,
+8, Lungs Bifurcation,lungsBifurc,Lung_b3__%03d%c.tif,MASK_ADA.tif,none,,,n,
+9, PIV Challenge Jet,PIVChallengeJetFlow,c%03d%c.bmp,none,none,512x512,,n,
+10, PIV Challenge 3 - A1,PIVChallenge/Third/A1,A1%03d_%c.tif,none,none,1024x1024,,n,
+11, PIV Challenge 3 - A2,PIVChallenge/Third/A2,A2%03d_%c.tif,none,none,1024x1024,,n,
+12, PIV Challenge 3 - A3,PIVChallenge/Third/A3,A3%03d_%c.tif,none,none,1024x1024,,n,
+13, PIV Challenge 3 - A4,PIVChallenge/Third/A4,A4%03d_%c.tif,none,none,2000x2000,,n,
+14, festip,festip,M2jet%04d_%c.tif,festip_mask1.png,none,,,n,
+15, Renault plain with mask,Renault_Test_Dataset_11_07_2017,renault1%05d%c.tif,renaultMaskUnfiltered.png,none,,,n,
+16, Renault plain without mask,Renault_Test_Dataset_11_07_2017,renault2%05d%c.tif,none,none,,,n,
+17, Renault filtered with mask,Renault_Test_Dataset_11_07_2017,renaultFiltered1%05d%c.tif,renaultMask5.png,none,,,n,
+18, Renault filtered without mask,Renault_Test_Dataset_11_07_2017,renaultFiltered1%05d%c.tif,none,none,,,n,
+19, Weam wake flow,Bluntness46mm/Bluntness46mm/FOV2_NearWake/Raw/,run_%05d%c.tif,maskModified.png,none,,,n,
+20, Weam wake flow background subtracted,Bluntness46mm/Bluntness46mm/FOV2_NearWake/Raw/,PreProcess/run_%05d%c.mat,maskModified.png,none,,,n,
+21, PIV challenge 4 - Micro channel,4th_PIV-Challenge_Images_Case_A,A_%05d_%c.tif,mask_A_00001_a.png,none,,,n,
+22, Vortex array 2x2,vArray2x2,Varray2x2_%03d%c.mat,none,Varray2x2_000v.mat,1000x1000,750,y,
+23, Lamb Oseen,LambOseenVortex,OneDimVarray2x2_%03d%c.mat,none,OneDimVarray2x2_%03d%c.mat,1000x1000,750,y,
+24, Gaussian smoothed with freestream,Gaussian/WithFreestream,gaussian_%03d%c.mat,none,velField.mat,1000x1000,750,y,
+25, Gaussian smoothed,Gaussian,gaussian_%03d%c.mat,none,gaussianVelField.mat,1000x1000,750,y,
+26, Gaussian smoothed with variable kernel,Gaussian/variableKernel,gaussian_%03d%c.mat,none,velField.mat,1000x1000,750,y,
