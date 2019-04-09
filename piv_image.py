@@ -1,4 +1,5 @@
 import image_info as img_info
+import matplotlib.image as mpimg
 
 
 class piv_image:
@@ -17,13 +18,22 @@ class piv_image:
                                 information about the flow type
             imNumber (int): the specific image to load from the ensemble
         """
-        print(im_info)
-        print(im_number)
+        # save information about the current image
+        self.img_details = im_info
+        self.img_number = im_number
+
+        # load filenames
+        fnames = im_info.formatted_filenames(im_number)
+
+        # open both images
+        self.IA = mpimg.imread(fnames[0])
+        self.IB = mpimg.imread(fnames[1])
+
+        print(self.IA[0])
+        print(self)
 
 
 if __name__ == "__main__":
-    img_info.print_all_details()
-
     print('loading image details for BFS')
     img_details = img_info.ImageInfo(1)
     print(img_details)
