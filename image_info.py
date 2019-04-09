@@ -143,7 +143,7 @@ def get_image_information(flow_type):
     raise ValueError("Item not found")
 
 
-def list_options():
+def list_available_flowtypes():
     """Displays the image flow types which are available to be
         loaded along with their calling ID
     """
@@ -168,6 +168,7 @@ def print_table_header():
 
 def print_all_details():
     """Prints all the details for all the possible flow types
+    includes printing of the header row
     """
 
     with open(path_to_file_index) as imageDB:
@@ -211,3 +212,5 @@ if __name__ == "__main__":
     print('nImages: {}'.format(img[1].n_images))
 
     print(img[1])
+
+    list_available_flowtypes()
