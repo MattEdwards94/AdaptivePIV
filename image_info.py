@@ -40,8 +40,8 @@ class ImageInfo:
         self.filename = row[3]
         self.mask_fname = row[4]
         self.vel_field_fname = row[5]
-        self.img_dim = row[6]
-        self.max_n_images = int(row[7])
+        self.img_dim_text = row[6]
+        self.n_images = int(row[7])
         self.is_synthetic = row[8]
         self.is_time_resolved = row[9]
 
@@ -75,7 +75,7 @@ class ImageInfo:
                           self.mask_fname,
                           self.vel_field_fname,
                           self.n_rows(), self.n_cols(),
-                          self.max_n_images,
+                          self.n_images,
                           self.is_synthetic,
                           self.is_time_resolved)
 
@@ -97,8 +97,8 @@ class ImageInfo:
             self.folder,
             mask_yn,
             vel_yn,
-            self.img_dim,
-            self.max_n_images))
+            self.img_dim_text,
+            self.n_images))
 
     def n_cols(self):
         """returns the number of columns in the image
@@ -106,7 +106,7 @@ class ImageInfo:
         Returns:
             INT: number of columns
         """
-        dims = self.img_dim.split('x')
+        dims = self.img_dim_text.split('x')
         return int(dims[1])
 
     def n_rows(self):
@@ -115,8 +115,18 @@ class ImageInfo:
         Returns:
             INT: number of rows
         """
-        dims = self.img_dim.split('x')
+        dims = self.img_dim_text.split('x')
         return int(dims[0])
+
+    def img_dim(self):
+        """returns the image dimensions MxN
+        where M is the height and N is the width
+
+        Returns:
+            2x1 int array: the dimensions of the image
+        """
+        dims = self.img_dim_text.split('x')
+        return dims
 
 
 def get_image_information(flow_type):
@@ -170,6 +180,31 @@ def print_all_details():
 
 
 if __name__ == "__main__":
-    img = ImageInfo(1)
-
     print_all_details()
+
+    print('---------------')
+    print(' ')
+
+    print('loading backwards facing step details into workspace')
+    img = ImageInfo(1)
+    print('done')
+    print('testing dimensions')
+    print('dim text: {}'.format(img.img_dim_text))
+    dim = img.img_dim()
+    print('dim: {} x {}'.format(dim[0], dim[1]))
+    print('width: {}'.format(img.n_cols()))
+    print('height: {}'.format(img.n_rows()))
+    print('testing number of images in ensemble')
+    print('nImages: {}'.format(img.n_images))
+
+    print('also loading weamFlow details')
+    img1 = ImageInfo(19)
+    print('done')
+    print('testing dimensions')
+    print('dim text: {}'.format(img1.img_dim_text))
+    dim1 = img1.img_dim()
+    print('dim: {} x {}'.format(dim1[0], dim1[1]))
+    print('width: {}'.format(img1.n_cols()))
+    print('height: {}'.format(img1.n_rows()))
+    print('testing number of images in ensemble')
+    print('nImages: {}'.format(img1.n_images))
