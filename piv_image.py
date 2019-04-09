@@ -32,6 +32,12 @@ class piv_image:
         print(self.IA[0])
         print(self)
 
+    def __repr__(self):
+        """returns the representation of the piv_image object
+        """
+        return "piv_image(image_info.ImageObject({}), {})".format(
+            self.img_details.flowtype, self.img_number)
+
 
 if __name__ == "__main__":
     print('loading image details for BFS')
