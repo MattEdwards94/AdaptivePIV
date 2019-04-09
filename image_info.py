@@ -91,8 +91,8 @@ class ImageInfo:
         else:
             vel_yn = 'y'
 
-        print("{:^3}|{:^30}|{:^21}|{:^5}|{:^9}|{:^9}|{:^4}|".format(
-            self.flow_type,
+        print("{:^3}|{:^30}|{:^21}|{:^5}|{:^4}|{:^9}|{:^4}".format(
+            self.flowtype,
             self.description,
             self.folder,
             mask_yn,
@@ -156,12 +156,12 @@ def list_available_flowtypes():
 def print_table_header():
     """prints the table header e.g. id/label/nImages etc
         """
-    print("{:^3}|{:^30}|{:^21}|{:^5}|{:^9}|{:^9}|{:^4}|"
+    print("{:^3}|{:^30}|{:^21}|{:^5}|{:^4}|{:^9}|{:^4}"
           .format("ID",
                   "label",
                   "Folder",
                   "mask?",
-                  "ref. vel?",
+                  "vel?",
                   "dim.",
                   "nImg"))
 
