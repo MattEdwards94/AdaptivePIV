@@ -58,16 +58,16 @@ class ImageInfo:
         type
         """
         col_align = 30
-        out = "Flow ID: ".rjust(col_align) + "{}\n"
-        out += "Label: ".rjust(col_align) + "{}\n"
-        out += "folder location: ".rjust(col_align) + "{}\n"
-        out += "filename format: ".rjust(col_align) + "{}\n"
-        out += "mask filename: ".rjust(col_align) + "{}\n"
-        out += "Ref. vel. field filename: ".rjust(col_align) + "{}\n"
-        out += "image dimensions: ".rjust(col_align) + "{}x{}\n"
-        out += "number of images in ensemble: ".rjust(col_align) + "{}\n"
-        out += "Is synthetic (y/n): ".rjust(col_align) + "{}\n"
-        out += "Is time resolved (y/n): ".rjust(col_align) + "{}\n"
+        out = ("Flow ID: ".rjust(col_align) + "{}\n"
+               + "Label: ".rjust(col_align) + "{}\n"
+               + "folder location: ".rjust(col_align) + "{}\n"
+               + "filename format: ".rjust(col_align) + "{}\n"
+               + "mask filename: ".rjust(col_align) + "{}\n"
+               + "Ref. vel. field filename: ".rjust(col_align) + "{}\n"
+               + "image dimensions: ".rjust(col_align) + "{}x{}\n"
+               + "number of images in ensemble: ".rjust(col_align) + "{}\n"
+               + "Is synthetic (y/n): ".rjust(col_align) + "{}\n"
+               + "Is time resolved (y/n): ".rjust(col_align) + "{}\n")
         return out.format(self.flowtype,
                           self.description,
                           self.folder,
