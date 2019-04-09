@@ -128,6 +128,20 @@ class ImageInfo:
         dims = self.img_dim_text.split('x')
         return dims
 
+    def formatted_filenames(self, im_number):
+        """returns two file names corresponding to a and b for the
+        requested im_number within the ensemble
+
+        Args:
+            im_number (int): image number in the ensemble to obtain
+        """
+        root = "C:/Users/me12288/local documents/PhD - Local/"
+        folder = "images/imageDB/" + self.folder + "/"
+        filenames = []
+        filenames.append(root + folder + self.filename % (im_number, 'a'))
+        filenames.append(root + folder + self.filename % (im_number, 'b'))
+        return filenames
+
 
 def get_image_information(flow_type):
     """ searches in the database for image details
@@ -214,3 +228,7 @@ if __name__ == "__main__":
     print(img[1])
 
     list_available_flowtypes()
+
+    for im in img:
+        fnames = im.formatted_filenames(2)
+        print(fnames)
