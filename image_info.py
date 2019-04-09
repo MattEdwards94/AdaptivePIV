@@ -143,6 +143,9 @@ class ImageInfo:
     def formatted_filenames(self, im_number):
         """returns two file names corresponding to a and b for the
         requested im_number within the ensemble
+        filenames[0] = filename for image A
+        filenames[1] = filename for image B
+        filenames[2] = filename for mask if available
 
         Args:
             im_number (int): image number in the ensemble to obtain
@@ -152,6 +155,10 @@ class ImageInfo:
         filenames = []
         filenames.append(root + folder + self.filename % (im_number, 'a'))
         filenames.append(root + folder + self.filename % (im_number, 'b'))
+        if self.has_mask():
+            filenames.append(root + folder + self.mask_fname)
+        else:
+            filenames.append('none')
         return filenames
 
 
