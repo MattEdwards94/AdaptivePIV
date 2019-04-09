@@ -56,3 +56,6 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# mindview maps open file lock
+~$*.mvdx
