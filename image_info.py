@@ -128,6 +128,18 @@ class ImageInfo:
         dims = self.img_dim_text.split('x')
         return dims
 
+    def has_mask(self):
+        """returns true if there is mask information saved for the current
+        flow type
+
+        Returns:
+            boolean: true or false according to the presence of a mask
+        """
+        if self.mask_fname == "none":
+            return False
+        else:
+            return True
+
     def formatted_filenames(self, im_number):
         """returns two file names corresponding to a and b for the
         requested im_number within the ensemble
@@ -214,7 +226,7 @@ if __name__ == "__main__":
     print('nImages: {}'.format(img[0].n_images))
 
     print('also loading weamFlow details')
-    img.append(ImageInfo(19))
+    img.append(ImageInfo(22))
     print('done')
     print('testing dimensions')
     print('dim text: {}'.format(img[1].img_dim_text))
@@ -232,3 +244,4 @@ if __name__ == "__main__":
     for im in img:
         fnames = im.formatted_filenames(2)
         print(fnames)
+        print(im.has_mask())
