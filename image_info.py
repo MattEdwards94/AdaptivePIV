@@ -79,22 +79,26 @@ class ImageInfo:
                           self.is_synthetic,
                           self.is_time_resolved)
 
-    def print_table_header(self):
-        """prints the table header e.g. id/label/nImages etc
-        """
-        print("{:^5} | {:^14} | {:^8} | {:^10} | ".format("ID",
-                                                          "label",
-                                                          "Folder",
-                                                          "filename"))
-
     def print_row_details(self):
         """Displays the details of the current flow type as a single row
         """
-        print("{:^5} | {:^14} | {:^8} | {:^10} |".format(
+        if self.mask_fname == "none":
+            mask_yn = 'n'
+        else:
+            mask_yn = 'y'
+        if self.vel_field_fname == "none":
+            vel_yn = 'n'
+        else:
+            vel_yn = 'y'
+
+        print("{:^3}|{:^30}|{:^21}|{:^5}|{:^9}|{:^9}|{:^4}|".format(
             self.flow_type,
             self.description,
             self.folder,
-            self.filename))
+            mask_yn,
+            vel_yn,
+            self.img_dim,
+            self.max_n_images))
 
     def n_cols(self):
         """returns the number of columns in the image
@@ -139,19 +143,33 @@ def list_options():
             print("{} - {}".format(row[0], row[1]))
 
 
+def print_table_header():
+    """prints the table header e.g. id/label/nImages etc
+        """
+    print("{:^3}|{:^30}|{:^21}|{:^5}|{:^9}|{:^9}|{:^4}|"
+          .format("ID",
+                  "label",
+                  "Folder",
+                  "mask?",
+                  "ref. vel?",
+                  "dim.",
+                  "nImg"))
+
+
 def print_all_details():
     """Prints all the details for all the possible flow types
     """
+
     with open(path_to_file_index) as imageDB:
         all_information = csv.reader(imageDB)
         # print header
-        print("ID Description Folder")
+        print_table_header()
         for row in itertools.islice(all_information, 1, None):
             img_obj = ImageInfo(int(row[0]))
-            print(img_obj)
+            img_obj.print_row_details()
 
 
 if __name__ == "__main__":
     img = ImageInfo(1)
-    img.print_table_header()
-    img.print_row_details()
+
+    print_all_details()
