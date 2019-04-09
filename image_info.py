@@ -7,10 +7,10 @@ class ImageInfo:
     """Class containing information relating to images of a single flow type.
 
     USAGE:
-        imgObject = ImageInfo(flow_type)
+        imgObject = ImageInfo(flowtype)
 
     Attributes:
-        flow_type (int): ID corresponding to a particular flow
+        flowtype (int): ID corresponding to a particular flow
         description (string): Short label eg "backwards facing step"
         folder (string): folder location underneath images/imageDB
         filename (string): filename format e.g. a_%05d_%c.tif
@@ -23,18 +23,18 @@ class ImageInfo:
         is_time_resolved (bool): whether the images are time resolved or not
     """
 
-    def __init__(self, flow_type):
+    def __init__(self, flowtype):
         """Initialises an image_info object from the data in the CSV file
         who's path is defined by path_to_file_index at the top of
         "image_info.py".
 
         Args:
-            flow_type (integer): ID of the flow to be read in
+            flowtype (integer): ID of the flow to be read in
 
         """
         # read data from csv file
-        row = get_image_information(flow_type)
-        self.flow_type = int(row[0])
+        row = get_image_information(flowtype)
+        self.flowtype = int(row[0])
         self.description = row[1]
         self.folder = row[2]
         self.filename = row[3]
@@ -49,7 +49,7 @@ class ImageInfo:
         """returns the representation of the object,
         i.e. how it is constructed
         """
-        return "ImageInfo({})".format(self.flow_type)
+        return "ImageInfo({})".format(self.flowtype)
 
     def __str__(self):
         """Returns a textual representation of the object which includes
@@ -68,7 +68,7 @@ class ImageInfo:
         out += "number of images in ensemble: ".rjust(col_align) + "{}\n"
         out += "Is synthetic (y/n): ".rjust(col_align) + "{}\n"
         out += "Is time resolved (y/n): ".rjust(col_align) + "{}\n"
-        return out.format(self.flow_type,
+        return out.format(self.flowtype,
                           self.description,
                           self.folder,
                           self.filename,
@@ -143,7 +143,7 @@ class ImageInfo:
         return filenames
 
 
-def get_image_information(flow_type):
+def get_image_information(flowtype):
     """ searches in the database for image details
 
 
@@ -151,7 +151,7 @@ def get_image_information(flow_type):
     with open(path_to_file_index) as imageDB:
         all_information = csv.reader(imageDB)
         for row in itertools.islice(all_information, 1, None):
-            if int(row[0]) == flow_type:
+            if int(row[0]) == flowtype:
                 return row
     # if here then we have not found the correct row
     raise ValueError("Item not found")
