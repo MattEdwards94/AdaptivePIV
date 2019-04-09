@@ -1,0 +1,27 @@
+ID,flow description,folder,filename format,mask file,vel field file,image dimensions,number of images,is synthetic,time resolved
+1,Backwards Facing Step,BFS,image_8bit_%03d%c.tif,image_8bit_001mask.png,none,640x1280,320,n,n
+2,Experimental Vortex,expVortex,A_%04d_%c.tif,none,none,1024x1280,1,n,n
+3,Corner flow,cornerFlow,corner_%03d%c.tif,none,none,500x500,1,n,n
+4,Jet Flow from PIV Challenge,Aall,A%03d%c.tif,none,none,1004x992,100,n,n
+5,Buildings flow,Buildings,m1_8bs_%05d%c.tif,refinedMask.png,none,800x1024,468,n,n
+6,High Pressure Jet,highPressureJet,25bar_adj_%03d%c.tif,none,none,544x1280,1,n,n
+7,Wall Jet,wallJet,re07%04d_%c.tif,none,none,621x981,50,n,n
+8,Lungs Bifurcation,lungsBifurc,Lung_b3__%03d%c.tif,MASK_ADA.tif,none,512x696,267,n,n
+9,PIV Challenge Jet,PIVChallengeJetFlow,c%03d%c.bmp,none,none,512x512,99,n,n
+10,PIV Challenge 3 - A1,Challenge/Third/A1,A1%03d_%c.tif,none,none,1024x1024,99,n,n
+11,PIV Challenge 3 - A2,Challenge/Third/A2,A2%03d_%c.tif,none,none,1024x1024,99,n,n
+12,PIV Challenge 3 - A3,Challenge/Third/A3,A3%03d_%c.tif,none,none,1024x1024,99,n,n
+13,PIV Challenge 3 - A4,Challenge/Third/A4,A4%03d_%c.tif,none,none,2000x2000,1,n,n
+14,festip,festip,M2jet%04d_%c.tif,festip_mask1.png,none,1024x2480,1,n,n
+15,Renault plain with mask,RenaultImages,renault1%05d%c.tif,renaultMaskUnfiltered.png,none,2160x2560,125,n,n
+16,Renault plain without mask,RenaultImages,renault2%05d%c.tif,none,none,2160x2560,125,n,n
+17,Renault filtered with mask,RenaultImages,renaultFiltered1%05d%c.tif,renaultMask5.png,none,2160x2560,125,n,n
+18,Renault filtered without mask,RenaultImages,renaultFiltered1%05d%c.tif,none,none,2160x2560,125,n,n
+19,Weam flow,weamFlow,run_%05d%c.tif,maskModified.png,none,2672x3528,115,n,n
+20,Weam flow -background,weamFlow,PreProcess/run_%05d%c.mat,maskModified.png,none,2672x3528,115,n,n
+21,PIV Chall. 4 - Micro channel,PIVChallenge4A,A_%05d_%c.tif,mask_A_00001_a.png,none,1230x2560,600,n,n
+22,Vortex array 2x2,vArray2x2,Varray2x2_%03d%c.mat,none,Varray2x2_000v.mat,1000x1000,750,y,n
+23,Lamb Oseen,LambOseenVortex,OneDimVarray2x2_%03d%c.mat,none,OneDimVarray2x2_%03d%c.mat,1000x1000,750,y,n
+24,Gauss. smoothed w freestream,Gaussian/Freestream,gaussian_%03d%c.mat,none,velField.mat,1000x1000,750,y,n
+25,Gauss. smoothed,Gaussian,gaussian_%03d%c.mat,none,gaussianVelField.mat,1000x1000,750,y,n
+26,Gauss. smoothed w var kernel,Gaussian/varKern,gaussian_%03d%c.mat,none,velField.mat,1000x1000,750,y,n
