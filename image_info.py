@@ -1,5 +1,6 @@
 import csv
 import itertools
+import warnings
 path_to_file_index = 'index.csv'
 
 
@@ -18,7 +19,7 @@ class ImageInfo:
         vel_field_fname (string): filename for the reference velocity field
         or "none"
         img_dim (string): string containing MxN
-        max_n_images (int): how many images are in the ensemble
+        n_images (int): how many images are in the ensemble
         is_synthetic (bool): whether the images are synthetic or experimental
         is_time_resolved (bool): whether the images are time resolved or not
     """
@@ -150,6 +151,9 @@ class ImageInfo:
         Args:
             im_number (int): image number in the ensemble to obtain
         """
+        if im_number > self.n_images:
+            warnings.warn("im_number exceeds known number of images.")
+
         root = "C:/Users/me12288/local documents/PhD - Local/"
         folder = "images/imageDB/" + self.folder + "/"
         filenames = []
@@ -222,6 +226,7 @@ if __name__ == "__main__":
 
     print('loading backwards facing step details into workspace')
     img.append(ImageInfo(1))
+
     print('done')
     print('testing dimensions')
     print('dim text: {}'.format(img[0].img_dim_text))
