@@ -1,5 +1,6 @@
 import image_info as img_info
-import matplotlib.image as mpimg
+# import matplotlib.image as mpimg
+from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -28,22 +29,19 @@ class piv_image:
         fnames = im_info.formatted_filenames(im_number)
 
         # open both images
-        self.IA = mpimg.imread(fnames[0])
-        self.IB = mpimg.imread(fnames[1])
-        if fnames[2] == "none":
-            # no mask file so define as clear over the domain
-            self.mask = np.zeros(np.shape(self.IA))
-        else:
-            self.mask = mpimg.imread(fnames[2], format='png')
-            # simply for now we will just set any value > 0 to 1
-            self.mask[self.mask > 0] = 1
+        data = []
+        for f in fnames:
+            if f == "none":
+                img = np.zeros(np.shape(data[0]))
+            else:
+                img = Image.open(f)
+                # img.load()
+            data.append(np.asarray(img, dtype="int32"))
 
-        print(self.IA[0])
-        print(self)
-        print(self.mask)
-        print(np.shape(self.mask))
-        plt.imshow(self.mask)
-        plt.show()
+        self.IA = data[0].copy()
+        self.IB = data[1].copy()
+        self.mask = data[2].copy()
+        self.mask[data[2] > 0] = 1
 
     def __repr__(self):
         """returns the representation of the piv_image object
@@ -59,5 +57,14 @@ if __name__ == "__main__":
     print(img_details)
     # img = piv_image(img_details, 1)
 
-    img_details = img_info.ImageInfo(16)
-    img = piv_image(img_details, 1)
+    img_details = img_info.ImageInfo(19)
+    print(img_details)
+
+    for ii in range(1, 19):
+        img_details = img_info.ImageInfo(ii)
+        print(ii)
+        img = piv_image(img_details, 1)
+        print(img.IA[0][0:10])
+        img = piv_image(img_details, img_details.n_images)
+        print(img.IA[0][0:10])
+    plt.show()
