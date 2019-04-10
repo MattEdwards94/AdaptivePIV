@@ -1,4 +1,6 @@
 import image_info as img_info
+import scipy.io as sio
+import h5py
 # import matplotlib.image as mpimg
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -25,23 +27,38 @@ class piv_image:
         self.img_details = im_info
         self.img_number = im_number
 
-        # load filenames
+        # load filenames including mask
         fnames = im_info.formatted_filenames(im_number)
 
-        # open both images
-        data = []
-        for f in fnames:
-            if f == "none":
-                img = np.zeros(np.shape(data[0]))
-            else:
-                img = Image.open(f)
-                # img.load()
-            data.append(np.asarray(img, dtype="int32"))
+        # image A
+        if fnames[0][-4:] == ".mat":
+            try:
+                img = sio.loadmat(fnames[0])
+                self.IA = img['IA']
+                pass
+            except NotImplementedError:
+                img = h5py.File(fnames[0])
+                self.IA = np.array(img['IA'])
+        else:
+            self.IA = np.asarray(Image.open(fnames[0])).copy()
 
-        self.IA = data[0].copy()
-        self.IB = data[1].copy()
-        self.mask = data[2].copy()
-        self.mask[data[2] > 0] = 1
+        # image B
+        if fnames[1][-4:] == ".mat":
+            try:
+                img = sio.loadmat(fnames[1])
+                self.IB = img['IB']
+                pass
+            except NotImplementedError:
+                img = h5py.File(fnames[1])
+                self.IB = np.array(img['IB'])
+        else:
+            self.IB = np.asarray(Image.open(fnames[1])).copy()
+
+        # mask
+        if fnames[2] == "none":
+            self.mask = np.zeros(np.shape(self.IA))
+        else:
+            self.mask = np.asarray(Image.open(fnames[2])).copy()
 
     def __repr__(self):
         """returns the representation of the piv_image object
@@ -60,7 +77,7 @@ if __name__ == "__main__":
     img_details = img_info.ImageInfo(19)
     print(img_details)
 
-    for ii in range(1, 19):
+    for ii in range(1, 27):
         img_details = img_info.ImageInfo(ii)
         print(ii)
         img = piv_image(img_details, 1)
