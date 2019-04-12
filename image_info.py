@@ -92,6 +92,31 @@ class ImageInfo:
                           self.is_synthetic,
                           self.is_time_resolved)
 
+    def __eq__(self, other):
+        """
+        Add method to image_info to check for equality
+
+        Allows equality check such as:
+        obj1 = MyClass(1)
+        obj2 = MyClass(2)
+        obj3 = MyClass(1)
+
+        obj1 == obj2
+            returns false
+
+        obj1 == obj3
+            returns true
+
+        Will return NotImplemted if the classes are not of the same type
+        e.g.
+        obj1 == OtherClass(1)
+            returns NotImplemented
+        """
+        if not isinstance(other, ImageInfo):
+            return NotImplemented
+
+        return self.__dict__ == other.__dict__
+
     def print_row_details(self):
         """Displays the details of the current flow type as a single row
         """
