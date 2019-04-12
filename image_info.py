@@ -46,6 +46,18 @@ class ImageInfo:
         self.is_synthetic = row[8]
         self.is_time_resolved = row[9]
 
+        # extract image dimensions into easily accesible variables
+        dims = self.img_dim_text.split('x')
+        self.n_rows = int(dims[0])
+        self.n_cols = int(dims[1])
+        self.img_dim = [self.n_rows, self.n_cols]
+
+        # save whether the item has a mask or not
+        if self.mask_fname == "none":
+            self.has_mask = False
+        else:
+            self.has_mask = True
+
     def __repr__(self):
         """returns the representation of the object,
         i.e. how it is constructed
@@ -75,7 +87,7 @@ class ImageInfo:
                           self.filename,
                           self.mask_fname,
                           self.vel_field_fname,
-                          self.n_rows(), self.n_cols(),
+                          self.n_rows, self.n_cols,
                           self.n_images,
                           self.is_synthetic,
                           self.is_time_resolved)
@@ -101,46 +113,6 @@ class ImageInfo:
             self.img_dim_text,
             self.n_images))
 
-    def n_cols(self):
-        """returns the number of columns in the image
-
-        Returns:
-            INT: number of columns
-        """
-        dims = self.img_dim_text.split('x')
-        return int(dims[1])
-
-    def n_rows(self):
-        """returns the number of rows in the image
-
-        Returns:
-            INT: number of rows
-        """
-        dims = self.img_dim_text.split('x')
-        return int(dims[0])
-
-    def img_dim(self):
-        """returns the image dimensions MxN
-        where M is the height and N is the width
-
-        Returns:
-            2x1 int array: the dimensions of the image
-        """
-        dims = self.img_dim_text.split('x')
-        return dims
-
-    def has_mask(self):
-        """returns true if there is mask information saved for the current
-        flow type
-
-        Returns:
-            boolean: true or false according to the presence of a mask
-        """
-        if self.mask_fname == "none":
-            return False
-        else:
-            return True
-
     def formatted_filenames(self, im_number):
         """returns two file names corresponding to a and b for the
         requested im_number within the ensemble
@@ -159,7 +131,7 @@ class ImageInfo:
         filenames = []
         filenames.append(root + folder + self.filename % (im_number, 'a'))
         filenames.append(root + folder + self.filename % (im_number, 'b'))
-        if self.has_mask():
+        if self.has_mask:
             filenames.append(root + folder + self.mask_fname)
         else:
             filenames.append('none')
@@ -230,10 +202,10 @@ if __name__ == "__main__":
     print('done')
     print('testing dimensions')
     print('dim text: {}'.format(img[0].img_dim_text))
-    dim = img[0].img_dim()
+    dim = img[0].img_dim
     print('dim: {} x {}'.format(dim[0], dim[1]))
-    print('width: {}'.format(img[0].n_cols()))
-    print('height: {}'.format(img[0].n_rows()))
+    print('width: {}'.format(img[0].n_cols))
+    print('height: {}'.format(img[0].n_rows))
     print('testing number of images in ensemble')
     print('nImages: {}'.format(img[0].n_images))
 
@@ -242,10 +214,10 @@ if __name__ == "__main__":
     print('done')
     print('testing dimensions')
     print('dim text: {}'.format(img[1].img_dim_text))
-    dim1 = img[1].img_dim()
+    dim1 = img[1].img_dim
     print('dim: {} x {}'.format(dim1[0], dim1[1]))
-    print('width: {}'.format(img[1].n_cols()))
-    print('height: {}'.format(img[1].n_rows()))
+    print('width: {}'.format(img[1].n_cols))
+    print('height: {}'.format(img[1].n_rows))
     print('testing number of images in ensemble')
     print('nImages: {}'.format(img[1].n_images))
 
@@ -256,4 +228,4 @@ if __name__ == "__main__":
     for im in img:
         fnames = im.formatted_filenames(2)
         print(fnames)
-        print(im.has_mask())
+        print(im.has_mask)
