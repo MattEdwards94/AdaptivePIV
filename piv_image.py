@@ -1,4 +1,4 @@
-import image_info as img_info
+import image_info
 import scipy.io as sio
 import h5py
 # import matplotlib.image as mpimg
@@ -64,7 +64,7 @@ class piv_image:
     def __repr__(self):
         """returns the representation of the piv_image object
         """
-        return "piv_image(image_info.ImageObject({}), {})".format(
+        return "piv_image(image_info.ImageInfo({}), {})".format(
             self.img_details.flowtype, self.img_number)
 
     def get_region(self, x_ctr, y_ctr, rad):
@@ -109,9 +109,9 @@ class piv_image:
 
 
 if __name__ == "__main__":
-    img_info.list_available_flowtypes()
+    image_info.list_available_flowtypes()
     print('loading image details for BFS')
-    img_details = img_info.ImageInfo(1)
+    img_details = image_info.ImageInfo(22)
     img = piv_image(img_details, 1)
     print(img_details)
 
