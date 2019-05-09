@@ -13,20 +13,28 @@ class PIVImage:
     select sub regions/perform pre-processing/image deformation etc.
 
     Attributes:
-        IA (TYPE): Description
-        IB (TYPE): Description
-        mask (TYPE): Description
+        IA (np array): The first image in the pair
+        IB (np array): The second image in the pair.
+                   Must have the same dimensions as IA
+        mask (np array): Image mask indicating regions not to be considered
+                     in the analysis
 
+    Examples:
+    >>>IA = np.random.rand(100, 100)
+    >>>IB = np.random.rand(100, 100)
+    >>>mask = np.random.randint(0, 2, (100, 100))
+    >>>obj = PIVImage(IA, IB, mask)
     """
 
     def __init__(self, IA, IB, mask=None):
         """
         Stores the two images IA and IB along with the associated mask.
 
-        Args:
-            IA (numpy array): Description
-            IB (numpy array): Description
-            mask (numpy array): Description
+        IA (np array): The first image in the pair
+        IB (np array): The second image in the pair.
+                       Must have the same dimensions as IA
+        mask (np array): Image mask indicating regions not to be considered
+                         in the analysis
         """
 
         if np.shape(IA) != np.shape(IB):
@@ -43,7 +51,7 @@ class PIVImage:
         self.mask = mask
 
     def __repr__(self):
-        """returns the representation of the piv_image object
+        """returns the representation of the PIVImage object
         """
         return "piv_image.PIVImage(np.{}, np.{}, np.{})".format(
             np.array_repr(self.IA),
@@ -52,7 +60,7 @@ class PIVImage:
 
     def __eq__(self, other):
         """
-        Add method to image_info to check for equality
+        Add method to PIVImage to check for equality
 
         Allows equality check such as:
         obj1 = MyClass(1)
