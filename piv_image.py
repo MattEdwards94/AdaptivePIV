@@ -1,71 +1,54 @@
 import image_info
 import scipy.io as sio
 import h5py
-# import matplotlib.image as mpimg
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 import time
 
 
-class piv_image:
+class PIVImage:
+    """
+    Stores the information for a PIV image pair and provides functionality to
+    select sub regions/perform pre-processing/image deformation etc.
 
-    def __init__(self, im_info, im_number):
-        """reads in the image relating to the details stored in imInfo
-        imNumber corresponds to the snapshot in the ensemble
-        if imNumber is greater than the total number of images in the ensemble
-        then it will try to open the image.
-        A warning will be passed if this succeeds informing the user to
-        update the image information
-        An error will raise if the image does not exist
+    Attributes:
+        IA (TYPE): Description
+        IB (TYPE): Description
+        mask (TYPE): Description
+
+    """
+
+    def __init__(self, IA, IB, mask=None):
+        """
+        Stores the two images IA and IB along with the associated mask.
 
         Args:
-            imInfo (ImageInfo): image_info.ImageInfo() object containing
-                                information about the flow type
-            imNumber (int): the specific image to load from the ensemble
+            IA (numpy array): Description
+            IB (numpy array): Description
+            mask (numpy array): Description
         """
-        # save information about the current image
-        self.img_details = im_info
-        self.img_number = im_number
 
-        # load filenames including mask
-        fnames = im_info.formatted_filenames(im_number)
+        if np.shape(IA) != np.shape(IB):
+            raise ValueError("shape of IA must match the shape of IB")
 
-        # image A
-        if fnames[0][-4:] == ".mat":
-            try:
-                img = sio.loadmat(fnames[0])
-                self.IA = img['IA']
-                pass
-            except NotImplementedError:
-                img = h5py.File(fnames[0])
-                self.IA = np.array(img['IA'])
+        if mask is not None:
+            if np.shape(IA) != np.shape(mask):
+                raise ValueError("The shape of the mask must match IA and IB")
         else:
-            self.IA = np.asarray(Image.open(fnames[0])).copy()
+            mask = np.zeros(np.shape(IA))
 
-        # image B
-        if fnames[1][-4:] == ".mat":
-            try:
-                img = sio.loadmat(fnames[1])
-                self.IB = img['IB']
-                pass
-            except NotImplementedError:
-                img = h5py.File(fnames[1])
-                self.IB = np.array(img['IB'])
-        else:
-            self.IB = np.asarray(Image.open(fnames[1])).copy()
-
-        # mask
-        if fnames[2] == "none":
-            self.mask = np.zeros(np.shape(self.IA))
-        else:
-            self.mask = np.asarray(Image.open(fnames[2])).copy()
+        self.IA = IA
+        self.IB = IB
+        self.mask = mask
 
     def __repr__(self):
         """returns the representation of the piv_image object
         """
-        return "piv_image(image_info.ImageInfo({}), {})".format(
-            self.img_details.flowtype, self.img_number)
+        return "piv_image.PIVImage(np.{}, np.{}, np.{})".format(
+            np.array_repr(self.IA),
+            np.array_repr(self.IB),
+            np.array_repr(self.mask))
 
     def __eq__(self, other):
         """
@@ -87,7 +70,7 @@ class piv_image:
         obj1 == OtherClass(1)
             returns NotImplemented
         """
-        if not isinstance(other, piv_image):
+        if not isinstance(other, PIVImage):
             return NotImplemented
 
         for s, o in zip(self.__dict__, other.__dict__):
@@ -140,30 +123,34 @@ class piv_image:
 
 
 if __name__ == "__main__":
-    image_info.list_available_flowtypes()
-    print('loading image details for BFS')
-    img_details = image_info.ImageInfo(22)
-    img = piv_image(img_details, 1)
-    print(img_details)
+    img = piv_image(np.random.rand(55, 55), np.random.rand(55, 55))
+    print(img)
+    repr(img)
 
-    ia, ib, mask = img.get_region(24, 24, 10)
-    print(ia)
-    print(ib)
-    print(mask)
+    # image_info.list_available_flowtypes()
+    # print('loading image details for BFS')
+    # img_details = image_info.ImageInfo(22)
+    # img = piv_image(img_details, 1)
+    # print(img_details)
 
-    start = time.time()
-    for i in range(0, 10000):
-        ia, ib, mask = img.get_region(24, 24, 10)
-    end = time.time()
-    print(end - start)
+    # ia, ib, mask = img.get_region(24, 24, 10)
+    # print(ia)
+    # print(ib)
+    # print(mask)
 
-    print(repr(img))
-    img_2 = eval(repr(img))
-    if img_2 == img:
-        print("Yay, it worked")
+    # start = time.time()
+    # for i in range(0, 10000):
+    #     ia, ib, mask = img.get_region(24, 24, 10)
+    # end = time.time()
+    # print(end - start)
 
-    en = time.time()
-    print("Time: {}".format(en - start))
+    # print(repr(img))
+    # img_2 = eval(repr(img))
+    # if img_2 == img:
+    #     print("Yay, it worked")
+
+    # en = time.time()
+    # print("Time: {}".format(en - start))
 
     # print(ia)
     """for ii in range(1, 5):
