@@ -62,7 +62,7 @@ class ImageInfo:
         """returns the representation of the object,
         i.e. how it is constructed
         """
-        return "ImageInfo({})".format(self.flowtype)
+        return "image_info.ImageInfo({})".format(self.flowtype)
 
     def __str__(self):
         """Returns a textual representation of the object which includes
@@ -159,7 +159,7 @@ class ImageInfo:
         if self.has_mask:
             filenames.append(root + folder + self.mask_fname)
         else:
-            filenames.append('none')
+            filenames.append(None)
         return filenames
 
 
