@@ -46,9 +46,9 @@ class PIVImage:
         else:
             mask = np.zeros(np.shape(IA))
 
-        self.IA = IA
-        self.IB = IB
-        self.mask = mask
+        self.IA = np.array(IA)
+        self.IB = np.array(IB)
+        self.mask = np.array(mask)
 
     def __repr__(self):
         """returns the representation of the PIVImage object
@@ -131,9 +131,8 @@ class PIVImage:
 
 
 if __name__ == "__main__":
-    img = piv_image(np.random.rand(55, 55), np.random.rand(55, 55))
+    img = PIVImage(np.random.rand(55, 55), np.random.rand(55, 55))
     print(img)
-    repr(img)
 
     # image_info.list_available_flowtypes()
     # print('loading image details for BFS')
