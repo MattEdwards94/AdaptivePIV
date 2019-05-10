@@ -68,34 +68,49 @@ class PIVImage:
         """
         Add method to PIVImage to check for equality
 
-        Allows equality check such as:
-            obj1 = MyClass(1)
-            obj2 = MyClass(2)
-            obj3 = MyClass(1)
+        PIVImage objects are considered equal if IA, IB, and mask all match
 
-            obj1 == obj2
-                returns false
-
-            obj1 == obj3
-                returns true
-
-            Will return NotImplemted if the classes are not of the same type
+        Only compares equality to other PIVImage objects.
+        Will return NotImplemented if the classes are not of the same type
             e.g.
-            obj1 == OtherClass(1)
+            obj1 = PIVImage(IA, IB)
+            obj2 = MyClass(a, b)
+            obj1 == obj2
                 returns NotImplemented
 
         Args:
-            other (TYPE): Description
+            other (PIVImage): The object to be compared against
 
         Returns:
-            TYPE: Description
+            Bool: True or False depending on object equality
+
+        Examples:
+        >>> obj1 = PIVImage(IA, IB)
+        >>> obj2 = PIVImage(IA, IB)
+        >>> obj1 == obj2
+        ... returns True
+
+        >>> obj3 = PIVImage(IA2, IB2)
+        >>> obj3 == obj1
+        ... returns False
+
+        >>> obj4 = MyOtherClass(a, b, c)
+        >>> obj4 == obj1
+        ... returns NotImplemented
         """
+        # print(other)
+        # print(isinstance(other, PIVImage))
         if not isinstance(other, PIVImage):
             return NotImplemented
 
-        for s, o in zip(self.__dict__, other.__dict__):
-            if not np.all(s == o):
-                return False
+        if not np.alltrue(self.IA == other.IA):
+            return False
+
+        if not np.alltrue(self.IB == other.IB):
+            return False
+
+        if not np.alltrue(self.mask == other.mask):
+            return False
 
         return True
 

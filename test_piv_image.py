@@ -59,6 +59,34 @@ class TestPIVImage(unittest.TestCase):
         self.assertEqual(img.n_cols, 100)
         self.assertEqual(img.img_dim, [50, 100])
 
+    def test_eq_method_evaluates_correctly(self):
+        """
+        the __eq__ method should compare if two image objects are the same.
+        this should also be able to distinguish if two image objects are not
+        equal
+        """
+
+        # create sets of images
+        IA1 = np.random.rand(50, 50)
+        IB1 = np.random.rand(50, 50)
+        IA2 = np.random.rand(50, 50)
+        IB2 = np.random.rand(50, 50)
+        IA3 = np.random.rand(10, 10)
+        IB3 = np.random.rand(10, 10)
+
+        img1 = piv_image.PIVImage(IA1, IB1)
+        img1_copy = piv_image.PIVImage(IA1, IB1)
+        img2 = piv_image.PIVImage(IA2, IB2)
+        img3 = piv_image.PIVImage(IA3, IB3)
+
+        # check img1 and img1_copy return equal
+        self.assertEqual(img1, img1_copy)
+        self.assertNotEqual(img1, img2)
+        self.assertNotEqual(img2, img3)
+
+        # check that NotImplemented is raised if compared to another object
+        self.assertEqual(img1.__eq__(4), NotImplemented)
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)
