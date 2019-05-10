@@ -54,8 +54,10 @@ class PIVImage:
         if mask is not None:
             if np.shape(IA) != np.shape(mask):
                 raise ValueError("The shape of the mask must match IA and IB")
+            self.has_mask = True
         else:
             mask = np.zeros(np.shape(IA))
+            self.has_mask = False
 
         self.IA = np.array(IA)
         self.IB = np.array(IB)
@@ -114,25 +116,35 @@ class PIVImage:
 
         return True
 
-    def get_region(self, x_ctr, y_ctr, rad):
-        """retrieves the pixel intensities for the region requested.
+    def get_region(self, x, y, rad):
+        """
+        Retrieves the pixel intensities for the region requested.
         If the region requested extends beyond the image dimensions, then
         such pixels will be set to 0 intensity.
 
+        Matrix access is base 0 and is ROW major
+        -------------
+        | 0| 1| 2| 3|
+        -------------
+        | 4| 5| 6| 7|
+        -------------
+        | 8| 9|10|11|
+        -------------
+
         Args:
-            x_ctr (int): The x coord of the centre of the region to be extracted
-            y_ctr (int): The y coord of the centre of the region to be extracted
+            x (int): x coord of the centre of the region to be extracted
+            y (int): y coord of the centre of the region to be extracted
             rad (int): the number of pixels to extend in each directions
 
         Returns:
-            ia (np array): Intensity values from the first image in the region
-                           [x_ctr-rad:x_ctr+rad, y_ctr-rad:y_ctr+rad]
+            ia (ndarray): Intensity values from the first image in the region
+                           [x-rad:x+rad, y-rad:y+rad]
                            np.shape(ia) = ((2*rad+1), (2*rad+1))
-            ib (np array): Intensity values from the second image in the region
-                           [x_ctr-rad:x_ctr+rad, y_ctr-rad:y_ctr+rad]
+            ib (ndarray): Intensity values from the second image in the region
+                           [x-rad:x+rad, y-rad:y+rad]
                            np.shape(ib) = ((2*rad+1), (2*rad+1))
-            mask (np array): Mask flag values in the region
-                           [x_ctr-rad:x_ctr+rad, y_ctr-rad:y_ctr+rad]
+            mask (ndarray): Mask flag values in the region
+                           [x-rad:x+rad, y-rad:y+rad]
                            np.shape(mask) = ((2*rad+1), (2*rad+1))
 
         Examples:
@@ -142,31 +154,36 @@ class PIVImage:
 
         """
 
-        # initialises the output
-        WS = 2 * rad + 1
-        ia = np.zeros((WS, WS))
-        ib = np.zeros((WS, WS))
-        mask = np.zeros((WS, WS))
+        """
+        extract what region we can within the image.
+        to do this we need to know where we are with respect to the limits
+        of the image
+        """
+        # if x - rad is < 0, set to 0, if > n_cols, set to n_cols - 1
+        # the minus 1 is because of 0 indexing
+        left = max(min(x - rad, self.n_cols - 1), 0)
+        right = max(min(x + rad, self.n_cols - 1), 0)
+        bottom = max(min(y - rad, self.n_rows - 1), 0)
+        top = max(min(y + rad, self.n_rows - 1), 0)
 
-        # determine the region of the window which lies within the image
-        l = max(min(x_ctr - rad - 1, self.img_details.n_cols), 0)
-        r = max(min(x_ctr + rad - 1, self.img_details.n_cols), 0)
-        b = max(min(y_ctr - rad - 1, self.img_details.n_rows), 0)
-        t = max(min(y_ctr + rad - 1, self.img_details.n_rows), 0)
+        # extract this region out of the images/mask
+        # note the +1 is because left:right is not inclusive of right
+        ia_tmp = self.IA[bottom:top + 1, left:right + 1]
+        ib_tmp = self.IB[bottom:top + 1, left:right + 1]
 
-        # now determine where in the output window the data should sit
-        # i.e. if the window overlaps over the right hand edge of the image
-        # then there are going to be 0's on the rhs of the corr window
-        lStart = max(l - (x_ctr - rad), 1)
-        rEnd = lStart + (r - l)
-        bStart = max(b - (y_ctr - rad), 1)
-        tEnd = bStart + t - b
+        # now pad the image with 0's if ctr +- rad overlaps the edge
+        pl = max(rad - x, 0)
+        pr = max(x + rad - self.n_cols + 1, 0)
+        pb = max(rad - y, 0)
+        pt = max(y + rad - self.n_rows + 1, 0)
+        pad = ((pb, pt), (pl, pr))
 
-        # now read values
-        ia[bStart:tEnd][:, lStart:rEnd] = self.IA[b:t][:, l:r]
-        ib[bStart:tEnd][:, lStart:rEnd] = self.IB[b:t][:, l:r]
-        if self.img_details.has_mask:
-            mask[bStart:tEnd][:, lStart:rEnd] = self.mask[b:t][:, l:r]
+        ia = np.pad(ia_tmp, pad, 'constant', constant_values=0)
+        ib = np.pad(ib_tmp, pad, 'constant', constant_values=0)
+        if self.has_mask:
+            mask = np.pad(
+                self.mask[bottom:top + 1, left:right + 1], pad,
+                'constant', constant_values=0)
 
         return ia, ib, mask
 
@@ -174,7 +191,6 @@ class PIVImage:
 if __name__ == "__main__":
     img = PIVImage(np.random.rand(55, 55), np.random.rand(55, 55))
     print(img)
-
     # image_info.list_available_flowtypes()
     # print('loading image details for BFS')
     # img_details = image_info.ImageInfo(22)
