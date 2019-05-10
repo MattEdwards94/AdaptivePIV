@@ -1,6 +1,5 @@
 import unittest
 import piv_image
-import image_info
 import numpy as np
 
 
@@ -20,7 +19,7 @@ class TestPIVImage(unittest.TestCase):
         """
 
         # self.IA, IB, mask are all the same size so this should work fine
-        img = piv_image.PIVImage(self.IA, self.IB, self.mask)
+        piv_image.PIVImage(self.IA, self.IB, self.mask)
 
         # now change the size of IB and check an error is thrown
         size = np.shape(self.IA)
