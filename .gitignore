@@ -56,3 +56,9 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# mindview maps open file lock
+~$*.mvdx
+
+#sublime workspace
+my_first_project.sublime-workspace
