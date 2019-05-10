@@ -43,17 +43,23 @@ class TestPIVImage(unittest.TestCase):
         expected = np.zeros(np.shape(self.IA))
         self.assertTrue(np.alltrue(img.mask == expected))
 
-    def test_repr_reproduces_object(self):
-        """Check that the __repr__ method recreates an equivalent object
+    def test_image_dimensions_are_captured(self):
+        """check that the size of the image is captured into the variables
+        n_rows
+        n_cols
+        img_dim
         """
 
-        # create dummy object
-        img = piv_image.PIVImage(self.IA, self.IB, self.mask)
-
-        # create object using __repr__
-        img_repr = eval(repr(img))
-        self.assertEqual(img, img_repr)
+        # use non-square images so we are sure that we are capturing the
+        # correct dimensions
+        IA = np.random.rand(50, 100)
+        IB = np.random.rand(50, 100)
+        mask = np.random.randint(0, 2, (50, 100))
+        img = piv_image.PIVImage(IA, IB, mask)
+        self.assertEqual(img.n_rows, 50)
+        self.assertEqual(img.n_cols, 100)
+        self.assertEqual(img.img_dim, [50, 100])
 
 
 if __name__ == "__main__":
-    unittest.main(buffer=False)
+    unittest.main(buffer=True)

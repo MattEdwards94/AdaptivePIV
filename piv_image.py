@@ -18,12 +18,15 @@ class PIVImage:
                    Must have the same dimensions as IA
         mask (np array): Image mask indicating regions not to be considered
                      in the analysis
+        n_rows(int): The number of rows in the image
+        n_cols(int): The number of columns in the image
+        img_dim(list): The dimensions of the image [n_rows, n_cols]
 
     Examples:
-    >>>IA = np.random.rand(100, 100)
-    >>>IB = np.random.rand(100, 100)
-    >>>mask = np.random.randint(0, 2, (100, 100))
-    >>>obj = PIVImage(IA, IB, mask)
+        >>>IA = np.random.rand(100, 100)
+        >>>IB = np.random.rand(100, 100)
+        >>>mask = np.random.randint(0, 2, (100, 100))
+        >>>obj = PIVImage(IA, IB, mask)
     """
 
     def __init__(self, IA, IB, mask=None):
@@ -35,6 +38,14 @@ class PIVImage:
                        Must have the same dimensions as IA
         mask (np array): Image mask indicating regions not to be considered
                          in the analysis
+
+        Args:
+            IA (TYPE): Description
+            IB (TYPE): Description
+            mask (None, optional): Description
+
+        Raises:
+            ValueError: If the shapes of IA, IB, and mask are not the same
         """
 
         if np.shape(IA) != np.shape(IB):
@@ -49,34 +60,35 @@ class PIVImage:
         self.IA = np.array(IA)
         self.IB = np.array(IB)
         self.mask = np.array(mask)
-
-    def __repr__(self):
-        """returns the representation of the PIVImage object
-        """
-        return "piv_image.PIVImage(np.{}, np.{}, np.{})".format(
-            np.array_repr(self.IA),
-            np.array_repr(self.IB),
-            np.array_repr(self.mask))
+        self.n_rows = np.shape(IA)[0]
+        self.n_cols = np.shape(IA)[1]
+        self.img_dim = [self.n_rows, self.n_cols]
 
     def __eq__(self, other):
         """
         Add method to PIVImage to check for equality
 
         Allows equality check such as:
-        obj1 = MyClass(1)
-        obj2 = MyClass(2)
-        obj3 = MyClass(1)
+            obj1 = MyClass(1)
+            obj2 = MyClass(2)
+            obj3 = MyClass(1)
 
-        obj1 == obj2
-            returns false
+            obj1 == obj2
+                returns false
 
-        obj1 == obj3
-            returns true
+            obj1 == obj3
+                returns true
 
-        Will return NotImplemted if the classes are not of the same type
-        e.g.
-        obj1 == OtherClass(1)
-            returns NotImplemented
+            Will return NotImplemted if the classes are not of the same type
+            e.g.
+            obj1 == OtherClass(1)
+                returns NotImplemented
+
+        Args:
+            other (TYPE): Description
+
+        Returns:
+            TYPE: Description
         """
         if not isinstance(other, PIVImage):
             return NotImplemented
@@ -93,12 +105,26 @@ class PIVImage:
         such pixels will be set to 0 intensity.
 
         Args:
-            x_ctr (TYPE): Description
-            y_ctr (TYPE): Description
-            rad (TYPE): Description
+            x_ctr (int): The x coord of the centre of the region to be extracted
+            y_ctr (int): The y coord of the centre of the region to be extracted
+            rad (int): the number of pixels to extend in each directions
 
         Returns:
-            TYPE: Description
+            ia (np array): Intensity values from the first image in the region
+                           [x_ctr-rad:x_ctr+rad, y_ctr-rad:y_ctr+rad]
+                           np.shape(ia) = ((2*rad+1), (2*rad+1))
+            ib (np array): Intensity values from the second image in the region
+                           [x_ctr-rad:x_ctr+rad, y_ctr-rad:y_ctr+rad]
+                           np.shape(ib) = ((2*rad+1), (2*rad+1))
+            mask (np array): Mask flag values in the region
+                           [x_ctr-rad:x_ctr+rad, y_ctr-rad:y_ctr+rad]
+                           np.shape(mask) = ((2*rad+1), (2*rad+1))
+
+        Examples:
+        >>> ia, ib, mask = PIVImage.get_region(20, 15, 9)
+        >>> np.shape(ia)
+        ... (18, 18)
+
         """
 
         # initialises the output
