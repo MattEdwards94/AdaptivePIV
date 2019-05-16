@@ -3,7 +3,7 @@ import numpy as np
 import dense_predictor
 
 
-class TestImageInfo(unittest.TestCase):
+class testDensePredictor(unittest.TestCase):
     def test_initialisation_with_mask(self):
         """
         checks the initialisation using u, v, and mask
@@ -168,6 +168,58 @@ class TestImageInfo(unittest.TestCase):
         self.assertTrue(np.allclose(u, exp_arr))
         self.assertTrue(np.allclose(v, exp_arr))
         self.assertTrue(np.allclose(mask, exp_arr))
+
+    def test_overload_add_operator_sums_correctly(self):
+        """
+        This test function is the check that the contents of
+        dp3 = dp1 + dp2
+        is mathematically correct
+        i.e. checking that it has added correctly
+        """
+
+        u1 = np.arange(1, 82)
+        u2 = np.arange(101, 182)
+        u3 = np.arange(201, 282)
+        u1 = np.reshape(u1, (9, 9))
+        u2 = np.reshape(u2, (9, 9))
+        u3 = np.reshape(u3, (9, 9))
+
+        dp1 = dense_predictor.DensePredictor(u1, u2)
+        dp2 = dense_predictor.DensePredictor(u2, u3)
+        dp3 = dp1 + dp2
+        self.assertTrue(np.allclose(dp3.u, (u1 + u2)))
+        self.assertTrue(np.allclose(dp3.v, (u2 + u3)))
+
+    def test_overload_add_takes_mask_from_lhs(self):
+        """
+        This test function checks that, in the presence of two distinct masks
+        that the mask from the lhs is taken.
+        Also checks that a warning is raised in this case
+        """
+
+        u1 = np.arange(1, 82)
+        u2 = np.arange(101, 182)
+        u3 = np.arange(201, 282)
+        mask1 = np.random.randint(0, 2, (9, 9))
+        u1 = np.reshape(u1, (9, 9))
+        u2 = np.reshape(u2, (9, 9))
+        u3 = np.reshape(u3, (9, 9))
+
+        dp1 = dense_predictor.DensePredictor(u1, u2, mask1)
+        dp2 = dense_predictor.DensePredictor(u2, u3)
+        with self.assertWarns(UserWarning):
+            dp3 = dp1 + dp2
+
+        self.assertTrue(np.allclose(dp3.u, (u1 + u2)))
+        self.assertTrue(np.allclose(dp3.v, (u2 + u3)))
+        self.assertTrue(np.allclose(dp3.mask, mask1))
+
+        with self.assertWarns(UserWarning):
+            dp3 = dp2 + dp1
+
+        self.assertTrue(np.allclose(dp3.u, (u1 + u2)))
+        self.assertTrue(np.allclose(dp3.v, (u2 + u3)))
+        self.assertTrue(np.allclose(dp3.mask, np.ones((9, 9))))
 
 
 if __name__ == '__main__':

@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 
 class DensePredictor(object):
@@ -121,3 +122,35 @@ class DensePredictor(object):
                     'constant', constant_values=0)
 
         return u, v, mask
+
+    def __add__(self, other):
+        """
+        Overloads the operator for addition
+
+        The mask is taken from the left hand argument.
+        If the masks are not the same then a warming is issued
+
+        Args:
+            other (DensePredictor): Another Densepredictor object, must have the
+                                    same dimensions as self
+        """
+
+        # don't provide functionality for any other class
+        if not isinstance(other, DensePredictor):
+            return NotImplemented
+
+        # check that the dimensions are the same
+        if not np.alltrue(self.img_dim == other.img_dim):
+            raise ValueError("DensePredictors must be the same size")
+
+        # check if the masks are not the same
+        if not np.alltrue(self.mask == other.mask):
+            warnings.warn("The two masks are not identical. Mask taken from \
+                           the left hand argument.")
+
+        # calculate the sum
+        newU = self.u + other.u
+        newV = self.v + other.v
+        newMask = self.mask
+
+        return DensePredictor(newU, newV, newMask)
