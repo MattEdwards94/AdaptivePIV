@@ -151,7 +151,7 @@ class ImageInfo:
         if im_number > self.n_images:
             warnings.warn("im_number exceeds known number of images.")
 
-        root = "C:/Users/me12288/local documents/PhD - Local/"
+        root = "C:/Users/me12288/Documents/"
         folder = "images/imageDB/" + self.folder + "/"
         filenames = []
         filenames.append(root + folder + self.filename % (im_number, 'a'))
