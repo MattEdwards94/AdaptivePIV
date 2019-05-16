@@ -161,6 +161,38 @@ class TestPIVImage(unittest.TestCase):
         self.assertTrue(np.allclose(ib, exp_arr))
         self.assertTrue(np.allclose(mask, exp_arr))
 
+    def test_get_region_returns_mask_if_not_defined(self):
+        """
+        The region returned should be ctr-rad:ctr+rad in both x and y
+        Can test this by creating an image with known pixel 'intensities'
+
+        [[ 1,  2,  3,  4,  5,  6],
+         [ 7,  8,  9, 10, 11, 12],
+         [13, 14, 15, 16, 17, 18],
+         [19, 20, 21, 22, 23, 24],
+         [25, 26, 27, 28, 29, 30],
+         [31, 32, 33, 34, 35, 36]]
+
+        """
+
+        size_of_img = (6, 6)
+        IA = np.arange(1, size_of_img[0] * size_of_img[1] + 1)
+        IA = np.reshape(IA, size_of_img)
+        IB = np.array(IA)
+        img = piv_image.PIVImage(IA, IB)
+        ia, ib, mask = img.get_region(3, 3, 2)
+
+        # manually determine the expected array
+        exp_arr = np.array([[8, 9, 10, 11, 12],
+                            [14, 15, 16, 17, 18],
+                            [20, 21, 22, 23, 24],
+                            [26, 27, 28, 29, 30],
+                            [32, 33, 34, 35, 36]])
+        print(ia)
+        self.assertTrue(np.allclose(ia, exp_arr))
+        self.assertTrue(np.allclose(ib, exp_arr))
+        self.assertTrue(np.allclose(mask, np.zeros((5, 5))))
+
     def test_load_mat_image_from_flowtype(self):
         """
         This test method tests that we can load .mat files in which are before

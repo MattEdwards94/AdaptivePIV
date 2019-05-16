@@ -184,6 +184,8 @@ class PIVImage:
             mask = np.pad(
                 self.mask[bottom:top + 1, left:right + 1], pad,
                 'constant', constant_values=0)
+        else:
+            mask = np.zeros((2 * rad + 1, 2 * rad + 1))
 
         return ia, ib, mask
 
