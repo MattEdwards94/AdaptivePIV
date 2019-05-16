@@ -219,6 +219,17 @@ class TestPIVImage(unittest.TestCase):
         flowtype = 1  # bfs
         IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
 
+    def test_load_image_loads_mask_file_if_no_file(self):
+        """
+        If the mask stored in the database is 'None' then set array with
+        all ones
+        vortex array (22) doesn't load a mask
+        """
+
+        flowtype = 22  # vortex array
+        IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+        self.assertTrue(np.allclose(mask, np.ones(np.shape(IA))))
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)
