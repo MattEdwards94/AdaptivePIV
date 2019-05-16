@@ -188,9 +188,87 @@ class PIVImage:
         return ia, ib, mask
 
 
+def load_image_from_flow_type(flowtype, im_number):
+    """
+    Loads the PIV image pair associated with the specified flowtype and the
+    image number
+    Also loads the mask associated, if there is one.
+    If not mask is stored for the specified flowtype, then mask is returned
+    as zeros(shape(IA))
+
+    Args:
+        flowtype (Int): The flowtype of the desired piv images.
+                        For more information call
+                        image_info.list_available_flowtypes()
+        im_number (Int): The number in the ensemble to load into memory.
+                         If im_number is greater than the known number of images
+                         for the specified flowtype, a warning will be raised
+                         The method will still try to open the requested file
+                         If the file does not exist then an error will
+                         be raised
+
+    Returns:
+        IA (ndarray): Image intensities for the first in the image pair
+        IB (ndarray): Image intensities for the second in the image pair
+        mask (ndarray): mask values with 0 for no mask and 1 for mask
+
+    Examples:
+        >>> import image_info
+        >>> image_info.list_available_flowtypes() # to obtain options
+        >>> IA, IB, mask = piv_image.load_image_from_flow_type(1, 20)
+    """
+    # first load the image information
+    im_info = image_info.ImageInfo(flowtype)
+
+    # get the formatted filename with the correct image number inserted
+    filenames = im_info.formatted_filenames(im_number)
+
+    # try to load image A
+    if filenames[0][-4:] == ".mat":
+        try:
+            # mat files <7.3
+            img = sio.loadmat(filenames[0])
+            IA = img['IA']
+            pass
+        except NotImplementedError:
+            # mat files v7.3
+            img = h5py.File(filenames[0])
+            IA = np.array(img['IA'])
+    else:
+        # IA = Image.open(filenames[0])
+        # IA.load()
+        IA = np.asarray(Image.open(filenames[0])).copy()
+
+    # image B
+    if filenames[1][-4:] == ".mat":
+        try:
+             # mat files <7.3
+            img = sio.loadmat(filenames[1])
+            IB = img['IB']
+            pass
+        except NotImplementedError:
+            # mat files v7.3
+            img = h5py.File(filenames[1])
+            IB = np.array(img['IB'])
+    else:
+        IB = np.asarray(Image.open(filenames[1])).copy()
+
+    # mask
+    if filenames[2] is None:
+        mask = np.zeros(np.shape(IA))
+    else:
+        mask = np.asarray(Image.open(filenames[2])).copy()
+
+    return IA, IB, mask
+
+
 if __name__ == "__main__":
     img = PIVImage(np.random.rand(55, 55), np.random.rand(55, 55))
     print(img)
+
+    IA, IB, mask = load_image_from_flow_type(22, 1)
+
+    # img = load_image_from_flow_type(22, 1)
     # image_info.list_available_flowtypes()
     # print('loading image details for BFS')
     # img_details = image_info.ImageInfo(22)
