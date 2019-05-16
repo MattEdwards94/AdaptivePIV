@@ -4,8 +4,6 @@ import numpy as np
 # import timeit
 import time
 import math
-import pyfftw
-import multiprocessing
 
 
 def correlate(wsa, wsb):

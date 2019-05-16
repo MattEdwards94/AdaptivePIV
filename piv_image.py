@@ -2,9 +2,9 @@ import image_info
 import scipy.io as sio
 import h5py
 from PIL import Image
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
-import time
+# import time
 
 
 class PIVImage:
