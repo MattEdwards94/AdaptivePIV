@@ -32,14 +32,14 @@ class TestPIVImage(unittest.TestCase):
         with self.assertRaises(ValueError):
             piv_image.PIVImage(self.IA, self.IB, bad_mask)
 
-    def test_mask_set_to_zeros_if_not_passed(self):
+    def test_mask_set_to_ones_if_not_passed(self):
         """The default value for mask is None. In this case, an empty mask of
-        zeros will be created with the same size as IA and IB
+        ones will be created with the same size as IA and IB
         """
 
-        # if no mask is set, we should obtain an array of zeros of size img_size
+        # if no mask is set, we should obtain an array of ones of size img_size
         img = piv_image.PIVImage(self.IA, self.IB)
-        expected = np.zeros(np.shape(self.IA))
+        expected = np.ones(np.shape(self.IA))
         self.assertTrue(np.alltrue(img.mask == expected))
 
     def test_initialisation_assigns_intensities_correctly(self):
@@ -191,7 +191,7 @@ class TestPIVImage(unittest.TestCase):
         print(ia)
         self.assertTrue(np.allclose(ia, exp_arr))
         self.assertTrue(np.allclose(ib, exp_arr))
-        self.assertTrue(np.allclose(mask, np.zeros((5, 5))))
+        self.assertTrue(np.allclose(mask, np.ones((5, 5))))
 
     def test_load_mat_image_from_flowtype(self):
         """

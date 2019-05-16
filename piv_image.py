@@ -56,7 +56,7 @@ class PIVImage:
                 raise ValueError("The shape of the mask must match IA and IB")
             self.has_mask = True
         else:
-            mask = np.zeros(np.shape(IA))
+            mask = np.ones(np.shape(IA))
             self.has_mask = False
 
         self.IA = np.array(IA)
@@ -185,7 +185,7 @@ class PIVImage:
                 self.mask[bottom:top + 1, left:right + 1], pad,
                 'constant', constant_values=0)
         else:
-            mask = np.zeros((2 * rad + 1, 2 * rad + 1))
+            mask = np.ones((2 * rad + 1, 2 * rad + 1))
 
         return ia, ib, mask
 
@@ -244,7 +244,7 @@ def load_image_from_flow_type(flowtype, im_number):
     # image B
     if filenames[1][-4:] == ".mat":
         try:
-             # mat files <7.3
+            # mat files <7.3
             img = sio.loadmat(filenames[1])
             IB = img['IB']
             pass
@@ -257,7 +257,7 @@ def load_image_from_flow_type(flowtype, im_number):
 
     # mask
     if filenames[2] is None:
-        mask = np.zeros(np.shape(IA))
+        mask = np.ones(np.shape(IA))
     else:
         mask = np.asarray(Image.open(filenames[2])).copy()
 
