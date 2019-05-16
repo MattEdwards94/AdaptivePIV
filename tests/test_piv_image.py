@@ -161,6 +161,32 @@ class TestPIVImage(unittest.TestCase):
         self.assertTrue(np.allclose(ib, exp_arr))
         self.assertTrue(np.allclose(mask, exp_arr))
 
+    def test_load_mat_image_from_flowtype(self):
+        """
+        This test method tests that we can load .mat files in which are before
+        version 7.3 as well as use the correct h5py library to load v7.3
+
+        The vortex array and lamb oseen are both in format v7
+        The Gaussian images are in v7.3
+        """
+
+        # we just want to check that it loads without issue
+        flowtype = 22  # vortex array
+        IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+
+        flowtype = 24  # gaussian smoothed
+        IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+
+    def test_load_image_file(self):
+        """
+        Want to test that the method loads images if the requested file is a
+        regular image file
+        """
+
+        # just checking it loads without issue
+        flowtype = 1  # bfs
+        IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)
