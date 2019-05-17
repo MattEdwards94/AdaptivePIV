@@ -282,3 +282,14 @@ class DensePredictor(object):
         newV = self.v / other.v
 
         return DensePredictor(newU, newV, self.mask)
+
+    def apply_mask(self):
+        """
+        Method to apply the mask
+        locations where the mask is 0 will have the
+        u, v displacements set to nan
+        """
+
+        inter = self.mask == 0
+        self.u[inter] = np.nan
+        self.v[inter] = np.nan

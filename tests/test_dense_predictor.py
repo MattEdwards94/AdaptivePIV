@@ -377,6 +377,26 @@ class testDensePredictor(unittest.TestCase):
         self.assertTrue(np.allclose(dp3.v, (u3 / u2)))
         self.assertTrue(np.allclose(dp3.mask, np.ones((9, 9))))
 
+    def test_apply_mask_sets_mask_regions_to_nan(self):
+        """
+        We want the 'apply mask' to set the appropriate region's to NaN
+        """
+
+        arr = np.random.rand(10, 10)
+        mask = np.ones((10, 10))
+        mask[(0, 1, 2, 3, 4), (0, 1, 2, 3, 4)] = 0
+        dp = dense_predictor.DensePredictor(arr, arr * 2, mask)
+
+        # set regions of the mask with 0 to nan
+        dp.apply_mask()
+        uExp = arr
+        uExp[(0, 1, 2, 3, 4), (0, 1, 2, 3, 4)] = np.nan
+        vExp = arr * 2
+        vExp[(0, 1, 2, 3, 4), (0, 1, 2, 3, 4)] = np.nan
+        self.assertTrue(np.allclose(dp.u, uExp, equal_nan=True))
+        self.assertTrue(np.allclose(dp.v, vExp, equal_nan=True))
+        self.assertTrue(np.allclose(dp.mask, mask))
+
 
 if __name__ == '__main__':
     unittest.main()
