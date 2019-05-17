@@ -128,11 +128,20 @@ class DensePredictor(object):
         Overloads the operator for addition
 
         The mask is taken from the left hand argument.
-        If the masks are not the same then a warming is issued
+        If the masks are not the same then a warning is issued
 
         Args:
             other (DensePredictor): Another Densepredictor object, must have the
                                     same dimensions as self
+
+        Returns:
+            DensePredictor: DensePredictor(self.u + other.u,
+                                           self.v + other.v,
+                                           self.mask)
+
+        Raises:
+            ValueError: If the input dimensions of self and other are not
+                        the same
         """
 
         # don't provide functionality for any other class
@@ -151,6 +160,125 @@ class DensePredictor(object):
         # calculate the sum
         newU = self.u + other.u
         newV = self.v + other.v
-        newMask = self.mask
 
-        return DensePredictor(newU, newV, newMask)
+        return DensePredictor(newU, newV, self.mask)
+
+    def __sub__(self, other):
+        """
+        Overloads the operator for subtraction
+
+        The mask is taken from the left hand argument.
+        If the masks are not the same then a warning is issued
+
+        Args:
+            other (DensePredictor): Another Densepredictor object, must have the
+                                    same dimensions as self
+
+        Returns:
+            DensePredictor: DensePredictor(self.u - other.u,
+                                           self.v - other.v,
+                                           self.mask)
+
+        Raises:
+            ValueError: If the input dimensions of self and other are not
+                        the same
+        """
+
+        # don't provide functionality for any other class
+        if not isinstance(other, DensePredictor):
+            return NotImplemented
+
+        # check that the dimensions are the same
+        if not np.alltrue(self.img_dim == other.img_dim):
+            raise ValueError("DensePredictors must be the same size")
+
+        # check if the masks are not the same
+        if not np.alltrue(self.mask == other.mask):
+            warnings.warn("The two masks are not identical. Mask taken from \
+                           the left hand argument.")
+
+        # calculate the sum
+        newU = self.u - other.u
+        newV = self.v - other.v
+
+        return DensePredictor(newU, newV, self.mask)
+
+    def __mul__(self, other):
+        """
+        Overloads the operator for multiplication
+
+        The mask is taken from the left hand argument.
+        If the masks are not the same then a warning is issued
+
+        Args:
+            other (DensePredictor): Another Densepredictor object, must have the
+                                    same dimensions as self
+
+        Returns:
+            DensePredictor: DensePredictor(self.u * other.u,
+                                           self.v * other.v,
+                                           self.mask)
+
+        Raises:
+            ValueError: If the input dimensions of self and other are not
+                        the same
+        """
+
+        # don't provide functionality for any other class
+        if not isinstance(other, DensePredictor):
+            return NotImplemented
+
+        # check that the dimensions are the same
+        if not np.alltrue(self.img_dim == other.img_dim):
+            raise ValueError("DensePredictors must be the same size")
+
+        # check if the masks are not the same
+        if not np.alltrue(self.mask == other.mask):
+            warnings.warn("The two masks are not identical. Mask taken from \
+                           the left hand argument.")
+
+        # calculate the sum
+        newU = self.u * other.u
+        newV = self.v * other.v
+
+        return DensePredictor(newU, newV, self.mask)
+
+    def __truediv__(self, other):
+        """
+        Overloads the operator for division
+
+        The mask is taken from the left hand argument.
+        If the masks are not the same then a warning is issued
+
+        Args:
+            other (DensePredictor): Another Densepredictor object, must have the
+                                    same dimensions as self
+
+        Returns:
+            DensePredictor: DensePredictor(self.u / other.u,
+                                           self.v / other.v,
+                                           self.mask)
+
+        Raises:
+            ValueError: If the input dimensions of self and other are not
+                        the same
+        """
+
+        # don't provide functionality for any other class
+        if not isinstance(other, DensePredictor):
+            return NotImplemented
+
+        # check that the dimensions are the same
+        if not np.alltrue(self.img_dim == other.img_dim):
+            raise ValueError("DensePredictors must be the same size")
+
+        # check if the masks are not the same
+        if not np.alltrue(self.mask == other.mask):
+            warnings.warn("The two masks are not identical. Mask taken from \
+                           the left hand argument.")
+
+        # calculate the sum
+        newU = self.u / other.u
+        newV = self.v / other.v
+
+        return DensePredictor(newU, newV, self.mask)
