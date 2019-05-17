@@ -39,9 +39,10 @@ class DensePredictor(object):
             mask = np.ones(np.shape(u))
             self.has_mask = False
 
-        self.u = u
-        self.v = v
+        self.u = np.array(u, dtype=np.float_)
+        self.v = np.array(v, dtype=np.float_)
         self.mask = mask
+        self.apply_mask()
         self.n_rows = np.shape(u)[0]
         self.n_cols = np.shape(u)[1]
         self.img_dim = [self.n_rows, self.n_cols]
@@ -186,8 +187,10 @@ class DensePredictor(object):
         # calculate the sum
         newU = self.u + other.u
         newV = self.v + other.v
+        dp = DensePredictor(newU, newV, self.mask)
+        dp.apply_mask()
 
-        return DensePredictor(newU, newV, self.mask)
+        return dp
 
     def __sub__(self, other):
         """
@@ -226,8 +229,10 @@ class DensePredictor(object):
         # calculate the sum
         newU = self.u - other.u
         newV = self.v - other.v
+        dp = DensePredictor(newU, newV, self.mask)
+        dp.apply_mask()
 
-        return DensePredictor(newU, newV, self.mask)
+        return dp
 
     def __mul__(self, other):
         """
@@ -266,8 +271,10 @@ class DensePredictor(object):
         # calculate the sum
         newU = self.u * other.u
         newV = self.v * other.v
+        dp = DensePredictor(newU, newV, self.mask)
+        dp.apply_mask()
 
-        return DensePredictor(newU, newV, self.mask)
+        return dp
 
     def __truediv__(self, other):
         """
@@ -304,10 +311,13 @@ class DensePredictor(object):
                            the left hand argument.")
 
         # calculate the sum
-        newU = self.u / other.u
-        newV = self.v / other.v
+        with np.errstate(divide='ignore'):
+            newU = self.u / other.u
+            newV = self.v / other.v
+        dp = DensePredictor(newU, newV, self.mask)
+        dp.apply_mask()
 
-        return DensePredictor(newU, newV, self.mask)
+        return dp
 
     def apply_mask(self):
         """
@@ -317,5 +327,5 @@ class DensePredictor(object):
         """
 
         inter = self.mask == 0
-        self.u[inter] = np.nan
-        self.v[inter] = np.nan
+        self.u[inter] = 0
+        self.v[inter] = 0

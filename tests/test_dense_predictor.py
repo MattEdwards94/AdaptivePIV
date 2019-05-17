@@ -15,6 +15,9 @@ class testDensePredictor(unittest.TestCase):
         mask = np.random.randint(0, 2, (100, 100))
         dp = dense_predictor.DensePredictor(u, v, mask)
 
+        u[mask == 0] = 0
+        v[mask == 0] = 0
+
         # check the saved u, v, mask
         self.assertTrue(np.alltrue(dp.u == u))
         self.assertTrue(np.alltrue(dp.v == v))
@@ -216,8 +219,8 @@ class testDensePredictor(unittest.TestCase):
         dp1 = dense_predictor.DensePredictor(u1, u2)
         dp2 = dense_predictor.DensePredictor(u2, u3)
         dp3 = dp1 + dp2
-        self.assertTrue(np.allclose(dp3.u, (u1 + u2)))
-        self.assertTrue(np.allclose(dp3.v, (u2 + u3)))
+        exp_dp = dense_predictor.DensePredictor(u1 + u2, u2 + u3)
+        self.assertTrue(dp3 == exp_dp)
 
     def test_overload_add_takes_mask_from_lhs(self):
         """
@@ -239,16 +242,22 @@ class testDensePredictor(unittest.TestCase):
         with self.assertWarns(UserWarning):
             dp3 = dp1 + dp2
 
-        self.assertTrue(np.allclose(dp3.u, (u1 + u2)))
-        self.assertTrue(np.allclose(dp3.v, (u2 + u3)))
-        self.assertTrue(np.allclose(dp3.mask, mask1))
+        exp_dp = dense_predictor.DensePredictor(u1 + u2, u2 + u3, mask1)
+        # areas in dp1 with a mask will still possess a mask, and so will be 0
+        exp_dp.apply_mask()
+        self.assertTrue(dp3 == exp_dp)
 
         with self.assertWarns(UserWarning):
             dp3 = dp2 + dp1
 
-        self.assertTrue(np.allclose(dp3.u, (u1 + u2)))
-        self.assertTrue(np.allclose(dp3.v, (u2 + u3)))
-        self.assertTrue(np.allclose(dp3.mask, np.ones((9, 9))))
+        # areas in dp1 with a mask will add 0 to the relavent location in dp2
+        u1_temp = np.array(u1)
+        u1_temp[mask1 == 0] = 0
+        u2_temp = np.array(u2)
+        u2_temp[mask1 == 0] = 0
+        exp_dp = dense_predictor.DensePredictor(
+            u2 + u1_temp, u3 + u2_temp, np.ones((9, 9)))
+        self.assertTrue(dp3 == exp_dp)
 
     def test_overload_minus_operator_sums_correctly(self):
         """
@@ -268,8 +277,8 @@ class testDensePredictor(unittest.TestCase):
         dp1 = dense_predictor.DensePredictor(u1, u2)
         dp2 = dense_predictor.DensePredictor(u2, u3)
         dp3 = dp1 - dp2
-        self.assertTrue(np.allclose(dp3.u, (u1 - u2)))
-        self.assertTrue(np.allclose(dp3.v, (u2 - u3)))
+        exp_dp = dense_predictor.DensePredictor(u1 - u2, u2 - u3)
+        self.assertTrue(dp3 == exp_dp)
 
     def test_overload_minus_takes_mask_from_lhs(self):
         """
@@ -291,16 +300,22 @@ class testDensePredictor(unittest.TestCase):
         with self.assertWarns(UserWarning):
             dp3 = dp1 - dp2
 
-        self.assertTrue(np.allclose(dp3.u, (u1 - u2)))
-        self.assertTrue(np.allclose(dp3.v, (u2 - u3)))
-        self.assertTrue(np.allclose(dp3.mask, mask1))
+        exp_dp = dense_predictor.DensePredictor(u1 - u2, u2 - u3, mask1)
+        exp_dp.apply_mask()
+        self.assertTrue(dp3 == exp_dp)
 
         with self.assertWarns(UserWarning):
             dp3 = dp2 - dp1
 
-        self.assertTrue(np.allclose(dp3.u, (u2 - u1)))
-        self.assertTrue(np.allclose(dp3.v, (u3 - u2)))
-        self.assertTrue(np.allclose(dp3.mask, np.ones((9, 9))))
+        # areas in dp1 with a mask will add 0 to the relavent location in dp2
+        u1_temp = np.array(u1)
+        u1_temp[mask1 == 0] = 0
+        u2_temp = np.array(u2)
+        u2_temp[mask1 == 0] = 0
+
+        exp_dp = dense_predictor.DensePredictor(
+            u2 - u1_temp, u3 - u2_temp, np.ones((9, 9)))
+        self.assertTrue(dp3 == exp_dp)
 
     def test_overload_multiply_operator_sums_correctly(self):
         """
@@ -320,8 +335,9 @@ class testDensePredictor(unittest.TestCase):
         dp1 = dense_predictor.DensePredictor(u1, u2)
         dp2 = dense_predictor.DensePredictor(u2, u3)
         dp3 = dp1 * dp2
-        self.assertTrue(np.allclose(dp3.u, (u1 * u2)))
-        self.assertTrue(np.allclose(dp3.v, (u2 * u3)))
+
+        exp_dp = dense_predictor.DensePredictor(u1 * u2, u2 * u3)
+        self.assertTrue(dp3 == exp_dp)
 
     def test_overload_multiply_takes_mask_from_lhs(self):
         """
@@ -343,16 +359,22 @@ class testDensePredictor(unittest.TestCase):
         with self.assertWarns(UserWarning):
             dp3 = dp1 * dp2
 
-        self.assertTrue(np.allclose(dp3.u, (u1 * u2)))
-        self.assertTrue(np.allclose(dp3.v, (u2 * u3)))
-        self.assertTrue(np.allclose(dp3.mask, mask1))
+        exp_dp = dense_predictor.DensePredictor(u1 * u2, u2 * u3, mask1)
+        exp_dp.apply_mask()
+        self.assertTrue(dp3 == exp_dp)
 
         with self.assertWarns(UserWarning):
             dp3 = dp2 * dp1
 
-        self.assertTrue(np.allclose(dp3.u, (u1 * u2)))
-        self.assertTrue(np.allclose(dp3.v, (u2 * u3)))
-        self.assertTrue(np.allclose(dp3.mask, np.ones((9, 9))))
+        u1_temp = np.array(u1)
+        u1_temp[mask1 == 0] = 0
+        u2_temp = np.array(u2)
+        u2_temp[mask1 == 0] = 0
+
+        exp_dp = dense_predictor.DensePredictor(
+            u2 * u1_temp, u3 * u2_temp, np.ones((9, 9)))
+        exp_dp.apply_mask()
+        self.assertTrue(dp3 == exp_dp)
 
     def test_overload_divide_operator_sums_correctly(self):
         """
@@ -372,8 +394,10 @@ class testDensePredictor(unittest.TestCase):
         dp1 = dense_predictor.DensePredictor(u1, u2)
         dp2 = dense_predictor.DensePredictor(u2, u3)
         dp3 = dp1 / dp2
-        self.assertTrue(np.allclose(dp3.u, (u1 / u2)))
-        self.assertTrue(np.allclose(dp3.v, (u2 / u3)))
+
+        exp_dp = dense_predictor.DensePredictor(u1 / u2, u2 / u3)
+        exp_dp.apply_mask()
+        self.assertTrue(dp3 == exp_dp)
 
     def test_overload_divide_takes_mask_from_lhs(self):
         """
@@ -395,18 +419,25 @@ class testDensePredictor(unittest.TestCase):
         with self.assertWarns(UserWarning):
             dp3 = dp1 / dp2
 
-        self.assertTrue(np.allclose(dp3.u, (u1 / u2)))
-        self.assertTrue(np.allclose(dp3.v, (u2 / u3)))
-        self.assertTrue(np.allclose(dp3.mask, mask1))
+        exp_dp = dense_predictor.DensePredictor(u1 / u2, u2 / u3, mask1)
+        exp_dp.apply_mask()
+        self.assertTrue(dp3 == exp_dp)
 
         with self.assertWarns(UserWarning):
             dp3 = dp2 / dp1
 
-        self.assertTrue(np.allclose(dp3.u, (u2 / u1)))
-        self.assertTrue(np.allclose(dp3.v, (u3 / u2)))
-        self.assertTrue(np.allclose(dp3.mask, np.ones((9, 9))))
+        u1_temp = np.array(u1)
+        u1_temp[mask1 == 0] = 0
+        u2_temp = np.array(u2)
+        u2_temp[mask1 == 0] = 0
 
-    def test_apply_mask_sets_mask_regions_to_nan(self):
+        with np.errstate(divide='ignore'):
+            exp_dp = dense_predictor.DensePredictor(
+                u2 / u1_temp, u3 / u2_temp, np.ones((9, 9)))
+        exp_dp.apply_mask()
+        self.assertTrue(dp3 == exp_dp)
+
+    def test_apply_mask_sets_mask_regions_to_zero(self):
         """
         We want the 'apply mask' to set the appropriate region's to NaN
         """
@@ -419,11 +450,11 @@ class testDensePredictor(unittest.TestCase):
         # set regions of the mask with 0 to nan
         dp.apply_mask()
         uExp = arr
-        uExp[(0, 1, 2, 3, 4), (0, 1, 2, 3, 4)] = np.nan
+        uExp[(0, 1, 2, 3, 4), (0, 1, 2, 3, 4)] = 0
         vExp = arr * 2
-        vExp[(0, 1, 2, 3, 4), (0, 1, 2, 3, 4)] = np.nan
-        self.assertTrue(np.allclose(dp.u, uExp, equal_nan=True))
-        self.assertTrue(np.allclose(dp.v, vExp, equal_nan=True))
+        vExp[(0, 1, 2, 3, 4), (0, 1, 2, 3, 4)] = 0
+        self.assertTrue(np.allclose(dp.u, uExp))
+        self.assertTrue(np.allclose(dp.v, vExp))
         self.assertTrue(np.allclose(dp.mask, mask))
 
 
