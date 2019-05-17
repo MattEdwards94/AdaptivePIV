@@ -209,57 +209,51 @@ class testDensePredictor(unittest.TestCase):
         i.e. checking that it has added correctly
         """
 
-        u1 = np.arange(1, 82)
-        u2 = np.arange(101, 182)
-        u3 = np.arange(201, 282)
-        u1 = np.reshape(u1, (9, 9))
-        u2 = np.reshape(u2, (9, 9))
-        u3 = np.reshape(u3, (9, 9))
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
+        u3 = np.arange(201, 282).reshape((9, 9))
 
         dp1 = dense_predictor.DensePredictor(u1, u2)
         dp2 = dense_predictor.DensePredictor(u2, u3)
         dp3 = dp1 + dp2
-        exp_dp = dense_predictor.DensePredictor(u1 + u2, u2 + u3)
-        self.assertTrue(dp3 == exp_dp)
+        self.assertTrue(np.allclose(dp3.u, u1 + u2))
+        self.assertTrue(np.allclose(dp3.v, u2 + u3))
 
-    def test_overload_add_takes_mask_from_lhs(self):
+    def test_overload_add_throws_error_if_masks_different(self):
         """
-        This test function checks that, in the presence of two distinct masks
-        that the mask from the lhs is taken.
-        Also checks that a warning is raised in this case
+        This test function checks that if two different masks are passed that
+        a ValueErorr is raised
         """
 
-        u1 = np.arange(1, 82)
-        u2 = np.arange(101, 182)
-        u3 = np.arange(201, 282)
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
         mask1 = np.random.randint(0, 2, (9, 9))
-        u1 = np.reshape(u1, (9, 9))
-        u2 = np.reshape(u2, (9, 9))
-        u3 = np.reshape(u3, (9, 9))
 
         dp1 = dense_predictor.DensePredictor(u1, u2, mask1)
-        dp2 = dense_predictor.DensePredictor(u2, u3)
-        with self.assertWarns(UserWarning):
-            dp3 = dp1 + dp2
+        dp2 = dense_predictor.DensePredictor(u1, u2)
+        with self.assertRaises(ValueError):
+            dp1 + dp2
+
+    def test_overload_add_applies_mask_correctly(self):
+        """
+        This test method is to check that the mask is applied correctly
+        implying that the mask is stored in the new object and that all
+        locations where the mask is defined, that the output is 0
+        """
+
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
+        u3 = np.arange(201, 282).reshape((9, 9))
+        mask1 = np.random.randint(0, 2, (9, 9))
+
+        dp1 = dense_predictor.DensePredictor(u1, u2, mask1)
+        dp2 = dense_predictor.DensePredictor(u2, u3, mask1)
+        dp3 = dp1 + dp2
 
         exp_dp = dense_predictor.DensePredictor(u1 + u2, u2 + u3, mask1)
-        # areas in dp1 with a mask will still possess a mask, and so will be 0
-        exp_dp.apply_mask()
         self.assertTrue(dp3 == exp_dp)
 
-        with self.assertWarns(UserWarning):
-            dp3 = dp2 + dp1
-
-        # areas in dp1 with a mask will add 0 to the relavent location in dp2
-        u1_temp = np.array(u1)
-        u1_temp[mask1 == 0] = 0
-        u2_temp = np.array(u2)
-        u2_temp[mask1 == 0] = 0
-        exp_dp = dense_predictor.DensePredictor(
-            u2 + u1_temp, u3 + u2_temp, np.ones((9, 9)))
-        self.assertTrue(dp3 == exp_dp)
-
-    def test_overload_minus_operator_sums_correctly(self):
+    def test_overload_sub_operator_sums_correctly(self):
         """
         This test function is the check that the contents of
         dp3 = dp1 - dp2
@@ -267,57 +261,51 @@ class testDensePredictor(unittest.TestCase):
         i.e. checking that it has subtracted correctly
         """
 
-        u1 = np.arange(1, 82)
-        u2 = np.arange(101, 182)
-        u3 = np.arange(201, 282)
-        u1 = np.reshape(u1, (9, 9))
-        u2 = np.reshape(u2, (9, 9))
-        u3 = np.reshape(u3, (9, 9))
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
+        u3 = np.arange(201, 282).reshape((9, 9))
 
         dp1 = dense_predictor.DensePredictor(u1, u2)
         dp2 = dense_predictor.DensePredictor(u2, u3)
         dp3 = dp1 - dp2
-        exp_dp = dense_predictor.DensePredictor(u1 - u2, u2 - u3)
-        self.assertTrue(dp3 == exp_dp)
+        self.assertTrue(np.allclose(dp3.u, u1 - u2))
+        self.assertTrue(np.allclose(dp3.v, u2 - u3))
 
-    def test_overload_minus_takes_mask_from_lhs(self):
+    def test_overload_sub_throws_error_if_masks_different(self):
         """
-        This test function checks that, in the presence of two distinct masks
-        that the mask from the lhs is taken.
-        Also checks that a warning is raised in this case
+        This test function checks that if two different masks are passed that
+        a ValueErorr is raised
         """
 
-        u1 = np.arange(1, 82)
-        u2 = np.arange(101, 182)
-        u3 = np.arange(201, 282)
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
         mask1 = np.random.randint(0, 2, (9, 9))
-        u1 = np.reshape(u1, (9, 9))
-        u2 = np.reshape(u2, (9, 9))
-        u3 = np.reshape(u3, (9, 9))
 
         dp1 = dense_predictor.DensePredictor(u1, u2, mask1)
-        dp2 = dense_predictor.DensePredictor(u2, u3)
-        with self.assertWarns(UserWarning):
-            dp3 = dp1 - dp2
+        dp2 = dense_predictor.DensePredictor(u1, u2)
+        with self.assertRaises(ValueError):
+            dp1 - dp2
+
+    def test_overload_sub_applies_mask_correctly(self):
+        """
+        This test method is to check that the mask is applied correctly
+        implying that the mask is stored in the new object and that all
+        locations where the mask is defined, that the output is 0
+        """
+
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
+        u3 = np.arange(201, 282).reshape((9, 9))
+        mask1 = np.random.randint(0, 2, (9, 9))
+
+        dp1 = dense_predictor.DensePredictor(u1, u2, mask1)
+        dp2 = dense_predictor.DensePredictor(u2, u3, mask1)
+        dp3 = dp1 - dp2
 
         exp_dp = dense_predictor.DensePredictor(u1 - u2, u2 - u3, mask1)
-        exp_dp.apply_mask()
         self.assertTrue(dp3 == exp_dp)
 
-        with self.assertWarns(UserWarning):
-            dp3 = dp2 - dp1
-
-        # areas in dp1 with a mask will add 0 to the relavent location in dp2
-        u1_temp = np.array(u1)
-        u1_temp[mask1 == 0] = 0
-        u2_temp = np.array(u2)
-        u2_temp[mask1 == 0] = 0
-
-        exp_dp = dense_predictor.DensePredictor(
-            u2 - u1_temp, u3 - u2_temp, np.ones((9, 9)))
-        self.assertTrue(dp3 == exp_dp)
-
-    def test_overload_multiply_operator_sums_correctly(self):
+    def test_overload_mul_operator_sums_correctly(self):
         """
         This test function is the check that the contents of
         dp3 = dp1 * dp2
@@ -325,116 +313,100 @@ class testDensePredictor(unittest.TestCase):
         i.e. checking that it has multiplied correctly
         """
 
-        u1 = np.arange(1, 82)
-        u2 = np.arange(101, 182)
-        u3 = np.arange(201, 282)
-        u1 = np.reshape(u1, (9, 9))
-        u2 = np.reshape(u2, (9, 9))
-        u3 = np.reshape(u3, (9, 9))
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
+        u3 = np.arange(201, 282).reshape((9, 9))
 
         dp1 = dense_predictor.DensePredictor(u1, u2)
         dp2 = dense_predictor.DensePredictor(u2, u3)
         dp3 = dp1 * dp2
+        self.assertTrue(np.allclose(dp3.u, u1 * u2))
+        self.assertTrue(np.allclose(dp3.v, u2 * u3))
 
-        exp_dp = dense_predictor.DensePredictor(u1 * u2, u2 * u3)
-        self.assertTrue(dp3 == exp_dp)
-
-    def test_overload_multiply_takes_mask_from_lhs(self):
+    def test_overload_mul_throws_error_if_masks_different(self):
         """
-        This test function checks that, in the presence of two distinct masks
-        that the mask from the lhs is taken.
-        Also checks that a warning is raised in this case
+        This test function checks that if two different masks are passed that
+        a ValueErorr is raised
         """
 
-        u1 = np.arange(1, 82)
-        u2 = np.arange(101, 182)
-        u3 = np.arange(201, 282)
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
         mask1 = np.random.randint(0, 2, (9, 9))
-        u1 = np.reshape(u1, (9, 9))
-        u2 = np.reshape(u2, (9, 9))
-        u3 = np.reshape(u3, (9, 9))
 
         dp1 = dense_predictor.DensePredictor(u1, u2, mask1)
-        dp2 = dense_predictor.DensePredictor(u2, u3)
-        with self.assertWarns(UserWarning):
-            dp3 = dp1 * dp2
+        dp2 = dense_predictor.DensePredictor(u1, u2)
+        with self.assertRaises(ValueError):
+            dp1 * dp2
+
+    def test_overload_mul_applies_mask_correctly(self):
+        """
+        This test method is to check that the mask is applied correctly
+        implying that the mask is stored in the new object and that all
+        locations where the mask is defined, that the output is 0
+        """
+
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
+        u3 = np.arange(201, 282).reshape((9, 9))
+        mask1 = np.random.randint(0, 2, (9, 9))
+
+        dp1 = dense_predictor.DensePredictor(u1, u2, mask1)
+        dp2 = dense_predictor.DensePredictor(u2, u3, mask1)
+        dp3 = dp1 * dp2
 
         exp_dp = dense_predictor.DensePredictor(u1 * u2, u2 * u3, mask1)
-        exp_dp.apply_mask()
         self.assertTrue(dp3 == exp_dp)
 
-        with self.assertWarns(UserWarning):
-            dp3 = dp2 * dp1
-
-        u1_temp = np.array(u1)
-        u1_temp[mask1 == 0] = 0
-        u2_temp = np.array(u2)
-        u2_temp[mask1 == 0] = 0
-
-        exp_dp = dense_predictor.DensePredictor(
-            u2 * u1_temp, u3 * u2_temp, np.ones((9, 9)))
-        exp_dp.apply_mask()
-        self.assertTrue(dp3 == exp_dp)
-
-    def test_overload_divide_operator_sums_correctly(self):
+    def test_overload_div_operator_sums_correctly(self):
         """
         This test function is the check that the contents of
-        dp3 = dp1 + dp2
+        dp3 = dp1 / dp2
         is mathematically correct
-        i.e. checking that it has divided correctly
+        i.e. checking that it has multiplied correctly
         """
 
-        u1 = np.arange(1, 82)
-        u2 = np.arange(101, 182)
-        u3 = np.arange(201, 282)
-        u1 = np.reshape(u1, (9, 9))
-        u2 = np.reshape(u2, (9, 9))
-        u3 = np.reshape(u3, (9, 9))
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
+        u3 = np.arange(201, 282).reshape((9, 9))
 
         dp1 = dense_predictor.DensePredictor(u1, u2)
         dp2 = dense_predictor.DensePredictor(u2, u3)
         dp3 = dp1 / dp2
+        self.assertTrue(np.allclose(dp3.u, u1 / u2))
+        self.assertTrue(np.allclose(dp3.v, u2 / u3))
 
-        exp_dp = dense_predictor.DensePredictor(u1 / u2, u2 / u3)
-        exp_dp.apply_mask()
-        self.assertTrue(dp3 == exp_dp)
-
-    def test_overload_divide_takes_mask_from_lhs(self):
+    def test_overload_div_throws_error_if_masks_different(self):
         """
-        This test function checks that, in the presence of two distinct masks
-        that the mask from the lhs is taken.
-        Also checks that a warning is raised in this case
+        This test function checks that if two different masks are passed that
+        a ValueErorr is raised
         """
 
-        u1 = np.arange(1, 82)
-        u2 = np.arange(101, 182)
-        u3 = np.arange(201, 282)
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
         mask1 = np.random.randint(0, 2, (9, 9))
-        u1 = np.reshape(u1, (9, 9))
-        u2 = np.reshape(u2, (9, 9))
-        u3 = np.reshape(u3, (9, 9))
 
         dp1 = dense_predictor.DensePredictor(u1, u2, mask1)
-        dp2 = dense_predictor.DensePredictor(u2, u3)
-        with self.assertWarns(UserWarning):
-            dp3 = dp1 / dp2
+        dp2 = dense_predictor.DensePredictor(u1, u2)
+        with self.assertRaises(ValueError):
+            dp1 / dp2
+
+    def test_overload_div_applies_mask_correctly(self):
+        """
+        This test method is to check that the mask is applied correctly
+        implying that the mask is stored in the new object and that all
+        locations where the mask is defined, that the output is 0
+        """
+
+        u1 = np.arange(1, 82).reshape((9, 9))
+        u2 = np.arange(101, 182).reshape((9, 9))
+        u3 = np.arange(201, 282).reshape((9, 9))
+        mask1 = np.random.randint(0, 2, (9, 9))
+
+        dp1 = dense_predictor.DensePredictor(u1, u2, mask1)
+        dp2 = dense_predictor.DensePredictor(u2, u3, mask1)
+        dp3 = dp1 / dp2
 
         exp_dp = dense_predictor.DensePredictor(u1 / u2, u2 / u3, mask1)
-        exp_dp.apply_mask()
-        self.assertTrue(dp3 == exp_dp)
-
-        with self.assertWarns(UserWarning):
-            dp3 = dp2 / dp1
-
-        u1_temp = np.array(u1)
-        u1_temp[mask1 == 0] = 0
-        u2_temp = np.array(u2)
-        u2_temp[mask1 == 0] = 0
-
-        with np.errstate(divide='ignore'):
-            exp_dp = dense_predictor.DensePredictor(
-                u2 / u1_temp, u3 / u2_temp, np.ones((9, 9)))
-        exp_dp.apply_mask()
         self.assertTrue(dp3 == exp_dp)
 
     def test_apply_mask_sets_mask_regions_to_zero(self):
