@@ -169,6 +169,35 @@ class testDensePredictor(unittest.TestCase):
         self.assertTrue(np.allclose(v, exp_arr))
         self.assertTrue(np.allclose(mask, exp_arr))
 
+    def test_eq_method_evaluates_correctly(self):
+        """
+        the __eq__ method should compare if two DensePredictor objects are
+        the same or not
+
+        raises NotImplemented if the other class is not a DensePredictor
+
+        """
+
+        # create sets of images
+        u1 = np.random.rand(50, 50)
+        v1 = np.random.rand(50, 50)
+        u2 = np.random.rand(50, 50)
+        v2 = np.random.rand(50, 50)
+        u3 = np.random.rand(10, 10)
+        v3 = np.random.rand(10, 10)
+        dp1 = dense_predictor.DensePredictor(u1, v1)
+        dp1_copy = dense_predictor.DensePredictor(u1, v1)
+        dp2 = dense_predictor.DensePredictor(u2, v2)
+        dp3 = dense_predictor.DensePredictor(u3, v3)
+
+        # check dp1 and dp1_copy return equal
+        self.assertEqual(dp1, dp1_copy)
+        self.assertNotEqual(dp1, dp2)
+        self.assertNotEqual(dp2, dp3)
+
+        # check that NotImplemented is raised if compared to another object
+        self.assertEqual(dp1.__eq__(4), NotImplemented)
+
     def test_overload_add_operator_sums_correctly(self):
         """
         This test function is the check that the contents of

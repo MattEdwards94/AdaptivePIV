@@ -123,6 +123,32 @@ class DensePredictor(object):
 
         return u, v, mask
 
+    def __eq__(self, other):
+        """
+        Compares two DensePredictor objects to determine equality
+        Considered equal if:
+        self.u == other.u
+        self.v == other.v
+        self.mask == other.mask
+
+        Args:
+            other (DensePredictor): The other DensePredictor to be compared to
+        """
+
+        if not isinstance(other, DensePredictor):
+            return NotImplemented
+
+        if not np.alltrue(self.u == other.u):
+            return False
+
+        if not np.alltrue(self.v == other.v):
+            return False
+
+        if not np.alltrue(self.mask == other.mask):
+            return False
+
+        return True
+
     def __add__(self, other):
         """
         Overloads the operator for addition
