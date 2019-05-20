@@ -78,3 +78,42 @@ class CorrWindow:
 
         return wsa, wsb, mask
 
+    def get_correlation_map(self, img):
+        """
+        Obtains the correlation map for the current correlation window for the
+        image 'img'
+
+        If the current location is outside of the image passed in, then a
+        ValueError is raised
+
+        If the current location is in a region with a mask,
+        then NaN is returned
+
+        Args:
+            img (PIVImage): The piv image pair to be analysed
+
+        """
+
+        # get prepared window intensities
+        wsa, wsb, mask = self.prepare_correlation_windows(img)
+
+        # wsa needs flipping
+        wsa = wsa[::-1, ::-1]
+
+        # find the nearest power of 2 (assuming square windows)
+        nPow2 = 2**(math.ceil(np.log2(self.WS + 10)))
+
+        # perform the correlation
+        corrmap = np.real(
+            np.fft.ifftn(
+                np.fft.fftn(wsa, [nPow2, nPow2])
+                * np.fft.fftn(wsb, [nPow2, nPow2])
+            )
+        )
+
+        # return the correct region
+        idx = (np.arange(self.WS) + self.rad) % nPow2
+        corrmap = corrmap[np.ix_(idx, idx)]
+
+        return corrmap
+
