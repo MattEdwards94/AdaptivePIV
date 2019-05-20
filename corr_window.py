@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class CorrWindow(object):
+class CorrWindow:
     """
     A CorrWindow is an object which contains 'information' about a sample
     location, i.e. x, y, WS, u, v, and provides functionality to correlate
@@ -29,6 +29,13 @@ class CorrWindow(object):
         if not WS % 2 == 1:
             raise ValueError("Even sized windows are not allowed")
 
+        # check that negative values are caught
+        if x < 0:
+            raise ValueError("x must be positive")
+        if y < 0:
+            raise ValueError("y must be positive")
+        if WS < 0:
+            raise ValueError("WS must be positive")
         self.x = int(x)
         self.y = int(y)
         self.WS = int(WS)

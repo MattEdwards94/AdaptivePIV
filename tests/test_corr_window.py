@@ -42,9 +42,53 @@ class TestCorrWindow(unittest.TestCase):
         self.assertEqual(cw.y, 15)
         self.assertEqual(cw.WS, WS)
 
+    def test_initialisation_with_negative_x(self):
+        """
+        Although we can't test the upper limit of the x,y input coordinates
+        (since we don't know the size of the image), we can at least check at
+        this point that the x value is positive
+        """
+
+        x = -5
+        y = 15
+        WS = 33
+
+        # check with negative x
+        with self.assertRaises(ValueError):
+            corr_window.CorrWindow(x, y, WS)
+
+    def test_initialisation_with_negative_x(self):
+        """
+        Although we can't test the upper limit of the x,y input coordinates
+        (since we don't know the size of the image), we can at least check at
+        this point that the y value is positive
+        """
+
+        x = 5
+        y = -15
+        WS = 33
+
+        # check with negative y
+        with self.assertRaises(ValueError):
+            corr_window.CorrWindow(x, y, WS)
+
+    def test_initialisation_with_negative_WS(self):
+        """
+        The WS must also be positive or otherwise this doesn't make
+        pyhsical sense
+        """
+
+        x = 5
+        y = 15
+        WS = -33
+
+        # check with negative WS
+        with self.assertRaises(ValueError):
+            corr_window.CorrWindow(x, y, WS)
+
     def test_initialisation_with_non_odd_WS(self):
         """
-        Here we want to check that a decimal input for x is dropped to int
+        Here we want to check that non-odd WS's are caught
         """
 
         x = 10

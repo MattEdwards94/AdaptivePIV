@@ -2,7 +2,7 @@ import numpy as np
 import warnings
 
 
-class DensePredictor(object):
+class DensePredictor:
 
     def __init__(self, u, v, mask=None):
         """
