@@ -1,4 +1,6 @@
 import numpy as np
+import piv_image
+import math
 
 
 class CorrWindow:
@@ -41,4 +43,38 @@ class CorrWindow:
         self.y = int(y)
         self.WS = int(WS)
         self.rad = int((WS - 1) * 0.5)
+
+    def prepare_correlation_windows(self, img):
+        """
+        Extracts the image intensities and mask values around self.x, self.y
+
+        Prepares the image by subtracting the mean of the non-masked pixels
+        Also sets the masked pixels to 0
+
+        Args:
+            img (PIVImage): The piv image pair to be analysed
+
+        Returns:
+            wsa: image intensities from img.IA around (self.x, self.y), with
+                 the mean of wsa subtracted and masked values set to 0
+            wsb: image intensities from img.IB around (self.x, self.y), with
+                 the mean of wsb subtracted and masked values set to 0
+            mask: mask flag values from img.mask around (self.x, self.y)
+        """
+
+        # get the raw image intensities
+        ia, ib, mask = img.get_region(self.x, self.y, self.rad)
+
+        # get index values where the image is valid
+        ID = mask == 1
+
+        # subtract the mean values from the intensities
+        wsa = ia - np.mean(ia[ID])
+        wsb = ib - np.mean(ib[ID])
+
+        # set mask pixels to 0
+        wsa[mask == 0] = 0
+        wsb[mask == 0] = 0
+
+        return wsa, wsb, mask
 

@@ -1,5 +1,7 @@
 import unittest
 import corr_window
+import numpy as np
+import piv_image
 
 
 class TestCorrWindow(unittest.TestCase):
@@ -112,6 +114,72 @@ class TestCorrWindow(unittest.TestCase):
         WS = 21
         cw = corr_window.CorrWindow(x, y, WS)
         self.assertEqual(cw.rad, int((WS - 1) * 0.5))
+
+    def test_prepare_correlation_window_subtracts_mean(self):
+        """
+        Checks that the mean of the correlation windows is subtracted
+        """
+
+        # create PIV image
+        IA = np.arange(100).reshape((10, 10))
+        IB = np.arange(100).reshape((10, 10)) * 2
+        img = piv_image.PIVImage(IA, IB)
+
+        # create correlation window
+        x = 4
+        y = 4
+        WS = 5
+        rad = int((WS - 1) * 0.5)
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        # expected solution
+        bfa = IA[y - rad:y + rad + 1, x - rad:x + rad + 1]
+        bfb = IB[y - rad:y + rad + 1, x - rad:x + rad + 1]
+        wsa_expected = bfa - np.mean(bfa)
+        wsb_expected = bfb - np.mean(bfb)
+
+        # compare to actual solution
+        wsa, wsb, mask = cw.prepare_correlation_windows(img)
+        self.assertTrue(np.allclose(wsa, wsa_expected))
+        self.assertTrue(np.allclose(wsb, wsb_expected))
+        self.assertTrue(np.allclose(mask, np.ones_like(wsa)))
+
+    def test_prepare_correlation_window_subtracts_applies_mask(self):
+        """
+        Checks that if a mask is present, then the subtracted mean only
+        considers the non-masked intensity values
+
+        furthermore, we want to make sure that the masked intensity values are
+        set to 0
+        """
+
+        # create PIV image
+        IA = np.arange(100).reshape((10, 10))
+        IB = np.arange(100).reshape((10, 10)) * 2
+        imgMask = np.random.randint(0, 2, (10, 10))
+        img = piv_image.PIVImage(IA, IB, imgMask)
+
+        # create correlation window
+        x = 4
+        y = 4
+        WS = 5
+        rad = int((WS - 1) * 0.5)
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        # expected solution
+        bfa = IA[y - rad:y + rad + 1, x - rad:x + rad + 1]
+        bfb = IB[y - rad:y + rad + 1, x - rad:x + rad + 1]
+        bfmask = imgMask[y - rad:y + rad + 1, x - rad:x + rad + 1]
+        wsa_expected = bfa - np.mean(bfa[bfmask == 1])
+        wsb_expected = bfb - np.mean(bfb[bfmask == 1])
+        wsa_expected[bfmask == 0] = 0
+        wsb_expected[bfmask == 0] = 0
+
+        # compare to actual solution
+        wsa, wsb, mask = cw.prepare_correlation_windows(img)
+        self.assertTrue(np.allclose(wsa, wsa_expected))
+        self.assertTrue(np.allclose(wsb, wsb_expected))
+        self.assertTrue(np.allclose(mask, bfmask))
 
 
 if __name__ == "__main__":
