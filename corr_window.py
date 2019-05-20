@@ -36,6 +36,9 @@ class CorrWindow:
             raise ValueError("y must be positive")
         if WS < 0:
             raise ValueError("WS must be positive")
+
         self.x = int(x)
         self.y = int(y)
         self.WS = int(WS)
+        self.rad = int((WS - 1) * 0.5)
+

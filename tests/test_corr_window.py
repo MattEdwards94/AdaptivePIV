@@ -102,6 +102,17 @@ class TestCorrWindow(unittest.TestCase):
         with self.assertRaises(ValueError):
             corr_window.CorrWindow(x, y, 21.4)
 
+    def test_rad_is_stored(self):
+        """
+        A useful variable is the rad so it makes sense to save this instead
+        of constantly having to calculate it
+        """
+        x = 10
+        y = 15
+        WS = 21
+        cw = corr_window.CorrWindow(x, y, WS)
+        self.assertEqual(cw.rad, int((WS - 1) * 0.5))
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)
