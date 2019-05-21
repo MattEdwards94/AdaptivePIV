@@ -155,7 +155,7 @@ class CorrWindow:
 
         # Get the neighbouring values for the Gaussian fitting
         R = np.copy(corrmap[i - 1:i + 2, j - 1:j + 2])
-        scale = get_corrwindow_scaling(i, j, self.WS)
+        scale = get_corrwindow_scaling(i, j, self.WS, self.rad)
         R /= scale
 
         if np.min(R) <= 0:
@@ -199,6 +199,8 @@ class CorrWindow:
 
         return u, v, SNR
 
+
+def get_corrwindow_scaling(i, j, WS, rad):
     """
     When correlating two windows, assume one is staying fixed and the other is
     moving. When the windows are half overlapped, then only half of the image
@@ -226,7 +228,6 @@ class CorrWindow:
     # (See Raffel pg. 162-162)
     i_adj = np.arange(i - 1, i + 2)
     j_adj = np.arange(j - 1, j + 2)
-    rad = int((WS - 1) * 0.5)
     y_val = WS - np.abs(rad - i_adj)
     x_val = WS - np.abs(rad - j_adj)
 
