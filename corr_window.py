@@ -117,3 +117,90 @@ class CorrWindow:
 
         return corrmap
 
+    def get_displacement_from_corrmap(self, corrmap):
+        """
+        Finds the largest and second largest peaks in the correlation map and
+        calculates the SNR ratio
+
+        If the largest peak is on the edge of the domain then u, v, SNR = 0, 0, 1
+        Since this is an invalid displacement anyway
+
+        Then performs a subpixel fit around the largest peak to get the local
+        displacement
+
+        Args:
+            corrmap (ndarray): The correlation map as a numpy ndarray
+
+        Returns:
+            TYPE: Description
+        """
+
+        # get the biggest peak
+        i, j = np.unravel_index(corrmap.argmax(), corrmap.shape)
+        val_peak = corrmap[i, j]
+
+        # catch if the peak is on the edge of the domain
+        if (i == 0) or (j == 0) or (i == self.WS - 1) or (j == self.WS - 1):
+            u, v, SNR = 0, 0, 1
+            return u, v, SNR
+
+        # set values around peak to NaN to find the second largest peak
+        bf = np.copy(corrmap)
+        bf[i - 1:i + 2, j - 1:j + 2] = np.NaN
+
+        # get the second peak and calculate SNR
+        val_second_peak = np.nanmax(bf)
+        SNR = val_peak / (val_second_peak + np.spacing(1))
+
+        # Get the neighbouring values for the Gaussian fitting
+        R = np.copy(corrmap[i - 1:i + 2, j - 1:j + 2])
+        scale = get_corrwindow_scaling(i, j, self.WS)
+        R /= scale
+
+        if np.min(R) <= 0:
+            R += 0.00001 - np.min(R)
+
+        u = j - self.rad + 0.5 * ((np.log(R[1, 0]) - np.log(R[1, 2])) / (
+            np.log(R[1, 0]) - 2 * np.log(R[1, 1]) + np.log(R[1, 2])))
+        v = i - self.rad + 0.5 * ((np.log(R[0, 1]) - np.log(R[2, 1])) / (
+            np.log(R[0, 1]) - 2 * np.log(R[1, 1]) + np.log(R[2, 1])))
+
+        return u, v, SNR
+
+
+def get_corrwindow_scaling(i, j, WS):
+    """
+    When correlating two windows, assume one is staying fixed and the other is
+    moving. When the windows are half overlapped, then only half of the image
+    is contributing to the correlation value at this point
+    The amount that contributed to the correlation map at a given point
+    therefore depends on the amount of overlap between the two correlation
+    windows
+    At this origin this will always be unity (1).
+    As you move away from the origin, the contribution will decrease.
+    Since there is less contributing to the correlation value at this point, we
+    need to scale it's influence, otherwise we end up with a bias towards the
+    origin
+    This can be obtained by convoluting the image sampling function with itself
+    This usually is a constant weight and therefore corresponds to a
+    rectangular function correlated with itself, which gives a triangular
+    function
+
+    Args:
+        i (int): index along the first axis (i.e. the row number)
+        j (int): index along the second axis (i.e. the column number)
+        WS (int): size of the window
+    """
+
+    # work out weighting factors for correcting FFT bias
+    # (See Raffel pg. 162-162)
+    i_adj = np.arange(i - 1, i + 2)
+    j_adj = np.arange(j - 1, j + 2)
+    rad = int((WS - 1) * 0.5)
+    y_val = WS - np.abs(rad - i_adj)
+    x_val = WS - np.abs(rad - j_adj)
+
+    scale = x_val * y_val.reshape((3, 1)) / (WS * WS)
+
+    return scale
+

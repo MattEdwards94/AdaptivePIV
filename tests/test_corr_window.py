@@ -3,6 +3,7 @@ import corr_window
 import numpy as np
 import piv_image
 import math
+import scipy.signal
 
 
 class TestCorrWindow(unittest.TestCase):
@@ -228,6 +229,115 @@ class TestCorrWindow(unittest.TestCase):
         corrmap_test = corrmap_test[np.ix_(idx, idx)]
 
         self.assertTrue(np.allclose(corrmap_method, corrmap_test))
+
+    def test_get_displacement_from_corrmap_catches_if_max_is_on_edge(self):
+        """
+        Tests that if the max is on the edge of the domain, then it is
+        identified as being wrong and will return 0 displacement and SNR = 1
+        """
+
+        x, y, WS = 10, 10, 5
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        # 4 test cases, i, j = 0 | WS
+        a = np.zeros((5, 5))
+
+        # case 1, i = 0 (top row)
+        a[0, 2] = 1
+        u, v, SNR = cw.get_displacement_from_corrmap(a)
+        self.assertEqual(u, 0)
+        self.assertEqual(v, 0)
+        self.assertEqual(SNR, 1)
+        a[0, 2] = 0
+
+        # case 2, i = WS (bottom row)
+        a[-1, 2] = 1
+        u, v, SNR = cw.get_displacement_from_corrmap(a)
+        self.assertEqual(u, 0)
+        self.assertEqual(v, 0)
+        self.assertEqual(SNR, 1)
+        a[-1, 2] = 0
+
+        # case 3, j = 0
+        a[2, 0] = 1
+        u, v, SNR = cw.get_displacement_from_corrmap(a)
+        self.assertEqual(u, 0)
+        self.assertEqual(v, 0)
+        self.assertEqual(SNR, 1)
+        a[2, 0] = 0
+
+        # case 4, j = WS
+        a[2, -1] = 1
+        u, v, SNR = cw.get_displacement_from_corrmap(a)
+        self.assertEqual(u, 0)
+        self.assertEqual(v, 0)
+        self.assertEqual(SNR, 1)
+        a[2, -1] = 0
+
+    def test_changing_values_in_get_displacement_doesnt_change_outer(self):
+        """
+        we need to set the values around the corrmap peak to NaN such that we
+        can find the location of the second peak
+
+        Just a check to make sure that this doesn't affect the outer variable
+        """
+
+        x, y, WS = 10, 10, 5
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        a = np.zeros((5, 5))
+        b = np.zeros((5, 5))
+
+        a[2, 2] = 1
+        b[2, 2] = 1
+        u, v, SNR = cw.get_displacement_from_corrmap(a)
+        print(a)
+        print(b)
+        self.assertTrue(np.allclose(a, b))
+
+    def test_get_corrwindow_scaling_is_equal_to_convolution(self):
+        """
+        Looking at Raffel pg. 162, we know that we need to normalise the
+        correlation map to avoid the bias towards the origin.
+        The 'correct' procedure is to convolute the image sampling function
+        which typically has unity weight and therefore ends up as a triangle
+        function.
+
+        However, we only need the values around the correlation peak and so
+        this is an extremely inefficient way to go about calculating the
+        scaling terms
+
+        The function get_corrwindow_scaling will aim to get these scalings in
+        an efficient manner, but we need to make sure it is equivalent to a
+        convolution
+        """
+
+        # arbitrary size window
+        WS = 33
+        rad = int((WS - 1) * 0.5)
+        a = np.ones((WS, WS))
+        b = np.ones((WS, WS))
+        convolved = scipy.signal.convolve2d(a, b, 'same')
+        convolved /= (WS * WS)
+
+        # test at the centre that the value is 1
+        self.assertEqual(convolved[rad, rad], 1)
+
+        # now use function the get value at centre and check it is 1
+        scaling = corr_window.get_corrwindow_scaling(rad, rad, WS)
+        self.assertEqual(scaling[1, 1], 1)
+
+        # test the values at a particular region
+        # this is the top left in terms of the matrix, bottom left in terms
+        # of the image
+        scaling = corr_window.get_corrwindow_scaling(rad - 5, rad - 7, WS)
+        self.assertTrue(np.allclose(
+            scaling, convolved[rad - 6:rad - 3, rad - 8:rad - 5]))
+
+        # bottom right (as above)
+        scaling = corr_window.get_corrwindow_scaling(rad + 5, rad + 7, WS)
+        self.assertTrue(np.allclose(
+            scaling, convolved[rad + 4:rad + 7, rad + 6:rad + 9]))
 
 
 if __name__ == "__main__":
