@@ -1,5 +1,6 @@
 import numpy as np
 import piv_image
+import dense_predictor
 import math
 
 
@@ -167,8 +168,37 @@ class CorrWindow:
 
         return u, v, SNR
 
+    def correlate(self, img, dp):
+        """
+        Correlates the img at the location specified by self.x, self.y with a
+        window of size self.WS
 
-def get_corrwindow_scaling(i, j, WS):
+        stores the new displacements as self.u, self.v
+
+        Args:
+            img (PIVImage): The image intensities with which to be correlated
+            dp (DensePredictor): The underlying densepredictor if the image has
+                                 previously been deformed
+
+        Returns:
+            TYPE: Description
+
+        """
+
+        # perform cross correlation between wsa and wsb
+        corrmap = self.get_correlation_map(img)
+
+        # find the subpixel displacement from the correlation map
+        u, v, SNR = self.get_displacement_from_corrmap(corrmap)
+
+        # combine displacement with predictor
+        dpx, dpy, mask = dp.get_region(self.x, self.y, self.rad)
+        mask = mask.astype('int')
+        u += np.mean(dpx[mask])
+        v += np.mean(dpy[mask])
+
+        return u, v, SNR
+
     """
     When correlating two windows, assume one is staying fixed and the other is
     moving. When the windows are half overlapped, then only half of the image
