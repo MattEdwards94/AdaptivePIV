@@ -2,6 +2,7 @@ import numpy as np
 import piv_image
 import dense_predictor
 import math
+import time
 
 
 class CorrWindow:
@@ -235,3 +236,23 @@ def get_corrwindow_scaling(i, j, WS, rad):
 
     return scale
 
+
+if __name__ == '__main__':
+    IA, IB, mask = piv_image.load_image_from_flow_type(22, 1)
+    img = piv_image.PIVImage(IA, IB, mask)
+    dp = dense_predictor.DensePredictor(
+        np.zeros(img.img_dim), np.zeros(img.img_dim))
+
+    x, y, WS = 50, 50, 33
+    arr = []
+    for j in range(10):
+        start = time.time()
+        for i in range(750):
+            u, v, snr = CorrWindow(x, y, WS).correlate(img, dp)
+        end = time.time()
+        arr.append(end - start)
+    print(arr)
+    print(np.mean(arr))
+
+    print(u, v, snr)
+    print("-3.612, 3.4152, 1.3691")
