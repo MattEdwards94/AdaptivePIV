@@ -157,7 +157,7 @@ class CorrWindow:
         # Get the neighbouring values for the Gaussian fitting
         R = np.copy(corrmap[i - 1:i + 2, j - 1:j + 2])
         scale = get_corrwindow_scaling(i, j, self.WS, self.rad)
-        R /= scale
+        R *= scale
 
         if np.min(R) <= 0:
             R += 0.00001 - np.min(R)
@@ -232,7 +232,7 @@ def get_corrwindow_scaling(i, j, WS, rad):
     y_val = WS - np.abs(rad - i_adj)
     x_val = WS - np.abs(rad - j_adj)
 
-    scale = x_val * y_val.reshape((3, 1)) / (WS * WS)
+    scale = (WS * WS) / (x_val * y_val.reshape((3, 1)))
 
     return scale
 
