@@ -183,13 +183,14 @@ class TestCorrWindow(unittest.TestCase):
         self.assertTrue(np.allclose(wsb, wsb_expected))
         self.assertTrue(np.allclose(mask, bfmask))
 
-    def test_get_correlation_map_is_padded_by_10_zeros(self):
+    def test_calculate_correlation_map_is_padded_by_10_zeros(self):
         """
         We have found from previous testing that we need some minimum amount
         of zero padding to be present, let's check that is actually done
 
         here we're going to correlate a window of size 55
-        This should cause the get_correlation_map() code to use a WS of 128
+        This should cause the calculate_correlation_map() code to use a
+        WS of 128
         We can then test the resulting corrmap to make sure this happened
 
         """
@@ -205,7 +206,9 @@ class TestCorrWindow(unittest.TestCase):
         cw = corr_window.CorrWindow(x, y, WS)
 
         # perform the correlation using the method being tested
-        corrmap_method = cw.get_correlation_map(img)
+        wsa, wsb, mask = cw.prepare_correlation_windows(img)
+        corrmap_method = corr_window.calculate_correlation_map(
+            wsa, wsb, WS, cw.rad)
 
         # now we want to manually perform the correlation with the padding
         wsa, wsb, mask = cw.prepare_correlation_windows(img)
@@ -324,20 +327,20 @@ class TestCorrWindow(unittest.TestCase):
         self.assertEqual(convolved[rad, rad], 1)
 
         # now use function the get value at centre and check it is 1
-        scaling = corr_window.get_corrwindow_scaling(rad, rad, WS)
+        scaling = corr_window.get_corrwindow_scaling(rad, rad, WS, rad)
         self.assertEqual(scaling[1, 1], 1)
 
         # test the values at a particular region
         # this is the top left in terms of the matrix, bottom left in terms
         # of the image
-        scaling = corr_window.get_corrwindow_scaling(rad - 5, rad - 7, WS)
+        scaling = corr_window.get_corrwindow_scaling(rad - 5, rad - 7, WS, rad)
         self.assertTrue(np.allclose(
-            scaling, convolved[rad - 6:rad - 3, rad - 8:rad - 5]))
+            1 / scaling, convolved[rad - 6:rad - 3, rad - 8:rad - 5]))
 
         # bottom right (as above)
-        scaling = corr_window.get_corrwindow_scaling(rad + 5, rad + 7, WS)
+        scaling = corr_window.get_corrwindow_scaling(rad + 5, rad + 7, WS, rad)
         self.assertTrue(np.allclose(
-            scaling, convolved[rad + 4:rad + 7, rad + 6:rad + 9]))
+            1 / scaling, convolved[rad + 4:rad + 7, rad + 6:rad + 9]))
 
 
 if __name__ == "__main__":

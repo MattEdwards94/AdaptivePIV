@@ -13,6 +13,15 @@ class CorrWindow:
 
     Does not store any kind of intensity or displacement data otherwise this
     would make everything slower
+
+    Attributes:
+        x (int): x location of the window
+        y (int): y location of the window
+        WS (odd int): size of the correlation window
+                      must be odd
+                      must be integer
+                      Assumes square windows
+        rad (int): (WS-1)*0.5
     """
 
     def __init__(self, x, y, WS):
@@ -27,6 +36,9 @@ class CorrWindow:
                           must be odd
                           must be integer
                           Assumes square windows
+
+        Raises:
+            ValueError: If there is odd WS or if x, y, WS are negative
         """
 
         # check that WS is odd
@@ -80,45 +92,6 @@ class CorrWindow:
 
         return wsa, wsb, mask
 
-    def get_correlation_map(self, img):
-        """
-        Obtains the correlation map for the current correlation window for the
-        image 'img'
-
-        If the current location is outside of the image passed in, then a
-        ValueError is raised
-
-        If the current location is in a region with a mask,
-        then NaN is returned
-
-        Args:
-            img (PIVImage): The piv image pair to be analysed
-
-        """
-
-        # get prepared window intensities
-        wsa, wsb, mask = self.prepare_correlation_windows(img)
-
-        # wsa needs flipping
-        wsa = wsa[::-1, ::-1]
-
-        # find the nearest power of 2 (assuming square windows)
-        nPow2 = 2**(math.ceil(np.log2(self.WS + 10)))
-
-        # perform the correlation
-        corrmap = np.real(
-            np.fft.ifftn(
-                np.fft.fftn(wsa, [nPow2, nPow2])
-                * np.fft.fftn(wsb, [nPow2, nPow2])
-            )
-        )
-
-        # return the correct region
-        idx = (np.arange(self.WS) + self.rad) % nPow2
-        corrmap = corrmap[np.ix_(idx, idx)]
-
-        return corrmap
-
     def get_displacement_from_corrmap(self, corrmap):
         """
         Finds the largest and second largest peaks in the correlation map and
@@ -134,7 +107,13 @@ class CorrWindow:
             corrmap (ndarray): The correlation map as a numpy ndarray
 
         Returns:
-            TYPE: Description
+            u: The displacement in the u direction, i.e. the horizontal
+               distance from the origin of the window to the largest peak
+            v: The displacement in the v direction, i.e. the vertical
+               distance from the origin of the window to the largest peak
+            SNR: The signal to noise ratio. This is the ratio of the largest
+                 peak in the correlation map to the second largest peak
+
         """
 
         # get the biggest peak
@@ -174,20 +153,28 @@ class CorrWindow:
         Correlates the img at the location specified by self.x, self.y with a
         window of size self.WS
 
-        stores the new displacements as self.u, self.v
-
         Args:
             img (PIVImage): The image intensities with which to be correlated
             dp (DensePredictor): The underlying densepredictor if the image has
                                  previously been deformed
 
-        Returns:
-            TYPE: Description
+         Returns:
+            u: The displacement in the u direction, i.e. the horizontal
+               distance from the origin of the window to the largest peak
+               combined with the underlying displacement from
+               previous iterations
+            v: The displacement in the v direction, i.e. the vertical
+               distance from the origin of the window to the largest peak
+               combined with the underlying displacement from
+               previous iterations
+            SNR: The signal to noise ratio. This is the ratio of the largest
+                 peak in the correlation map to the second largest peak
 
         """
 
-        # perform cross correlation between wsa and wsb
-        corrmap = self.get_correlation_map(img)
+        # load the image and mask values and perform the cross correlation
+        wsa, wsb, mask = self.prepare_correlation_windows(img)
+        corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
         # find the subpixel displacement from the correlation map
         u, v, SNR = self.get_displacement_from_corrmap(corrmap)
@@ -199,6 +186,45 @@ class CorrWindow:
         v += np.mean(dpy[mask])
 
         return u, v, SNR
+
+
+def calculate_correlation_map(wsa, wsb, WS, rad):
+    """
+    Performs cross correlation between the two windows wsa and wsb using fft's
+
+    pads the windows wsa and wsb to a power of two, ensuring at least 10px
+    of padding.
+    i.e. if the WS is 61, then the correlation will be performed using a window
+    padded to 128px
+
+    Args:
+        wsa (ndarray): Window intensities from image a
+        wsb (ndarray): Window intensities from image b
+        WS (int): The size of the window in pixels
+        rad (int): (WS-1)/2
+
+    Returns:
+        corrmap (ndarry): the correlation map between wsa and wsb
+    """
+    # wsa needs flipping
+    wsa = wsa[::-1, ::-1]
+
+    # find the nearest power of 2 (assuming square windows)
+    nPow2 = 2**(math.ceil(np.log2(WS + 10)))
+
+    # perform the correlation
+    corrmap = np.real(
+        np.fft.ifftn(
+            np.fft.fftn(wsa, [nPow2, nPow2])
+            * np.fft.fftn(wsb, [nPow2, nPow2])
+        )
+    )
+
+    # return the correct region
+    idx = (np.arange(WS) + rad) % nPow2
+    corrmap = corrmap[np.ix_(idx, idx)]
+
+    return corrmap
 
 
 def get_corrwindow_scaling(i, j, WS, rad):
@@ -223,6 +249,13 @@ def get_corrwindow_scaling(i, j, WS, rad):
         i (int): index along the first axis (i.e. the row number)
         j (int): index along the second axis (i.e. the column number)
         WS (int): size of the window
+        rad (int): (WS-1)*0.5 - to avoid re-calculating
+
+    Returns:
+        scale (ndarray): The scaling term to be applied to the correlation map
+                         scale has shape (3, 3) where the central value
+                         corresponds to the pixel containing the peak of the
+                         correlation map
     """
 
     # work out weighting factors for correcting FFT bias
