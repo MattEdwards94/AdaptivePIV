@@ -233,6 +233,34 @@ class TestCorrWindow(unittest.TestCase):
 
         self.assertTrue(np.allclose(corrmap_method, corrmap_test))
 
+    def test_displacement_is_stored_in_object(self):
+        """
+        Although we may want to access the returned variables, we also need to
+        store them in the object for future reference
+        """
+
+        # create PIV image
+        IA = np.random.rand(100, 100)
+        IB = np.random.rand(100, 100)
+        img = piv_image.PIVImage(IA, IB)
+
+        # create correlation window
+        x = 50
+        y = 50
+        WS = 33
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        # correlate
+        u_zeros = np.zeros((100, 100))
+        v_zeros = np.zeros((100, 100))
+        dp_zeros = dense_predictor.DensePredictor(u_zeros, v_zeros)
+        u1, v1, snr1 = cw.correlate(img, dp_zeros)
+
+        # check they are stored
+        self.assertEqual(u1, cw.u)
+        self.assertEqual(v1, cw.v)
+        self.assertEqual(snr1, cw.SNR)
+
     def test_get_displacement_from_corrmap_catches_if_max_is_on_edge(self):
         """
         Tests that if the max is on the edge of the domain, then it is

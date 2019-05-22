@@ -177,15 +177,15 @@ class CorrWindow:
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
         # find the subpixel displacement from the correlation map
-        u, v, SNR = self.get_displacement_from_corrmap(corrmap)
+        self.u, self.v, self.SNR = self.get_displacement_from_corrmap(corrmap)
 
         # combine displacement with predictor
         dpx, dpy, mask = dp.get_region(self.x, self.y, self.rad)
         mask = mask.astype('int')
-        u += np.mean(dpx[mask])
-        v += np.mean(dpy[mask])
+        self.u += np.mean(dpx[mask])
+        self.v += np.mean(dpy[mask])
 
-        return u, v, SNR
+        return self.u, self.v, self.SNR
 
 
 def calculate_correlation_map(wsa, wsb, WS, rad):
