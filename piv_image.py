@@ -4,7 +4,9 @@ import h5py
 from PIL import Image
 # import matplotlib.pyplot as plt
 import numpy as np
-# import time
+import math
+import time
+import sym_filt
 
 
 class PIVImage:
@@ -275,11 +277,77 @@ def load_image_from_flow_type(flowtype, im_number):
     return IA, IB, mask
 
 
+def quintic_spline_image_filter(IA):
+    """
+    Performs a quintic spline causal and anti-causal filter
+
+    Refer to:
+        Unser M., Aldroubi A., Eden M., 1993,
+            "B-Spline Signal Processing: Part I - Theory",
+            IEEE Transactions on signal processing, Vol. 41, No.2, pp.821-822
+        Unser M., Aldroubi A., Eden M., 1993,
+            "B-Spline Signal Processing: Part II -
+            Efficient Design and Applications",
+            IEEE Transactions on signal processing, Vol. 41, No.2, pp.834-848
+        uk.mathworks.com/matlabcentral/fileexchange/19632-n-dimensional-bsplines
+
+
+    Args:
+        IA (ndarray): Image intensities to be filtered
+    """
+
+    # doesn't work if the image is less than 23pixels wide/high
+    if np.shape(IA)[0] < 43:
+        raise ValueError("number of pixels in x and y must be at least 43")
+    if np.shape(IA)[1] < 43:
+        raise ValueError("number of pixels in x and y must be at least 43")
+
+    # define coefficients
+    scale = 120
+    z = [-0.430575347099973, -0.0430962882032647]  # poles
+    K0_tol = np.spacing(1)
+
+    # initialise output
+    C = IA * scale * scale
+    dims = np.shape(C)
+    C_rows = dims[0]
+    C_cols = dims[1]
+
+    # start = time.time()
+
+    for i in range(2):
+        K0 = math.ceil(math.log(K0_tol) / math.log(np.absolute(z[i])))
+        indices = np.arange(K0)
+
+        # scaling term for current pole
+        C0 = -z[i] / (1 - z[i]**2)
+
+        # column wise for each pole
+        # apply symmetric filter over each column
+        for k in range(C_cols):
+            C[:, k] = sym_filt.sym_exp_filt(
+                C[:, k], C_rows, C0, z[i], K0, indices)
+
+        # row-wise for each pole
+        # apply symmetric filter over each column
+        for k in range(C_rows):
+            C[k, :] = sym_filt.sym_exp_filt(
+                C[k, :], C_cols, C0, z[i], K0, indices)
+
+    print(C[10, 10])
+
+    # print("time: {}".format(time.time() - start))
+
+    return C
+
+
 if __name__ == "__main__":
     img = PIVImage(np.random.rand(55, 55), np.random.rand(55, 55))
     print(img)
 
     IA, IB, mask = load_image_from_flow_type(22, 1)
+
+    C = quintic_spline_image_filter(IA)
 
     # img = load_image_from_flow_type(22, 1)
     # image_info.list_available_flowtypes()

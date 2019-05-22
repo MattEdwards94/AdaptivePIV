@@ -1,4 +1,7 @@
 from distutils.core import setup
 from Cython.Build import cythonize
 
-setup(ext_modules=cythonize('example_cython.pyx'))
+directives = {'linetrace': False, 'language_level': 3}
+setup(
+    ext_modules=cythonize("sym_filt.pyx", annotate=True)
+)
