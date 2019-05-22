@@ -4,6 +4,7 @@ import numpy as np
 import piv_image
 import math
 import scipy.signal
+import dense_predictor
 
 
 class TestCorrWindow(unittest.TestCase):
@@ -195,24 +196,14 @@ class TestCorrWindow(unittest.TestCase):
 
         """
 
-        # create the test image
-        IA = np.random.rand(100, 100)
-        IB = np.random.rand(100, 100)
-        mask = np.random.randint(0, 2, (100, 100))
-        img = piv_image.PIVImage(IA, IB, mask)
-
-        # create the correlation window
-        x, y, WS, rad = 45, 45, 55, 27
-        cw = corr_window.CorrWindow(x, y, WS)
-
         # perform the correlation using the method being tested
-        wsa, wsb, mask = cw.prepare_correlation_windows(img)
-        corrmap_method = corr_window.calculate_correlation_map(
-            wsa, wsb, WS, cw.rad)
+        wsa = np.random.rand(33, 33)
+        wsb = np.random.rand(33, 33)
+        WS = 33
+        rad = 16
+        corrmap = corr_window.calculate_correlation_map(wsa, wsb, WS, rad)
 
         # now we want to manually perform the correlation with the padding
-        wsa, wsb, mask = cw.prepare_correlation_windows(img)
-
         # wsa needs flipping
         wsa = wsa[::-1, ::-1]
 
@@ -231,7 +222,74 @@ class TestCorrWindow(unittest.TestCase):
         idx = (np.arange(WS) + rad) % nPow2
         corrmap_test = corrmap_test[np.ix_(idx, idx)]
 
-        self.assertTrue(np.allclose(corrmap_method, corrmap_test))
+        self.assertTrue(np.allclose(corrmap, corrmap_test))
+
+    def test_calculate_correlation_map_all_real(self):
+        """
+        If the correlation map isn't real then it causes knock on effects to
+        e.g. sub pixel fitting
+        """
+
+        # perform the correlation using the method being tested
+        wsa = np.random.rand(33, 33)
+        wsb = np.random.rand(33, 33)
+        WS = 33
+        rad = 16
+        corrmap = corr_window.calculate_correlation_map(wsa, wsb, WS, rad)
+
+        self.assertTrue(np.all(np.isreal(corrmap)))
+
+    def test_calculate_correlation_is_same_as_dcc(self):
+        """
+        By definition it should be the same as direct cross correlation,
+        we simply use fft's to make things much quicker
+        """
+
+        # perform the correlation using the method being tested
+        wsa = np.random.rand(33, 33)
+        wsb = np.random.rand(33, 33)
+        WS = 33
+        rad = 16
+        corrmap = corr_window.calculate_correlation_map(wsa, wsb, WS, rad)
+
+        # perform the dcc
+        dcc_corrmap = scipy.signal.correlate2d(wsb, wsa, 'same')
+        print(corrmap)
+        print(dcc_corrmap)
+        self.assertTrue(np.allclose(corrmap, dcc_corrmap))
+
+    def test_correlate_combines_with_densepredictor(self):
+        """
+        Need to make sure that the average of the local densepredictor is
+        combined with the correlation displacement
+        """
+
+        # create PIV image
+        IA = np.random.rand(100, 100)
+        IB = np.random.rand(100, 100)
+        img = piv_image.PIVImage(IA, IB)
+
+        # create correlation window
+        x = 50
+        y = 50
+        WS = 33
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        # correlate with no densepredictor
+        u_zeros = np.zeros((100, 100))
+        v_zeros = np.zeros((100, 100))
+        dp_zeros = dense_predictor.DensePredictor(u_zeros, v_zeros)
+        u1, v1, snr1 = cw.correlate(img, dp_zeros)
+
+        # correlate with known non-zero densepredictor
+        u_five = 5 * np.ones((100, 100))
+        v_three = 3 * np.ones((100, 100))
+        dp_non_zero = dense_predictor.DensePredictor(u_five, v_three)
+        u2, v2, snr2 = cw.correlate(img, dp_non_zero)
+
+        self.assertEqual(u1 + 5, u2)
+        self.assertEqual(v1 + 3, v2)
+        self.assertEqual(snr1, snr2)
 
     def test_displacement_is_stored_in_object(self):
         """
