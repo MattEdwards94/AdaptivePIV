@@ -159,6 +159,17 @@ class PIVImage:
         to do this we need to know where we are with respect to the limits
         of the image
         """
+
+        # check whether x and y are within the image region
+        if x < 0:
+            raise ValueError("x can't be negative")
+        if y < 0:
+            raise ValueError("y can't be negative")
+        if x > self.n_cols - 1:  # -1 for 0 index
+            raise ValueError("x out of bounds")
+        if y > self.n_rows - 1:
+            raise ValueError("y out of bounds")
+
         # if x - rad is < 0, set to 0, if > n_cols, set to n_cols - 1
         # the minus 1 is because of 0 indexing
         left = max(min(x - rad, self.n_cols - 1), 0)

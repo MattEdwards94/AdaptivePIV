@@ -104,6 +104,66 @@ class TestPIVImage(unittest.TestCase):
         # check that NotImplemented is raised if compared to another object
         self.assertEqual(img1.__eq__(4), NotImplemented)
 
+    def test_get_region_with_negative_x_raises_error(self):
+        """
+        negative x doesn't make sense.
+        This needs to be captured here instead of letting e.g. numpy catch it
+        because we squash/truncate the x-rad and y-rad locations
+        """
+
+        IA = np.random.rand(50, 50)
+        IB = np.random.rand(50, 50)
+        img = piv_image.PIVImage(IA, IB)
+        x, y, rad = -5, 10, 4
+
+        with self.assertRaises(ValueError):
+            img.get_region(x, y, rad)
+
+    def test_get_region_with_negative_y_raises_error(self):
+        """
+        negative x doesn't make sense.
+        This needs to be captured here instead of letting e.g. numpy catch it
+        because we squash/truncate the x-rad and y-rad locations
+        """
+
+        IA = np.random.rand(50, 50)
+        IB = np.random.rand(50, 50)
+        img = piv_image.PIVImage(IA, IB)
+        x, y, rad = 5, -10, 4
+
+        with self.assertRaises(ValueError):
+            img.get_region(x, y, rad)
+
+    def test_get_region_with_x_out_of_bounds_raises_error(self):
+        """
+        negative x doesn't make sense.
+        This needs to be captured here instead of letting e.g. numpy catch it
+        because we squash/truncate the x-rad and y-rad locations
+        """
+
+        IA = np.random.rand(50, 50)
+        IB = np.random.rand(50, 50)
+        img = piv_image.PIVImage(IA, IB)
+        x, y, rad = 55, 10, 4
+
+        with self.assertRaises(ValueError):
+            img.get_region(x, y, rad)
+
+    def test_get_region_with_y_out_of_bounds_raises_error(self):
+        """
+        negative x doesn't make sense.
+        This needs to be captured here instead of letting e.g. numpy catch it
+        because we squash/truncate the x-rad and y-rad locations
+        """
+
+        IA = np.random.rand(50, 50)
+        IB = np.random.rand(50, 50)
+        img = piv_image.PIVImage(IA, IB)
+        x, y, rad = 5, 100, 4
+
+        with self.assertRaises(ValueError):
+            img.get_region(x, y, rad)
+
     def test_get_region_returns_correct_region(self):
         """
         The region returned should be ctr-rad:ctr+rad in both x and y
