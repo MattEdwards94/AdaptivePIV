@@ -7,6 +7,7 @@ import numpy as np
 import math
 import time
 import sym_filt
+import dense_predictor
 
 
 class PIVImage:
@@ -67,6 +68,7 @@ class PIVImage:
         self.n_rows = np.shape(IA)[0]
         self.n_cols = np.shape(IA)[1]
         self.img_dim = [self.n_rows, self.n_cols]
+        self.is_filtered = False
 
     def __eq__(self, other):
         """
@@ -201,6 +203,39 @@ class PIVImage:
             mask = np.ones((2 * rad + 1, 2 * rad + 1))
 
         return ia, ib, mask
+
+    def deform_image(self, dp):
+        """
+        Deforms the images according to the displacment field dp
+        Performs a central differencing scheme such that:
+        IA --> -0.5*dp
+        IB --> +0.5*dp
+
+        Args:
+            dp (TYPE): Description
+        """
+
+        # check that the image and densepredictor are the same size
+        if not np.all(self.img_dim == dp.img_dim):
+            raise ValueError("dimensions of image and dp must match")
+
+        # check whether the images have already been filtered
+        if not self.is_filtered:
+            self.IA_filt = quintic_spline_image_filter(self.IA)
+            self.IB_filt = quintic_spline_image_filter(self.IB)
+            self.is_filtered = True
+
+        # calculate pixel locations
+        xx, yy = np.meshgrid(np.r_[1:1001.], np.r_[1:1001.])
+
+        IA_new = sym_filt.bs5_int(
+            self.IA_filt, self.n_rows, self.n_cols,
+            xx - 0.5 * dp.u, yy - 0.5 * dp.v)
+        IB_new = sym_filt.bs5_int(
+            self.IA_filt, self.n_rows, self.n_cols,
+            xx + 0.5 * dp.u, yy + 0.5 * dp.v)
+
+        return PIVImage(IA_new, IB_new, self.mask)
 
 
 def load_image_from_flow_type(flowtype, im_number):
