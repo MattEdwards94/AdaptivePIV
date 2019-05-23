@@ -347,7 +347,21 @@ if __name__ == "__main__":
 
     IA, IB, mask = load_image_from_flow_type(22, 1)
 
+    start = time.time()
     C = quintic_spline_image_filter(IA)
+    print(time.time() - start)
+
+    xx, yy = np.meshgrid(np.r_[1:1001.], np.r_[1:1001.])
+    nx = xx - 2.5
+    print(nx[0, 0])
+    ny = yy - 1.5
+    print(C[0:5, 0:5])
+    start = time.time()
+    D = np.array(sym_filt.bs5_int(C, 1000, 1000, nx, ny))
+    print(time.time() - start)
+
+    print(D[0:6, 0:6])
+    print(D[-5:, -5:])
 
     # img = load_image_from_flow_type(22, 1)
     # image_info.list_available_flowtypes()
