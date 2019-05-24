@@ -6,7 +6,8 @@ import cython
 def sym_exp_filt(double[:] X, int X_len, double C0, double z, int K0, int[:] KVec):
 
     cdef double[:] out
-    out = np.zeros(X_len)
+    out = np.empty(X_len)
+    out[0] = 0
     cdef int k
 
     with cython.boundscheck(False):
@@ -31,15 +32,15 @@ def sym_exp_filt(double[:] X, int X_len, double C0, double z, int K0, int[:] KVe
 def bs5_int(double[:, :] IA, int n_rows, int n_cols, double[:, :] new_x, double[:, :] new_y):
 
     cdef double[:, :] IB
-    IB = np.zeros((n_rows, n_cols))
+    IB = np.empty((n_rows, n_cols))
     # cdef int n_rows = np.shape(IA)[0]
     # cdef int n_cols = np.shape(IA)[1]
     cdef double c4 = 1.0 / 120.0
     cdef int i, j, ii, jj, cx, cy, xn, yn, rad1, rad2, rad3, rad4
     cdef double w, w2, w3, w4, w5, bf_a
     cdef double[:] wx, wy
-    wx = np.zeros(6)
-    wy = np.zeros(6)
+    wx = np.empty(6)
+    wy = np.empty(6)
 
     for i in range(n_rows):
         for j in range(n_cols):
