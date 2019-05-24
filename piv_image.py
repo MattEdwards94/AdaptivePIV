@@ -2,7 +2,7 @@ import image_info
 import scipy.io as sio
 import h5py
 from PIL import Image
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import math
 import time
@@ -379,3 +379,68 @@ if __name__ == "__main__":
     print(img)
 
     IA, IB, mask = load_image_from_flow_type(22, 1)
+    img = PIVImage(IA, IB, mask)
+
+    start = time.time()
+    C = quintic_spline_image_filter(IA)
+    print(time.time() - start)
+
+    xx, yy = np.meshgrid(np.r_[1:1001.], np.r_[1:1001.])
+    nx = xx - 1
+    print(nx[0, 0])
+    ny = yy
+    print(C[0:5, 0:5])
+    start = time.time()
+    D = np.array(sym_filt.bs5_int(C, 1000, 1000, nx, ny))
+    print(time.time() - start)
+
+    print(D[0:6, 0:6])
+    print(D[-5:, -5:])
+
+    dp = dense_predictor.DensePredictor(
+        np.ones_like(IA) * 10, np.ones_like(IA) * 0, mask)
+    img2 = img.deform_image(dp)
+
+    f = plt.figure(1)
+    plt.imshow(img.IA)
+    f.show()
+
+    f2 = plt.figure(2)
+    plt.imshow(img2.IA)
+    f.show()
+
+    plt.show()
+
+    # img = load_image_from_flow_type(22, 1)
+    # image_info.list_available_flowtypes()
+    # print('loading image details for BFS')
+    # img_details = image_info.ImageInfo(22)
+    # img = piv_image(img_details, 1)
+    # print(img_details)
+
+    # ia, ib, mask = img.get_region(24, 24, 10)
+    # print(ia)
+    # print(ib)
+    # print(mask)
+
+    # start = time.time()
+    # for i in range(0, 10000):
+    #     ia, ib, mask = img.get_region(24, 24, 10)
+    # end = time.time()
+    # print(end - start)
+
+    # print(repr(img))
+    # img_2 = eval(repr(img))
+    # if img_2 == img:
+    #     print("Yay, it worked")
+
+    # en = time.time()
+    # print("Time: {}".format(en - start))
+
+    # print(ia)
+    """for ii in range(1, 5):
+        img_details = img_info.ImageInfo(ii)
+        print(ii)
+        img = piv_image(img_details, 1)
+        print(img.IA[0][0:10])
+    plt.show()"""
