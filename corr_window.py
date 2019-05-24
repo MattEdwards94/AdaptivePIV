@@ -57,6 +57,8 @@ class CorrWindow:
         self.y = int(y)
         self.WS = int(WS)
         self.rad = int((WS - 1) * 0.5)
+        self.u = np.NaN
+        self.v = np.NaN
 
     def prepare_correlation_windows(self, img):
         """
