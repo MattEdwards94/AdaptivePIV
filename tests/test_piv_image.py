@@ -1,6 +1,8 @@
 import unittest
 import piv_image
 import numpy as np
+import dense_predictor
+import sym_filt
 
 
 class TestPIVImage(unittest.TestCase):
@@ -289,6 +291,39 @@ class TestPIVImage(unittest.TestCase):
         flowtype = 22  # vortex array
         IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
         self.assertTrue(np.allclose(mask, np.ones(np.shape(IA))))
+
+    def test_deformation_is_done_on_filtered_images(self):
+        """
+        just checks that the correct process is taken
+        """
+
+        IA = np.random.rand(100, 100)
+        IB = np.random.rand(100, 100)
+        img = piv_image.PIVImage(IA, IB)
+
+        # deform image by 8 in x and 4 in y
+        dp = dense_predictor.DensePredictor(
+            np.ones((100, 100)) * 8, np.ones((100, 100)) * 4)
+        img_def = img.deform_image(dp)
+
+        # check process
+        # filter images
+        IA_filt = piv_image.quintic_spline_image_filter(IA)
+        IB_filt = piv_image.quintic_spline_image_filter(IB)
+
+        # get new pixel locations
+        npx, npy = np.meshgrid(np.r_[1:101.], np.r_[1:101.])
+        npx_a = npx - 4
+        npy_a = npy - 2
+        npx_b = npx + 4
+        npy_b = npy + 2
+
+        # deform images
+        IA_def = sym_filt.bs5_int(IA_filt, 100, 100, npx_a, npy_a)
+        IB_def = sym_filt.bs5_int(IA_filt, 100, 100, npx_b, npy_b)
+
+        self.assertTrue(np.allclose(IA_def, img_def.IA))
+        self.assertTrue(np.allclose(IB_def, img_def.IB))
 
 
 if __name__ == "__main__":

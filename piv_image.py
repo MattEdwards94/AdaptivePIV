@@ -226,7 +226,8 @@ class PIVImage:
             self.is_filtered = True
 
         # calculate pixel locations
-        xx, yy = np.meshgrid(np.r_[1:1001.], np.r_[1:1001.])
+        xx, yy = np.meshgrid(np.r_[1:self.n_rows + 1],
+                             np.r_[1:self.n_cols + 1])
 
         IA_new = sym_filt.bs5_int(
             self.IA_filt, self.n_rows, self.n_cols,
