@@ -22,3 +22,10 @@ class Distribution:
             self.windows = init_locations.copy()
         else:
             self.windows = [init_locations]
+
+    def n_windows(self):
+        """
+        Returns the number of windows currently stored in the distribution
+        """
+        return len(self.windows)
+

@@ -67,6 +67,20 @@ class TestDistributions(unittest.TestCase):
         self.assertFalse(dist.windows is self.cwList)
         self.assertTrue(dist.windows[0] == self.cwList[0])
 
+    def test_n_windows_returns_number_of_windows(self):
+        """
+        Checks it returns the correct number of windows for empty, 1 and many
+        """
+
+        dist = distribution.Distribution()
+        self.assertEqual(dist.n_windows(), 0)
+
+        dist = distribution.Distribution(self.cw)
+        self.assertEqual(dist.n_windows(), 1)
+
+        dist = distribution.Distribution(self.cwList)
+        self.assertEqual(dist.n_windows(), 3)
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)
