@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import distribution
 import corr_window
+from sklearn.neighbors import NearestNeighbors
 
 
 class TestDistributions(unittest.TestCase):
@@ -144,6 +145,52 @@ class TestDistributions(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             dist.get_values('WrongKey')
+
+    def test_NMT_detection_selects_correct_neighbour_values(self):
+        """
+        Checks that the numpy indexing is performed correctly
+        """
+
+        # creates a diagonal line
+        x, y, u, v = (np.arange(50) * 1, np.arange(50) * 2,
+                      np.arange(50) * 3, np.arange(50) * 4, )
+        xy = np.transpose(np.array([x, y]))
+        nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
+        nb_dist, nb_ind = nbrs.kneighbors(xy)
+
+        # we know that u, v, should be 3 and 4 times the nb_ind, respectively
+        norm_exp = []
+        for row in nb_ind:
+            u_nb, v_nb = 3 * row, 4 * row
+            u_med, v_med = np.median(u_nb[1:]), np.median(v_nb[1:])
+
+            u_ctr_fluct, v_ctr_fluct = u_nb[0] - u_med, v_nb[0] - v_med
+            u_fluct, v_fluct = u_nb[1:] - u_med, v_nb[1:] - v_med
+
+            u_norm = np.abs(u_ctr_fluct / (np.median(np.abs(u_fluct)) + 0.1))
+            v_norm = np.abs(v_ctr_fluct / (np.median(np.abs(v_fluct)) + 0.1))
+
+            norm_exp.append(np.sqrt(u_norm**2 + v_norm**2))
+
+        norm_act = distribution.NMT_detection(u, v, nb_ind)
+        self.assertTrue(np.allclose(norm_exp, norm_act))
+
+    def test_NMT_detection_all_uniform_returns_zeros(self):
+        """
+        If all the values are uniform then the norm should be 0's
+        """
+
+        x, y = np.arange(100) * 1, np.arange(100) * 2
+        u, v, = np.ones((100, )), np.ones((100, ))
+        xy = np.transpose(np.array([x, y]))
+        print(np.shape(xy))
+        nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
+        nb_dist, nb_ind = nbrs.kneighbors(xy)
+
+        norm = distribution.NMT_detection(u, v, nb_ind)
+        # print(norm)
+
+        self.assertTrue(np.allclose(norm, np.zeros((100, ))))
 
 
 if __name__ == "__main__":

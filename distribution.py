@@ -1,6 +1,7 @@
 import corr_window
 import numpy as np
 import time
+from sklearn.neighbors import NearestNeighbors
 
 
 class Distribution:
@@ -56,6 +57,44 @@ class Distribution:
         """
         return [cw.__dict__[prop] for cw in self.windows]
 
+
+
+
+def NMT_detection(u, v, nb_ind, eps=0.1):
+    """
+    Detects outliers according to the normalised median threshold test of
+    Westerweel and Scarano
+    Returns the norm value
+
+    Args:
+        u (list, float): list of the u displacement values
+        v (list, float): list of the v displacement values
+        nb_ind (ndarray, int): list of neighbour indices for each location
+        eps (float, optional): background noise level, in px
+        thr (int, optional): threshold for an outlier
+    """
+
+    norm = np.empty(np.shape(u))
+    for row in nb_ind:
+        # get the median of u and v from the neighbours
+        # ignore first element (itself)
+        u_nb, v_nb = u[row[1:]], v[row[1:]]
+        u_med, v_med = np.median(u_nb), np.median(v_nb)
+
+        # difference of all vectors to median
+        u_fluct, v_fluct = u[row] - u_med, v[row] - v_med
+
+        # difference of central vector
+        u_ctr_fluct, v_ctr_fluct = u_fluct[0], v_fluct[0]
+
+        # calculate norm
+        u_norm, v_norm = (np.abs(u_ctr_fluct /
+                                 (np.median(np.abs(u_fluct[1:])) + eps)),
+                          np.abs(v_ctr_fluct /
+                                 (np.median(np.abs(v_fluct[1:])) + eps)), )
+        norm[row[0]] = np.sqrt(u_norm**2 + v_norm**2)
+
+    return norm
 
 
 if __name__ == '__main__':
