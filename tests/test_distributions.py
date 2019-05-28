@@ -192,6 +192,60 @@ class TestDistributions(unittest.TestCase):
 
         self.assertTrue(np.allclose(norm, np.zeros((100, ))))
 
+    def test_outlier_replacement_replaces_0_if_all_neighbours_outliers(self):
+        """
+        If all neighbours are outliers, then the replaced value should be 0
+        """
+
+        # creates a diagonal line
+        x, y, u, v = (np.arange(50) * 1, np.arange(50) * 2,
+                      np.arange(50) * 3, np.arange(50) * 4, )
+        xy = np.transpose(np.array([x, y]))
+        nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
+        nb_dist, nb_ind = nbrs.kneighbors(xy)
+
+        # dummy flag value
+        flag = np.zeros((50, ))
+        # set all neighbours of 1 location to outlier
+        flag[nb_ind[10, :]] = 1
+        flag = flag > 0
+
+        # replacement
+        u, v = distribution.outlier_replacement(flag, u, v, nb_ind)
+
+        self.assertEqual(u[10], 0)
+        self.assertEqual(v[10], 0)
+
+    def test_outlier_replacement_is_median_of_valid_neighbours(self):
+        """
+        The replacement should be the median value of the neighbouring valid
+        vectors
+        """
+
+        # creates a diagonal line
+        x, y, u, v = (np.arange(50) * 1, np.arange(50) * 2,
+                      np.arange(50) * 3, np.arange(50) * 4, )
+        u = np.array(u, dtype=float)
+        v = np.array(u, dtype=float)
+        xy = np.transpose(np.array([x, y]))
+        nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
+        nb_dist, nb_ind = nbrs.kneighbors(xy)
+
+        # dummy flag value
+        flag = np.zeros((50, ))
+        # set some neighbours of a location to outlier
+        flag[nb_ind[10, 0::2]] = 1
+        flag = flag > 0
+
+        # expected value
+        u_neigh, v_neigh = u[nb_ind[10, 1::2]], v[nb_ind[10, 1::2]]
+        u_exp, v_exp = np.median(u_neigh), np.median(v_neigh)
+
+        # replacement
+        u, v = distribution.outlier_replacement(flag, u, v, nb_ind)
+        self.assertEqual(u[10], u_exp)
+        self.assertEqual(v[10], v_exp)
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)

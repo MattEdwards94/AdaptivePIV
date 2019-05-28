@@ -97,6 +97,38 @@ def NMT_detection(u, v, nb_ind, eps=0.1):
     return norm
 
 
+def outlier_replacement(flag, u, v, nb_ind):
+    """
+    Replaces all outliers with the median of neighbouring valid vectors
+    If all neighbouring vectors are invalid then the replaced value is 0
+
+    Args:
+        flag (boolean): flag indicating which vectors are outliers
+        u (list, float): list of the u displacement values, including outliers
+        v (list, float): list of the v displacement values, including outliers
+        nb_ind (ndarry, int): list of neighbour indices for each location
+    """
+
+    for ii in range(np.shape(flag)[0]):
+        if flag[ii]:  # if outlier
+            # get the neighbouring values, including outliers at this point
+            u_neigh, v_neigh = u[nb_ind[ii, 1:]], v[nb_ind[ii, 1:]]
+
+            # remove outliers from neighbour list
+            u_neigh = u_neigh[~flag[nb_ind[ii, 1:]]]
+            v_neigh = v_neigh[~flag[nb_ind[ii, 1:]]]
+
+            # calculate replacement, unless all neighbours are outliers
+            if len(u_neigh) > 0:
+                u[ii], v[ii] = np.median(u_neigh), np.median(v_neigh)
+            else:
+                u[ii], v[ii] = 0, 0
+        else:
+            continue
+
+    return u, v
+
+
 if __name__ == '__main__':
     # create long list of corrWindows
     cwList = []
