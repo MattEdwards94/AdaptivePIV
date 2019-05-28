@@ -246,6 +246,41 @@ class TestDistributions(unittest.TestCase):
         self.assertEqual(u[10], u_exp)
         self.assertEqual(v[10], v_exp)
 
+    def test_set_values_changes_CorrWindow_objects(self):
+        """
+        Checks that the method Distribution.set_values('prop', values)
+        correctly updates the vales of the relevant property in the individual
+        corrWindow objects stored by the distribution
+        """
+
+        dist = distribution.Distribution(self.cwList)
+
+        dist.set_values('x', [2, 3, 4])
+        print(dist.get_values('x'))
+
+        self.assertTrue(np.allclose(dist.get_values('x'), [2, 3, 4]))
+
+    def test_set_values_check_dimensions_of_values(self):
+        """
+        The number of values must be equal to the total number of corrwindows
+        """
+
+        dist = distribution.Distribution(self.cwList)
+
+        with self.assertRaises(ValueError):
+            dist.set_values('x', [2, 3])
+
+    def test_set_values_wrong_key_raises_error(self):
+        """
+        If the wrong key is specified then a KeyError should be raised
+        """
+
+        dist = distribution.Distribution(self.cwList)
+
+        with self.assertRaises(KeyError):
+            dist.set_values('WrongKey', [1, 2, 3])
+            print(dist.windows[0].__dict__)
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)

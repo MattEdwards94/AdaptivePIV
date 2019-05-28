@@ -51,13 +51,76 @@ class Distribution:
             >>> for i in range(3)
             >>>     cwList.append(corr_window.CorrWindow(x[i], y[i], WS[i]))
             >>> dist = Distribution(cwList)
-            >>> x_vals = dist.values("x")
+            >>> x_vals = dist.get_values("x")
             >>> print(x_vals)
             ... [10, 20, 30]
         """
         return [cw.__dict__[prop] for cw in self.windows]
 
+    def set_values(self, prop, values):
+        """
+        Set's the values of the CorrWindow objects properties specified by
+        'prop' to be 'values'
 
+        Args:
+            prop (str): The property of self.windows to update
+            values (TYPE): Description
+        """
+
+        if not (np.shape(values)[0] == self.n_windows()):
+            raise ValueError('values must be a column vector with the same \
+                number of entries as the number of windows')
+
+        if prop not in self.windows[0].__dict__:
+            raise KeyError('Property ', prop, ' does not exist')
+
+        for cw, ii in zip(self.windows, range(self.n_windows())):
+            cw.__dict__[prop] = values[ii]
+
+    def validation_NMT_8NN(self, threshold=2, eps=0.1):
+        """
+        Performs a normalised median threshold test by comparing each vector to
+        it's 8 nearest neighbours
+
+        Invalid vectors are replaced by the median of the surrounding valid
+        vectors within the 8 selected neighbours. If any of the surrounding
+        8 neighbours are invalid, then this is not considered for the
+        replacement. If all 8 neighbours are invalid, the centre vector is
+        replaced by a 0.
+
+        See:
+            "Universal Outlier Detection for PIV Data" - Westerweel and Scarano
+
+
+        Args:
+            threshold (int, optional): The threshold above which the norm
+                                       indicates an outlier. Refer to paper
+            eps (float, optional): The assumed background noise in px.
+                                   Refer to paper
+        """
+
+        # detection
+        # find neighbours
+        x = self.get_values('x')
+        y = self.get_values('y')
+        u = self.get_values('u')
+        v = self.get_values('v')
+        xy = np.transpose(np.array([x, y]))
+        nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
+        nb_dist, nb_ind = nbrs.kneighbors(xy)
+
+        norm = NMT_detection(u, v, nb_ind, eps)
+        flag = norm > threshold
+
+        # replacement
+        u, v = outlier_replacement(flag, u, v, nb_ind)
+
+        # update values in CorrWindow objects
+        for (cw, outlier, u_i, v_i) in zip(self.windows, flag, u, v):
+            if outlier == 1:
+                cw.u_pre_validation, cw.v_pre_validation = cw.u, cw.v
+                cw.u, cw.v = u_i, v_i
+                cw.flag = outlier
 
 
 def NMT_detection(u, v, nb_ind, eps=0.1):

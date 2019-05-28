@@ -428,6 +428,39 @@ class TestCorrWindow(unittest.TestCase):
         self.assertTrue(np.allclose(
             1 / scaling, convolved[rad + 4:rad + 7, rad + 6:rad + 9]))
 
+    def test_u_and_v_are_init_to_nan(self):
+        """
+        The values for u and v need to be set in the object at initialisation
+        """
+
+        x, y, WS = 10, 15, 33
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        self.assertTrue(np.isnan(cw.u))
+        self.assertTrue(np.isnan(cw.v))
+
+    def test_u_and_v_pre_validation_are_initialised_to_nan(self):
+        """
+        These values need initialising to NaN so that we can store the values
+        of u and v before validation - i.e. the pure output of the correlation
+        """
+
+        x, y, WS = 10, 15, 33
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        self.assertTrue(np.isnan(cw.u_pre_validation))
+        self.assertTrue(np.isnan(cw.v_pre_validation))
+
+    def test_flag_initialised_to_nan(self):
+        """
+        Check that the flag is initialised
+        """
+
+        x, y, WS = 10, 15, 33
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        self.assertTrue(np.isnan(cw.flag))
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)

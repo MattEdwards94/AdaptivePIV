@@ -59,6 +59,9 @@ class CorrWindow:
         self.rad = int((WS - 1) * 0.5)
         self.u = np.NaN
         self.v = np.NaN
+        self.u_pre_validation = np.NaN
+        self.v_pre_validation = np.NaN
+        self.flag = np.NaN
 
     def prepare_correlation_windows(self, img):
         """
