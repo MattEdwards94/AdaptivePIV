@@ -90,50 +90,60 @@ class TestDistributions(unittest.TestCase):
         """
 
         dist = distribution.Distribution(self.cwList)
-        self.assertEqual(dist.values("x"), [20, 30, 40])
+        self.assertEqual(dist.get_values("x"), [20, 30, 40])
 
     def test_get_values_y_returns_list_of_y_locations(self):
         """
-        calling e.g. distribution.values("y") returns a list of the y
+        calling e.g. distribution.get_values("y") returns a list of the y
         coordinates.
         Although perhaps a tuple would make sense here since we aren't
         going to modify the locations this way, a list seems quicker
         """
 
         dist = distribution.Distribution(self.cwList)
-        self.assertEqual(dist.values("y"), [30, 45, 60])
+        self.assertEqual(dist.get_values("y"), [30, 45, 60])
 
     def test_get_values_u_returns_list_of_u_locations(self):
         """
-        calling e.g. distribution.values("u") returns a list of the u
+        calling e.g. distribution.get_values("u") returns a list of the u
         displacements.
         Although perhaps a tuple would make sense here since we aren't
         going to modify the locations this way, a list seems quicker
         """
 
         dist = distribution.Distribution(self.cwList)
-        self.assertEqual(dist.values("u"), [np.nan, np.nan, np.nan])
+        self.assertEqual(dist.get_values("u"), [np.nan, np.nan, np.nan])
 
         for cw in dist.windows:
             cw.u = 10
 
-        self.assertEqual(dist.values("u"), [10, 10, 10])
+        self.assertEqual(dist.get_values("u"), [10, 10, 10])
 
     def test_get_values_v_returns_list_of_v_locations(self):
         """
-        calling e.g. distribution.values("v") returns a list of the v
+        calling e.g. distribution.get_values("v") returns a list of the v
         displacements.
         Although perhaps a tuple would make sense here since we aren't
         going to modify the locations this way, a list seems quicker
         """
 
         dist = distribution.Distribution(self.cwList)
-        self.assertEqual(dist.values("v"), [np.nan, np.nan, np.nan])
+        self.assertEqual(dist.get_values("v"), [np.nan, np.nan, np.nan])
 
         for cw in dist.windows:
             cw.v = 20
 
-        self.assertEqual(dist.values("v"), [20, 20, 20])
+        self.assertEqual(dist.get_values("v"), [20, 20, 20])
+
+    def test_get_values_wrong_key_raises_error(self):
+        """
+        The expected behaviour is to raise a KeyError
+        """
+
+        dist = distribution.Distribution(self.cw)
+
+        with self.assertRaises(KeyError):
+            dist.get_values('WrongKey')
 
 
 if __name__ == "__main__":

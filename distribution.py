@@ -30,7 +30,7 @@ class Distribution:
         """
         return len(self.windows)
 
-    def values(self, prop):
+    def get_values(self, prop):
         """
         Returns a list of property values from the list of CorrWindows
         corresponding to the requested property 'prop'
@@ -65,16 +65,10 @@ if __name__ == '__main__':
         cwList.append(corr_window.CorrWindow(i, 2 * i, 31))
 
     dist = Distribution(cwList)
-    print(dist.values('x'))
-    print(dist.x_locations())
-    print(dist.values('d'))
+    print(dist.get_values('x'))
+    # print(dist.get_values('WrongKey'))
 
     start = time.time()
     for i in range(100):
-        dist.x_locations()
-    print("plain list", time.time() - start)
-
-    start = time.time()
-    for i in range(100):
-        dist.values('x')
+        dist.get_values('x')
     print("plain list", time.time() - start)
