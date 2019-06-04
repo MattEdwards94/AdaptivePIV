@@ -293,12 +293,27 @@ class TestDistributions(unittest.TestCase):
 
         for item in acceptable_options:
             # check that no error is thrown
-            self.dist.interpolate_onto_densepredictor(item, None)
+            self.dist.interpolate_onto_densepredictor(item, (10, 10))
 
         for item in unacceptable_options:
             # check that ValueError is raised
             with self.assertRaises(ValueError):
-                self.dist.interpolate_onto_densepredictor(item, None)
+                self.dist.interpolate_onto_densepredictor(item, (10, 10))
+
+    def test_interpolate_checks_out_dimensions(self):
+        """
+        Checks that the output dimensions are checked to be positive integers
+        """
+
+        # should run fine
+        self.dist.interpolate_onto_densepredictor('str_lin', (100, 100))
+
+        # check decimals
+        with self.assertRaises(ValueError):
+            self.dist.interpolate_onto_densepredictor('str_lin', (4.5, 4.5))
+        # check negatives
+        with self.assertRaises(ValueError):
+            self.dist.interpolate_onto_densepredictor('str_lin', (-4, 4))
 
 
 if __name__ == "__main__":

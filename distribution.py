@@ -129,6 +129,11 @@ class Distribution:
         if method not in acc_options:
             raise ValueError("Method not handled")
 
+        # check the output dimensions - must be positive integers
+        for dim in out_dim:
+            if (not dim == int(dim)) or dim < 1:
+                raise ValueError("Dimensions must be positive integer")
+
 
 def NMT_detection(u, v, nb_ind, eps=0.1):
     """
