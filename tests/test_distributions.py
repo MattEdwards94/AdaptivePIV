@@ -15,6 +15,7 @@ class TestDistributions(unittest.TestCase):
         self.cwList = [corr_window.CorrWindow(x=20, y=30, WS=41),
                        corr_window.CorrWindow(x=30, y=45, WS=51),
                        corr_window.CorrWindow(x=40, y=60, WS=31), ]
+        self.dist = distribution.Distribution(self.cwList)
 
     def test_initialisation_with_no_inputs(self):
         """
