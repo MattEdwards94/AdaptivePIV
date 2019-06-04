@@ -282,6 +282,24 @@ class TestDistributions(unittest.TestCase):
             dist.set_values('WrongKey', [1, 2, 3])
             print(dist.windows[0].__dict__)
 
+    def test_interpolate_checks_method(self):
+        """
+        Checks the method passed is checked for validity
+        """
+
+        acceptable_options = ["str_lin", "str_cub"]
+
+        unacceptable_options = ["not this", "or this", "cub_str"]
+
+        for item in acceptable_options:
+            # check that no error is thrown
+            self.dist.interpolate_onto_densepredictor(item, None)
+
+        for item in unacceptable_options:
+            # check that ValueError is raised
+            with self.assertRaises(ValueError):
+                self.dist.interpolate_onto_densepredictor(item, None)
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)

@@ -122,6 +122,13 @@ class Distribution:
                 cw.u, cw.v = u_i, v_i
                 cw.flag = outlier
 
+    def interpolate_onto_densepredictor(self, method, out_dim):
+
+        # check the input method
+        acc_options = ["str_lin", "str_cub"]
+        if method not in acc_options:
+            raise ValueError("Method not handled")
+
 
 def NMT_detection(u, v, nb_ind, eps=0.1):
     """
