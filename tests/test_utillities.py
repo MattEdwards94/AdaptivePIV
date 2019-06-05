@@ -28,7 +28,7 @@ class TestUtilities(unittest.TestCase):
 
         self.assertTrue(np.allclose(act_diff, exp_diff))
 
-    def test_reshape_to_structured_for_nice_xy_input(self):
+    def test_auto_reshape_for_nice_xy_input(self):
         """
         Since we just have a list of locations and values, we need to work out
         the dimensions of the data such that it can be interpolated in a
@@ -47,13 +47,13 @@ class TestUtilities(unittest.TestCase):
 
         # for now the function is just returning the spacing it has calculated
         # so that we can test this is correct
-        x_2d, y_2d = utilities.reshape_to_structured_equivalent(X1d, Y1d)
+        x_2d, y_2d = utilities.auto_reshape(X1d, Y1d)
 
         # check that the spacing is as was used to create the array
         self.assertTrue(np.allclose(x_2d, X))
         self.assertTrue(np.allclose(y_2d, Y))
 
-    def test_reshape_to_structured_for_unsorted_xy_raises_error(self):
+    def test_auto_reshape_for_unsorted_xy_raises_error(self):
         """
         In the event that the input data is not sorted, raise a ValueError
         """
@@ -71,9 +71,9 @@ class TestUtilities(unittest.TestCase):
         # now check that the method raises a valueError since this would be
         # very hard to resolve
         with self.assertRaises(ValueError):
-            utilities.reshape_to_structured_equivalent(X1d, Y1d)
+            utilities.auto_reshape(X1d, Y1d)
 
-    def test_reshape_to_structured_with_single_function_values(self):
+    def test_auto_reshape_with_single_function_values(self):
         """
         Checks that the method also reshapes the optional first 'function'
         values and returns 3, 2d arrays all with the same size and correct
@@ -88,7 +88,7 @@ class TestUtilities(unittest.TestCase):
         U = np.exp(-(2 * X)**2 - (Y / 2)**2)
         X1d, Y1d, U1d = X.flatten(), Y.flatten(), U.flatten()
 
-        x_2d, y_2d, u_2d = utilities.reshape_to_structured_equivalent(
+        x_2d, y_2d, u_2d = utilities.auto_reshape(
             X1d, Y1d, U1d)
 
         # check that the spacing is as was used to create the array
@@ -96,7 +96,7 @@ class TestUtilities(unittest.TestCase):
         self.assertTrue(np.allclose(y_2d, Y))
         self.assertTrue(np.allclose(u_2d, U))
 
-    def test_reshape_to_structured_with_both_function_values(self):
+    def test_auto_reshape_with_both_function_values(self):
         """
         Checks that the method also reshapes the optional first and second
         'function' alues and returns 4, 2d arrays all with the same size and
@@ -112,7 +112,7 @@ class TestUtilities(unittest.TestCase):
         V = 2 * np.exp(-(2 * X)**2 - (Y / 2)**2)
         X1d, Y1d, U1d, V1d = X.flatten(), Y.flatten(), U.flatten(), V.flatten()
 
-        x_2d, y_2d, u_2d, v_2d = utilities.reshape_to_structured_equivalent(
+        x_2d, y_2d, u_2d, v_2d = utilities.auto_reshape(
             X1d, Y1d, U1d, V1d)
 
         # check that the spacing is as was used to create the array

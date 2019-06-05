@@ -19,7 +19,7 @@ def elementwise_diff(A):
     return [nxt - curr for curr, nxt in zip(A, A[1:])]
 
 
-def reshape_to_structured_equivalent(x, y, f1=None, f2=None):
+def auto_reshape(x, y, f1=None, f2=None):
     """
     Returns 2D structured data of unknown dimensions, from the flattened data
 
@@ -103,5 +103,5 @@ if __name__ == '__main__':
 
     # for now the function is just returning the spacing it has calculated
     # so that we can test this is correct
-    x_2d, y_2d = reshape_to_structured_equivalent(X_1d, Y_1d, X_1d)
+    x_2d, y_2d = auto_reshape(X_1d, Y_1d, X_1d)
     print(x_2d, y_2d)
