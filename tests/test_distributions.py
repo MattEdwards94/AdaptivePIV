@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import distribution
 import corr_window
+from scipy import interpolate
 from sklearn.neighbors import NearestNeighbors
 
 
@@ -320,17 +321,17 @@ class TestDistributions(unittest.TestCase):
         check that the interpolation performed is correct
         """
 
-        # create sample grid
+        # create sample meshgrid 0-12 in steps of 2
         xs, ys = np.meshgrid(np.arange(13, step=2), np.arange(13, step=2))
+        # sample values
         us, vs = (np.arange(98, step=2).reshape((7, 7)),
                   np.arange(98, step=2).reshape((7, 7)) * 4, )
 
-        eval_dim = (14, 14)
-
         # expected interpolation
+        # this will interpolate 0-13, i.e. will extrap at the far edges
+        eval_dim = (14, 14)
         u_exp = (np.tile(np.arange(eval_dim[1]), (eval_dim[0], 1)) +
                  (np.arange(eval_dim[0]).reshape((eval_dim[0], 1)) * 7))
-        print(u_exp)
         v_exp = u_exp * 4
 
         # create corr windows
@@ -345,7 +346,43 @@ class TestDistributions(unittest.TestCase):
 
         # now interpolate using method
         u_int, v_int = dist.interp_to_densepred('struc_lin', eval_dim)
-        print(u_int)
+
+        self.assertTrue(np.allclose(u_int, u_exp))
+        self.assertTrue(np.allclose(v_int, v_exp))
+
+    def test_cubic_interpolate_onto_pixelgrid(self):
+        """
+        This one is a bit harder to test without getting into complicated
+        formula to work out the expected values.
+        For now, we will test that the 'distribution' specific method is the
+        same as when being called in the intended way
+        """
+
+        # conventional approach
+        h = 5
+        x, y = np.arange(101, step=h), np.arange(101, step=h)
+        xs, ys = np.meshgrid(x, y)
+        us, vs = (np.sin(np.pi * xs / 2) * np.exp(ys / 2),
+                  np.cos(np.pi * xs / 2) * np.exp(ys / 2))
+
+        # we must not extend the evaluation beyond the data points, as we are'nt
+        # checking the extrap here
+        eval_dim = (100, 100)
+        xe, ye = np.arange(eval_dim[1]), np.arange(eval_dim[0])
+
+        # perform interpolation
+        f_u = interpolate.interp2d(x, y, us, kind='linear')
+        f_v = interpolate.interp2d(x, y, vs, kind='linear')
+        u_exp, v_exp = f_u(xe, ye), f_v(xe, ye)
+
+        # now interpolate by creating a distribution and calling the method
+        cwList = []
+        for x, y, u, v in zip(xs.ravel(), ys.ravel(), us.ravel(), vs.ravel()):
+            cw = corr_window.CorrWindow(x, y, WS=31)
+            cw.u, cw.v = u, v
+            cwList.append(cw)
+        dist = distribution.Distribution(cwList)
+        u_int, v_int = dist.interp_to_densepred('struc_lin', eval_dim)
 
         self.assertTrue(np.allclose(u_int, u_exp))
         self.assertTrue(np.allclose(v_int, v_exp))
