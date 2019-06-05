@@ -4,6 +4,8 @@ import time
 from sklearn.neighbors import NearestNeighbors
 import utilities
 from scipy import interpolate
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 class Distribution:
@@ -253,16 +255,25 @@ def outlier_replacement(flag, u, v, nb_ind):
 
 
 if __name__ == '__main__':
-    # create long list of corrWindows
-    cwList = []
-    for i in range(10):
-        cwList.append(corr_window.CorrWindow(i, 2 * i, 31))
 
-    dist = Distribution(cwList)
-    print(dist.get_values('x'))
-    # print(dist.get_values('WrongKey'))
+    # create meshgrid
+    strt, fin, step = 1, 31 + 1, 10
+    x = np.arange(strt, fin, step)
+    y = np.arange(strt, fin + 5, step / 2)
+    xx, yy = np.meshgrid(x, y)
+    U = np.exp(-(2 * xx / 101)**2 - (yy / (2 * 101))**2)
 
-    start = time.time()
-    for i in range(100):
-        dist.get_values('x')
-    print("plain list", time.time() - start)
+    # interpolate U on x and y
+    vals = interpolate.interp2d(xx[0, :], yy[:, 0], U)
+
+    xe = np.arange(strt, fin, 1)
+    ye = np.arange(strt, fin, 1)
+    xxe, yye = np.meshgrid(xe, ye)
+    u_int = vals(xxe.ravel(), yye.ravel())
+
+    fig, ax = plt.subplots(nrows=1, ncols=2, subplot_kw={'projection': '3d'})
+    ax[0].plot_wireframe(xx, yy, U, color='b')
+    ax[0].plot_wireframe(yye.ravel(), xxe.ravel(), u_int, color='r')
+
+    # ax[1].plot(x, U[0, :], 'ro-', xe, u_int[0, :], 'b-')
+    plt.show()
