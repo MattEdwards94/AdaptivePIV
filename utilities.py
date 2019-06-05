@@ -89,6 +89,58 @@ def auto_reshape(x, y, f1=None, f2=None):
         return x_2d, y_2d
 
 
+def lin_extrap_edges(f, n_pad=1):
+    """
+    Extends the values of f by n_pad rows/columns around the array.
+    By default n_pad is 1
+    If the input is one dimensional then the output is only padded in the same
+    dimension.
+
+    Args:
+        f (ndarray): array of values to extrapolate
+        n_pad (int, optional): number or rows/columns to extend the input by.
+                               Default is 1
+
+    Returns:
+        ndarray: padded output array
+    """
+
+    f = np.asarray(f)
+
+    if f.ndim == 1:
+        # calculate the gradient at the start and end
+        start_grad = f[1] - f[0]
+        # deliberately this way such that +dx is obtained
+        end_grad = f[-1] - f[-2]
+
+        # extend
+        prepend = [f[0] - ii * start_grad for ii in range(n_pad, 0, -1)]
+        append = [f[-1] + ii * end_grad for ii in range(1, n_pad + 1)]
+
+        out = np.concatenate((prepend, f, append))
+        return out
+    else:
+        # calculate gradients left and right
+        l_grad, r_grad = f[:, 1] - f[:, 0], f[:, -1] - f[:, -2]
+
+        # extend in x and y
+        prepend = [f[:, 0] - ii * l_grad for ii in range(n_pad, 0, -1)]
+        append = [f[:, -1] + ii * r_grad for ii in range(1, n_pad + 1)]
+
+        wide = np.hstack((np.transpose(prepend), f, np.transpose(append)))
+
+        # repeat for up and down
+        u_grad, d_grad = wide[1, :] - wide[0, :], wide[-1, :] - wide[-2, :]
+
+        # extend in x and y
+        prepend = [wide[0, :] - ii * u_grad for ii in range(n_pad, 0, -1)]
+        append = [wide[-1, :] + ii * d_grad for ii in range(1, n_pad + 1)]
+
+        out = np.vstack((prepend, wide, append))
+
+        return out
+
+
 if __name__ == '__main__':
     strt, fin, step = 1, 41, 10
     x = np.arange(strt, fin, step)

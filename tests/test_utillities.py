@@ -120,3 +120,79 @@ class TestUtilities(unittest.TestCase):
         self.assertTrue(np.allclose(y_2d, Y))
         self.assertTrue(np.allclose(u_2d, U))
         self.assertTrue(np.allclose(v_2d, V))
+
+    def test_lin_extrap_edges_with_1d_default_npad(self):
+        """
+        Check for a one dimensional input that the output is linearly
+        extrapolated at each end
+        """
+
+        # input values. The 3000 shouldn't affect the extrapolation
+        in_values = [1, 1.5, 3000, 2.5, 3]
+
+        # extrapolate
+        out = utilities.lin_extrap_edges(in_values)
+        print(out)
+
+        # expected
+        out_expected = [0.5] + in_values + [3.5]
+        self.assertTrue(np.allclose(out, out_expected))
+
+    def test_lin_extrap_edges_with_1d_modified_npad(self):
+        """
+        Check for a one dimensional input that the output is linearly
+        extrapolated at each end if the n_pad is greater than 1
+        """
+
+        # input values. The 3000 shouldn't affect the extrapolation
+        in_values = [1, 1.5, 3000, 2.5, 3]
+
+        # extrapolate
+        out = utilities.lin_extrap_edges(in_values, n_pad=3)
+        print(out)
+
+        # expected
+        out_expected = [-0.5, 0, 0.5] + in_values + [3.5, 4, 4.5]
+        self.assertTrue(np.allclose(out, out_expected))
+
+    def test_lin_extrap_edges_with_2d_default_npad(self):
+        """
+        Tests the output is linearly extrapolated for a 2D input
+        """
+
+        in_values = np.arange(16).reshape((4, 4))
+
+        # extrapolate
+        out = utilities.lin_extrap_edges(in_values)
+        print(out)
+
+        out_expected = [[-5, -4, -3, -2, -1, 0],
+                        [-1, 0, 1, 2, 3, 4],
+                        [3, 4, 5, 6, 7, 8],
+                        [7, 8, 9, 10, 11, 12],
+                        [11, 12, 13, 14, 15, 16],
+                        [15, 16, 17, 18, 19, 20], ]
+
+        self.assertTrue(np.allclose(out, out_expected))
+
+    def test_lin_extrap_edges_with_2d_modified_npad(self):
+        """
+        Tests the output is linearly extrapolated for a 2D input
+        """
+
+        in_values = np.arange(16).reshape((4, 4))
+
+        # extrapolate
+        out = utilities.lin_extrap_edges(in_values, n_pad=2)
+        print(out)
+
+        out_expected = [[-10, -9, -8, -7, -6, -5, -4, -3],
+                        [-6, -5, -4, -3, -2, -1, 0, 1],
+                        [-2, -1, 0, 1, 2, 3, 4, 5],
+                        [2, 3, 4, 5, 6, 7, 8, 9],
+                        [6, 7, 8, 9, 10, 11, 12, 13],
+                        [10, 11, 12, 13, 14, 15, 16, 17],
+                        [14, 15, 16, 17, 18, 19, 20, 21],
+                        [18, 19, 20, 21, 22, 23, 24, 25], ]
+
+        self.assertTrue(np.allclose(out, out_expected))
