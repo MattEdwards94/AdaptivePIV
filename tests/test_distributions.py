@@ -287,18 +287,18 @@ class TestDistributions(unittest.TestCase):
         Checks the method passed is checked for validity
         """
 
-        acceptable_options = ["str_lin", "str_cub"]
+        acceptable_options = ["struc_lin", "struc_cub"]
 
         unacceptable_options = ["not this", "or this", "cub_str"]
 
-        for item in acceptable_options:
-            # check that no error is thrown
-            self.dist.interpolate_onto_densepredictor(item, (10, 10))
+        # for item in acceptable_options:
+        # check that no error is thrown
+        # self.dist.interp_to_densepred(item, (10, 10))
 
         for item in unacceptable_options:
             # check that ValueError is raised
             with self.assertRaises(ValueError):
-                self.dist.interpolate_onto_densepredictor(item, (10, 10))
+                self.dist.interp_to_densepred(item, (10, 10))
 
     def test_interpolate_checks_out_dimensions(self):
         """
@@ -306,14 +306,49 @@ class TestDistributions(unittest.TestCase):
         """
 
         # should run fine
-        self.dist.interpolate_onto_densepredictor('str_lin', (100, 100))
+        # self.dist.interp_to_densepred('str_lin', (100, 100))
 
         # check decimals
         with self.assertRaises(ValueError):
-            self.dist.interpolate_onto_densepredictor('str_lin', (4.5, 4.5))
+            self.dist.interp_to_densepred('struc_lin', (4.5, 4.5))
         # check negatives
         with self.assertRaises(ValueError):
-            self.dist.interpolate_onto_densepredictor('str_lin', (-4, 4))
+            self.dist.interp_to_densepred('struc_lin', (-4, 4))
+
+    def test_linear_interpolate_onto_pixelgrid(self):
+        """
+        check that the interpolation performed is correct
+        """
+
+        # create sample grid
+        xs, ys = np.meshgrid(np.arange(13, step=2), np.arange(13, step=2))
+        us, vs = (np.arange(98, step=2).reshape((7, 7)),
+                  np.arange(98, step=2).reshape((7, 7)) * 4, )
+
+        eval_dim = (14, 14)
+
+        # expected interpolation
+        u_exp = (np.tile(np.arange(eval_dim[1]), (eval_dim[0], 1)) +
+                 (np.arange(eval_dim[0]).reshape((eval_dim[0], 1)) * 7))
+        print(u_exp)
+        v_exp = u_exp * 4
+
+        # create corr windows
+        cwList = []
+        for x, y, u, v in zip(xs.ravel(), ys.ravel(), us.ravel(), vs.ravel()):
+            cw = corr_window.CorrWindow(x, y, WS=31)
+            cw.u, cw.v = u, v
+            cwList.append(cw)
+
+        # create distribution
+        dist = distribution.Distribution(cwList)
+
+        # now interpolate using method
+        u_int, v_int = dist.interp_to_densepred('struc_lin', eval_dim)
+        print(u_int)
+
+        self.assertTrue(np.allclose(u_int, u_exp))
+        self.assertTrue(np.allclose(v_int, v_exp))
 
 
 if __name__ == "__main__":

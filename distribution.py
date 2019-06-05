@@ -2,6 +2,8 @@ import corr_window
 import numpy as np
 import time
 from sklearn.neighbors import NearestNeighbors
+import utilities
+from scipy import interpolate
 
 
 class Distribution:
@@ -122,17 +124,63 @@ class Distribution:
                 cw.u, cw.v = u_i, v_i
                 cw.flag = outlier
 
-    def interpolate_onto_densepredictor(self, method, out_dim):
+    def interp_to_densepred(self, method, eval_dim):
+        """
+        Interpolates the displacement vectors held by the distribution object
+        onto a pixel grid from 0 to the output dimensions
+        The values are linearly extrapolated at the boundaries
 
+        Args:
+            method (string): type of interpolation, 'linear' or 'cubic'
+            eval_dim (tuple): dimensions of the pixel grid to be evaluated
+
+        Returns:
+            (u, v): ndarrays of the u and v interpolated displacements, of
+                    dimenions equal to eval_dim
+
+        Raises:
+            ValueError: if the method or evaluation dimensions are not valid
+        """
         # check the input method
-        acc_options = ["str_lin", "str_cub"]
+        acc_options = ["struc_lin", "struc_cub"]
         if method not in acc_options:
             raise ValueError("Method not handled")
 
         # check the output dimensions - must be positive integers
-        for dim in out_dim:
-            if (not dim == int(dim)) or dim < 1:
+        for dim in eval_dim:
+            if (not np.all(dim == int(dim))) or np.any(dim < 1):
                 raise ValueError("Dimensions must be positive integer")
+
+        # reshape the data onto a structured grid
+        x, y, u, v = (self.get_values('x'), self.get_values('y'),
+                      self.get_values('u'), self.get_values('v'))
+
+        x2d, y2d, u2d, v2d = utilities.auto_reshape(x, y, u, v)
+
+        # now we need to handle extrapolation
+        x, y, u, v = (utilities.lin_extrap_edges(x2d),
+                      utilities.lin_extrap_edges(y2d),
+                      utilities.lin_extrap_edges(u2d),
+                      utilities.lin_extrap_edges(v2d), )
+
+        # calculate evaluation range
+        xe = np.arange(eval_dim[1])
+        ye = np.arange(eval_dim[0])
+
+        if method == "struc_lin":
+            # interpolate using scipy
+            f_u = interpolate.interp2d(x[0, :], y[:, 0], u, kind='linear')
+            f_v = interpolate.interp2d(x[0, :], y[:, 0], v, kind='linear')
+            u_int = f_u(xe, ye)
+            v_int = f_v(xe, ye)
+        elif method == "struc_cub":
+            # interpolate using scipy
+            f_u = interpolate.interp2d(x[0, :], y[:, 0], u, kind='cubic')
+            f_v = interpolate.interp2d(x[0, :], y[:, 0], v, kind='cubic')
+            u_int = f_u(xe, ye)
+            v_int = f_v(xe, ye)
+
+        return u_int, v_int
 
 
 def NMT_detection(u, v, nb_ind, eps=0.1):
