@@ -44,7 +44,7 @@ class Distribution:
             prop (str): The property of self.windows to retrieve
 
         Returns:
-            list: list of properties 'prop' from self.windows
+            ndarray: array of properties 'prop' from self.windows
 
         Example:
             >>> import corr_window
@@ -59,7 +59,7 @@ class Distribution:
             >>> print(x_vals)
             ... [10, 20, 30]
         """
-        return [cw.__dict__[prop] for cw in self.windows]
+        return np.array([cw.__dict__[prop] for cw in self.windows])
 
     def set_values(self, prop, values):
         """
@@ -105,10 +105,8 @@ class Distribution:
 
         # detection
         # find neighbours
-        x = self.get_values('x')
-        y = self.get_values('y')
-        u = self.get_values('u')
-        v = self.get_values('v')
+        x, y, u, v = (self.get_values('x'), self.get_values('y'),
+                      self.get_values('u'), self.get_values('v'),)
         xy = np.transpose(np.array([x, y]))
         nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
         nb_dist, nb_ind = nbrs.kneighbors(xy)

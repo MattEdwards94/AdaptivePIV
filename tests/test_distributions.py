@@ -93,7 +93,7 @@ class TestDistributions(unittest.TestCase):
         """
 
         dist = distribution.Distribution(self.cwList)
-        self.assertEqual(dist.get_values("x"), [20, 30, 40])
+        self.assertTrue(np.allclose(dist.get_values("x"), [20, 30, 40]))
 
     def test_get_values_y_returns_list_of_y_locations(self):
         """
@@ -104,7 +104,7 @@ class TestDistributions(unittest.TestCase):
         """
 
         dist = distribution.Distribution(self.cwList)
-        self.assertEqual(dist.get_values("y"), [30, 45, 60])
+        self.assertTrue(np.allclose(dist.get_values("y"), [30, 45, 60]))
 
     def test_get_values_u_returns_list_of_u_locations(self):
         """
@@ -115,12 +115,12 @@ class TestDistributions(unittest.TestCase):
         """
 
         dist = distribution.Distribution(self.cwList)
-        self.assertEqual(dist.get_values("u"), [np.nan, np.nan, np.nan])
+        self.assertTrue(np.all(np.isnan(dist.get_values("u"))))
 
         for cw in dist.windows:
             cw.u = 10
 
-        self.assertEqual(dist.get_values("u"), [10, 10, 10])
+        self.assertTrue(np.allclose(dist.get_values("u"), [10, 10, 10]))
 
     def test_get_values_v_returns_list_of_v_locations(self):
         """
@@ -131,12 +131,12 @@ class TestDistributions(unittest.TestCase):
         """
 
         dist = distribution.Distribution(self.cwList)
-        self.assertEqual(dist.get_values("v"), [np.nan, np.nan, np.nan])
+        self.assertTrue(np.all(np.isnan(dist.get_values("v"))))
 
         for cw in dist.windows:
             cw.v = 20
 
-        self.assertEqual(dist.get_values("v"), [20, 20, 20])
+        self.assertTrue(np.allclose(dist.get_values("v"), [20, 20, 20]))
 
     def test_get_values_wrong_key_raises_error(self):
         """
@@ -194,6 +194,43 @@ class TestDistributions(unittest.TestCase):
 
         self.assertTrue(np.allclose(norm, np.zeros((100, ))))
 
+    def test_validation_NMT_8NN_stores_old_value(self):
+        """
+        We want to keep a track of the old displacement value for future
+        reference if needed.
+
+        We don't particularly care in this test whether the validation is
+        correct or not, just that if a vector is replaced, that we store the
+        old value.
+        So we will create a grid of random displacement values, run the vec
+        validation, and check that all the invalid vectors have
+        u_pre_validation and v_pre_validation set.
+        """
+
+        # creates a random displacement field
+        x, y = np.arange(49) * 1, np.arange(49) * 1
+        u, v = np.random.rand(49), np.random.rand(49)
+
+        # create distribution object, by creating all the corrWindow objects
+        dist = distribution.Distribution()
+        for xi, yi, ui, vi in zip(x, y, u, v):
+            cw = corr_window.CorrWindow(xi, yi, WS=31)
+            cw.u, cw.v = ui, vi
+            dist.windows.append(cw)
+
+        # now run the vector validation
+        dist.validation_NMT_8NN()
+
+        # get the flagged vectors
+        flag = dist.get_values('flag')
+
+        # now check that they all have the value they originally were given
+        for cw, ui, vi, flagi in zip(dist.windows, u, v, flag):
+            if flagi is True:
+                # it's an outlier
+                self.assertEqual(ui, cw.u_pre_validation)
+                self.assertEqual(vi, cw.v_pre_validation)
+
     def test_outlier_replacement_replaces_0_if_all_neighbours_outliers(self):
         """
         If all neighbours are outliers, then the replaced value should be 0
@@ -228,7 +265,7 @@ class TestDistributions(unittest.TestCase):
         x, y, u, v = (np.arange(50) * 1, np.arange(50) * 2,
                       np.arange(50) * 3, np.arange(50) * 4, )
         u = np.array(u, dtype=float)
-        v = np.array(u, dtype=float)
+        v = np.array(v, dtype=float)
         xy = np.transpose(np.array([x, y]))
         nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
         nb_dist, nb_ind = nbrs.kneighbors(xy)
