@@ -177,6 +177,11 @@ class CorrWindow:
 
         """
 
+        # check if the central window location is masked
+        if not img.mask[self.y, self.x]:
+            self.u, self.v, self.WS = np.nan, np.nan, np.nan
+            return np.nan, np.nan, np.nan
+
         # load the image and mask values and perform the cross correlation
         wsa, wsb, mask = self.prepare_correlation_windows(img)
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
