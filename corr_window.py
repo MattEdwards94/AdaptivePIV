@@ -57,6 +57,11 @@ class CorrWindow:
         self.y = int(y)
         self.WS = int(WS)
         self.rad = int((WS - 1) * 0.5)
+        self.u = np.NaN
+        self.v = np.NaN
+        self.u_pre_validation = np.NaN
+        self.v_pre_validation = np.NaN
+        self.flag = np.NaN
 
     def prepare_correlation_windows(self, img):
         """
@@ -171,6 +176,11 @@ class CorrWindow:
                  peak in the correlation map to the second largest peak
 
         """
+
+        # check if the central window location is masked
+        if not img.mask[self.y, self.x]:
+            self.u, self.v, self.WS = np.nan, np.nan, np.nan
+            return np.nan, np.nan, np.nan
 
         # load the image and mask values and perform the cross correlation
         wsa, wsb, mask = self.prepare_correlation_windows(img)

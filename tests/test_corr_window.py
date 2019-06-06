@@ -258,6 +258,30 @@ class TestCorrWindow(unittest.TestCase):
         print(dcc_corrmap)
         self.assertTrue(np.allclose(corrmap, dcc_corrmap))
 
+    def test_correlate_checks_if_location_is_masked(self):
+        """
+        We don't want to correlate if the location is masked, so if it is masked
+        return NaN
+        """
+
+        # create image object with a masked region
+        IA, IB = np.random.rand(100, 100), np.random.rand(100, 100)
+        # mask on the right
+        left, right = np.ones((100, 50)), np.zeros((100, 50))
+        mask = np.hstack((left, right))
+        img = piv_image.PIVImage(IA, IB, mask)
+        u, v = np.zeros((100, 100)), np.zeros((100, 100))
+        dp = dense_predictor.DensePredictor(u, v, mask)
+
+        # create corr window in masked region and check for NaN response
+        x, y, WS = 75, 25, 31
+        cw = corr_window.CorrWindow(x, y, WS)
+        u, v, snr = cw.correlate(img, dp)
+
+        self.assertTrue(np.isnan(u))
+        self.assertTrue(np.isnan(v))
+        self.assertTrue(np.isnan(snr))
+
     def test_correlate_combines_with_densepredictor(self):
         """
         Need to make sure that the average of the local densepredictor is
@@ -427,6 +451,39 @@ class TestCorrWindow(unittest.TestCase):
         scaling = corr_window.get_corrwindow_scaling(rad + 5, rad + 7, WS, rad)
         self.assertTrue(np.allclose(
             1 / scaling, convolved[rad + 4:rad + 7, rad + 6:rad + 9]))
+
+    def test_u_and_v_are_init_to_nan(self):
+        """
+        The values for u and v need to be set in the object at initialisation
+        """
+
+        x, y, WS = 10, 15, 33
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        self.assertTrue(np.isnan(cw.u))
+        self.assertTrue(np.isnan(cw.v))
+
+    def test_u_and_v_pre_validation_are_initialised_to_nan(self):
+        """
+        These values need initialising to NaN so that we can store the values
+        of u and v before validation - i.e. the pure output of the correlation
+        """
+
+        x, y, WS = 10, 15, 33
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        self.assertTrue(np.isnan(cw.u_pre_validation))
+        self.assertTrue(np.isnan(cw.v_pre_validation))
+
+    def test_flag_initialised_to_nan(self):
+        """
+        Check that the flag is initialised
+        """
+
+        x, y, WS = 10, 15, 33
+        cw = corr_window.CorrWindow(x, y, WS)
+
+        self.assertTrue(np.isnan(cw.flag))
 
 
 if __name__ == "__main__":
