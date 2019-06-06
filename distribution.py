@@ -182,6 +182,22 @@ class Distribution:
 
         return u_int, v_int
 
+    def correlate_all_windows(self, img, dp):
+        """
+        Loops through all the CorrWindow locations and correlates the two images
+
+
+        Args:
+            img (PIVImage): The PIVImage object containing the images and the
+                            mask
+            dp (DensePredictor): DensePredictor object containing the underlying
+                                 displacment field, to be combined with the
+                                 correlation result
+        """
+
+        for cw in self.windows:
+            cw.correlate(img, dp)
+
 
 def NMT_detection(u, v, nb_ind, eps=0.1):
     """

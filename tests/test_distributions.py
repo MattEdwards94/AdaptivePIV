@@ -2,8 +2,10 @@ import unittest
 import numpy as np
 import distribution
 import corr_window
+import piv_image
 from scipy import interpolate
 from sklearn.neighbors import NearestNeighbors
+import dense_predictor
 
 
 class TestDistributions(unittest.TestCase):
@@ -423,6 +425,35 @@ class TestDistributions(unittest.TestCase):
 
         self.assertTrue(np.allclose(u_int, u_exp))
         self.assertTrue(np.allclose(v_int, v_exp))
+
+    def test_all_windows_have_displacements_after_correlating(self):
+        """
+        Assuming that there is no mask in place, then following
+        dist.correlate_all_windows(img, dp) all corr windows should have
+        some displacement value
+        """
+
+        # create random image
+        IA, IB, mask = (np.random.rand(100, 100),
+                        np.random.rand(100, 100), np.ones((100, 100)))
+        img = piv_image.PIVImage(IA, IB, mask)
+        # create empty displacement field
+        dp = dense_predictor.DensePredictor(
+            u=np.zeros_like(IA), v=np.zeros_like(IA))
+
+        # create random distribution
+        x, y = (np.random.randint(0, 100, (100, )),
+                np.random.randint(0, 100, (100, )))
+        dist = distribution.Distribution()
+        for xi, yi in zip(x, y):
+            dist.windows.append(corr_window.CorrWindow(xi, yi, WS=31))
+
+        # correlate all locations
+        dist.correlate_all_windows(img, dp)
+
+        for cw in dist.windows:
+            self.assertFalse(np.isnan(cw.u))
+            self.assertFalse(np.isnan(cw.v))
 
 
 if __name__ == "__main__":
