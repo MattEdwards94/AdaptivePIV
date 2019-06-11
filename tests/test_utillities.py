@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 import utilities
+import math
 
 
 class TestUtilities(unittest.TestCase):
@@ -196,3 +197,46 @@ class TestUtilities(unittest.TestCase):
                         [18, 19, 20, 21, 22, 23, 24, 25], ]
 
         self.assertTrue(np.allclose(out, out_expected))
+
+    def test_round_to_odd_doesnt_change_odd_int(self):
+        """
+        If an odd integer is passed in, then the output should be the same
+        """
+
+        vals = [15, 45, 101]
+        output = list(map(utilities.round_to_odd, vals))
+
+        self.assertEqual(output, vals)
+
+    def test_round_to_odd_for_even_value_rounds_up(self):
+        """
+        If an even number is passed in, the value should round up
+        """
+
+        vals = [14, 44, 100]
+        output = list(map(utilities.round_to_odd, vals))
+
+        exp = [15, 45, 101]
+        self.assertEqual(output, exp)
+
+    def test_round_to_odd_round_down(self):
+        """
+        values up to 0.9999 greater than an odd should round down
+        """
+
+        vals = [15.55, 45.495, 101.9999]
+        output = list(map(utilities.round_to_odd, vals))
+
+        exp = [15, 45, 101]
+        self.assertEqual(output, exp)
+
+    def test_round_to_odd_round_up(self):
+        """
+        Values -1 and above should round up
+        """
+
+        vals = [14, 44.4681, 100.22516]
+        output = list(map(utilities.round_to_odd, vals))
+
+        exp = [15, 45, 101]
+        self.assertEqual(output, exp)
