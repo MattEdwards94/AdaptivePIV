@@ -204,6 +204,48 @@ class TestAnalysis(unittest.TestCase):
                                               n_iter_ref=3,
                                               interp='struc_lin'))
 
+    def test_calculate_WS_specific_inputs(self):
+        """
+        This is testing that the 'special' cases are handle correctly.
+        iter_ = 1 returns ['init_WS']
+            UNLESS
+            iter_ = 1 and ['n_iter_main'] == 1, which returns ['final_WS']
+        iter_ >= ['n_iter_main'] returns ['final_WS']
+        """
+
+        # create settings dict
+        settings = analysis.widim_settings(n_iter_main=4, n_iter_ref=2,
+                                           init_WS=57, final_WS=33)
+
+        # input with iter > n_iter_main => WS = final_WS
+        WS = analysis.WS_for_iter(6, settings)
+        self.assertEqual(WS, 33)
+
+        # input with iter == n_iter_main => WS = final_WS
+        WS = analysis.WS_for_iter(4, settings)
+        self.assertEqual(WS, 33)
+
+        # input with iter == 1 => WS = init_WS
+        WS = analysis.WS_for_iter(1, settings)
+        self.assertEqual(WS, 57)
+
+        # input with iter == 1, n_iter_main == 1 => WS = init_WS
+        settings['n_iter_main'] = 1
+        WS = analysis.WS_for_iter(1, settings)
+        self.assertEqual(WS, 33)
+
+    def test_calculate_WS_middle_input(self):
+        """
+        Simply tests an example usage
+        """
+
+        settings = analysis.widim_settings(n_iter_main=3,
+                                           init_WS=97,
+                                           final_WS=25)
+
+        exp = 49
+        self.assertEqual(analysis.WS_for_iter(2, settings), exp)
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)
