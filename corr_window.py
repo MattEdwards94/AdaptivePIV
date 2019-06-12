@@ -285,14 +285,10 @@ def get_corrwindow_scaling(i, j, WS, rad):
 
     # work out weighting factors for correcting FFT bias
     # (See Raffel pg. 162-162)
-    i_adj = np.arange(i - 1, i + 2)
-    j_adj = np.arange(j - 1, j + 2)
-    y_val = WS - np.abs(rad - i_adj)
-    x_val = WS - np.abs(rad - j_adj)
+    y_val = WS - np.abs(np.array([rad - i + 1, rad - i, rad - i - 1]))
+    x_val = WS - np.abs(np.array([rad - j + 1, rad - j, rad - j - 1]))
 
-    scale = (WS * WS) / (x_val * y_val.reshape((3, 1)))
-
-    return scale
+    return (WS * WS) / (x_val * y_val[:, np.newaxis])
 
 
 def corrWindow_list(x, y, WS):
