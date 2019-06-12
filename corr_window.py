@@ -3,6 +3,7 @@ import piv_image
 import dense_predictor
 import math
 import time
+import bottleneck as bn
 
 
 class CorrWindow:
@@ -137,7 +138,6 @@ class CorrWindow:
 
         # get the biggest peak
         i, j = np.unravel_index(corrmap.argmax(), corrmap.shape)
-        val_peak = corrmap[i, j]
 
         # catch if the peak is on the edge of the domain
         if (i == 0) or (j == 0) or (i == self.WS - 1) or (j == self.WS - 1):
@@ -145,17 +145,15 @@ class CorrWindow:
             return u, v, SNR
 
         # set values around peak to NaN to find the second largest peak
-        bf = np.copy(corrmap)
-        bf[i - 1:i + 2, j - 1:j + 2] = np.NaN
+        R = np.copy(corrmap[i - 1:i + 2, j - 1:j + 2])
+        corrmap[i - 1:i + 2, j - 1:j + 2] = np.NaN
 
         # get the second peak and calculate SNR
-        val_second_peak = np.nanmax(bf)
-        SNR = val_peak / (val_second_peak + np.spacing(1))
+        SNR = R[1, 1] / (bn.nanmax(corrmap) + np.spacing(1))
+        corrmap[i - 1:i + 2, j - 1:j + 2] = R
 
         # Get the neighbouring values for the Gaussian fitting
-        R = np.copy(corrmap[i - 1:i + 2, j - 1:j + 2])
-        scale = get_corrwindow_scaling(i, j, self.WS, self.rad)
-        R *= scale
+        R *= get_corrwindow_scaling(i, j, self.WS, self.rad)
 
         if np.min(R) <= 0:
             R += 0.00001 - np.min(R)
