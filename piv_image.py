@@ -23,7 +23,7 @@ class PIVImage:
                      in the analysis
         n_rows(int): The number of rows in the image
         n_cols(int): The number of columns in the image
-        img_dim(list): The dimensions of the image [n_rows, n_cols]
+        dim(tuple): The dimensions of the image [n_rows, n_cols]
 
     Examples:
         >>>IA = np.random.rand(100, 100)
@@ -67,7 +67,7 @@ class PIVImage:
         self.mask = np.array(mask)
         self.n_rows = np.shape(IA)[0]
         self.n_cols = np.shape(IA)[1]
-        self.img_dim = [self.n_rows, self.n_cols]
+        self.dim = (self.n_rows, self.n_cols)
         self.is_filtered = False
 
     def __eq__(self, other):
@@ -216,7 +216,7 @@ class PIVImage:
         """
 
         # check that the image and densepredictor are the same size
-        if not np.all(self.img_dim == dp.img_dim):
+        if not np.all(self.dim == dp.dim):
             raise ValueError("dimensions of image and dp must match")
 
         # check whether the images have already been filtered

@@ -45,7 +45,7 @@ class DensePredictor:
         self.apply_mask()
         self.n_rows = np.shape(u)[0]
         self.n_cols = np.shape(u)[1]
-        self.img_dim = [self.n_rows, self.n_cols]
+        self.dim = (self.n_rows, self.n_cols)
 
     def get_region(self, x, y, rad, truncate=True):
         """
@@ -177,7 +177,7 @@ class DensePredictor:
             return NotImplemented
 
         # check that the dimensions are the same
-        if not np.alltrue(self.img_dim == other.img_dim):
+        if not np.alltrue(self.dim == other.dim):
             raise ValueError("DensePredictors must be the same size")
 
         # check if the masks are not the same
@@ -219,7 +219,7 @@ class DensePredictor:
             return NotImplemented
 
         # check that the dimensions are the same
-        if not np.alltrue(self.img_dim == other.img_dim):
+        if not np.alltrue(self.dim == other.dim):
             raise ValueError("DensePredictors must be the same size")
 
         # check if the masks are not the same
@@ -261,7 +261,7 @@ class DensePredictor:
             return NotImplemented
 
         # check that the dimensions are the same
-        if not np.alltrue(self.img_dim == other.img_dim):
+        if not np.alltrue(self.dim == other.dim):
             raise ValueError("DensePredictors must be the same size")
 
         # check if the masks are not the same
@@ -303,7 +303,7 @@ class DensePredictor:
             return NotImplemented
 
         # check that the dimensions are the same
-        if not np.alltrue(self.img_dim == other.img_dim):
+        if not np.alltrue(self.dim == other.dim):
             raise ValueError("DensePredictors must be the same size")
 
         # check if the masks are not the same

@@ -77,7 +77,7 @@ class TestPIVImage(unittest.TestCase):
         img = piv_image.PIVImage(IA, IB, mask)
         self.assertEqual(img.n_rows, 50)
         self.assertEqual(img.n_cols, 100)
-        self.assertEqual(img.img_dim, [50, 100])
+        self.assertEqual(img.dim, (50, 100))
 
     def test_eq_method_evaluates_correctly(self):
         """
