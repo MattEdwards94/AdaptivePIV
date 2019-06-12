@@ -29,7 +29,7 @@ def sym_exp_filt(double[:] X, int X_len, double C0, double z, int K0, int[:] KVe
     return out
 
 
-def bs5_int(double[:, :] IA, int n_rows, int n_cols, double[:, :] new_x, double[:, :] new_y):
+cpdef double[:, :] bs5_int(double[:, :] IA, int n_rows, int n_cols, double[:, :] new_x, double[:, :] new_y):
 
     cdef double[:, :] IB
     IB = np.empty((n_rows, n_cols))

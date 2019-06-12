@@ -102,8 +102,8 @@ class CorrWindow:
         ID = mask == 1
 
         # subtract the mean values from the intensities
-        wsa = ia - np.mean(ia[ID])
-        wsb = ib - np.mean(ib[ID])
+        wsa = ia - (np.sum(ia[ID]) / np.sum(ID))
+        wsb = ib - (np.sum(ib[ID]) / np.sum(ID))
 
         # set mask pixels to 0
         wsa[mask == 0] = 0
@@ -205,9 +205,9 @@ class CorrWindow:
 
         # combine displacement with predictor
         dpx, dpy, mask = dp.get_region(self.x, self.y, self.rad)
-        mask = mask.astype('int')
-        self.u += np.mean(dpx[mask])
-        self.v += np.mean(dpy[mask])
+        n_elem = np.sum(mask)
+        self.u += (np.sum(dpx[mask == 1]) / n_elem)
+        self.v += (np.sum(dpy[mask == 1]) / n_elem)
 
         return self.u, self.v, self.SNR
 
@@ -246,7 +246,8 @@ def calculate_correlation_map(wsa, wsb, WS, rad):
 
     # return the correct region
     idx = (np.arange(WS) + rad) % nPow2
-    corrmap = corrmap[np.ix_(idx, idx)]
+    bf = corrmap[idx, :]
+    corrmap = bf[:, idx]
 
     return corrmap
 

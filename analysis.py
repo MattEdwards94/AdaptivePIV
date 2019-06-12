@@ -6,7 +6,6 @@ import corr_window
 import dense_predictor
 import matplotlib.pyplot as plt
 import piv_image
-import pdb
 
 
 def widim(img, settings):
@@ -205,7 +204,6 @@ def widim_settings(init_WS=97, final_WS=33, WOR=0.5,
     }
 
     return settings
-
 
 def run_script():
     IA, IB, mask = piv_image.load_image_from_flow_type(22, 1)
