@@ -1,5 +1,7 @@
 import numpy as np
 import warnings
+import matplotlib.pyplot as plt
+
 
 
 class DensePredictor:
@@ -329,3 +331,16 @@ class DensePredictor:
         inter = self.mask == 0
         self.u[inter] = 0
         self.v[inter] = 0
+
+    def plot_displacement_field(self):
+        """
+        Plots the displacement field
+        """
+
+        xv, yv = np.arange(0, self.n_cols, 16), np.arange(0, self.n_rows, 16)
+        u, v = (self.u[0::16, 0::16], self.v[0::16, 0::16])
+
+        fig, ax = plt.subplots()
+        q = ax.quiver(xv, yv, u, v)
+        plt.show()
+

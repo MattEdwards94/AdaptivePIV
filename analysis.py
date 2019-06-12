@@ -1,14 +1,70 @@
 import numpy as np
 import distribution
 import utilities
+import math
+import corr_window
+import dense_predictor
+import matplotlib.pyplot as plt
+import piv_image
+import pdb
 
 
-def widim():
+def widim(img, settings):
+    """
+    Performs a widim analysis on the PIVImage object, img, with the settings
+    defined in settings
+
+    Args:
+        img (PIVImage): PIVImage object containing the images to be analysed
+        settings (dict): dictionary of settings obtained by using
+                         'widim_settings()'
     """
 
-    """
+    img_def = img
+    dp = dense_predictor.DensePredictor(np.zeros(img.dim), np.zeros(img.dim), img.mask)
 
-    pass
+    # main iterations
+    for iter_ in range(1, settings['n_iter_main'] + 1):
+        print("Starting main iteration, {}".format(iter_))
+
+        # calculate spacing and create sample grid
+        print("Calculating WS and spacing")
+        WS = WS_for_iter(iter_, settings)
+        print("WS: {}".format(WS))
+        h = max(1, round((1 - settings['WOR']) * WS))
+
+        print("Creating grid and windows")
+        xv, yv = (np.arange(0, img.n_cols, h),
+                  np.arange(0, img.n_rows, h))
+        xx, yy = np.meshgrid(xv, yv)
+        print("{} windows".format(len(xx.ravel())))
+
+        # create distribution of correlation windows
+        cwList = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), WS)
+        dist = distribution.Distribution(cwList)
+
+        print("Correlating all windows")
+        dist.correlate_all_windows(img_def, dp)
+        # if iter_ == 2:
+        #     pdb.set_trace()
+        #     u, v = dist.interp_to_densepred(settings['interp'], img_def.dim)
+        #     dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+        #     dp.plot_displacement_field()
+
+        if settings['vec_val'] is not None:
+            print("validate vectors")
+            dist.validation_NMT_8NN()
+
+        print("interpolating")
+        u, v = dist.interp_to_densepred(settings['interp'], img_def.dim)
+        dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+
+        print("deforming image")
+        img_def = img.deform_image(dp)
+
+    # dp.plot_displacement_field()
+
+
 
 def WS_for_iter(iter_, settings):
     """
@@ -53,7 +109,6 @@ def WS_for_iter(iter_, settings):
 
     # return the nearest odd integer
     return utilities.round_to_odd(WS)
-
 
 def widim_settings(init_WS=97, final_WS=33, WOR=0.5,
                    n_iter_main=3, n_iter_ref=2,
@@ -150,6 +205,21 @@ def widim_settings(init_WS=97, final_WS=33, WOR=0.5,
 
     return settings
 
+def run_script():
+    IA, IB, mask = piv_image.load_image_from_flow_type(22, 1)
+    img = piv_image.PIVImage(IA, IB, mask)
+    print("here")
+    settings = widim_settings(final_WS=15)
+
+    widim(img, settings)
+
 
 if __name__ == '__main__':
-    pass
+    # load the image
+    IA, IB, mask = piv_image.load_image_from_flow_type(22, 1)
+    img = piv_image.PIVImage(IA, IB, mask)
+    print("here")
+    settings = widim_settings(final_WS=15)
+
+    widim(img, settings)
+
