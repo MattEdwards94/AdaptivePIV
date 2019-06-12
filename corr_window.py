@@ -63,6 +63,20 @@ class CorrWindow:
         self.v_pre_validation = np.NaN
         self.flag = np.NaN
 
+    def __eq__(self, other):
+        """
+        Allow for comparing equality between windows
+        """
+
+        if not isinstance(other, CorrWindow):
+            return NotImplemented
+
+        for s, o in zip(self.__dict__, other.__dict__):
+            if not np.all(s == o):
+                return False
+
+        return True
+
     def prepare_correlation_windows(self, img):
         """
         Extracts the image intensities and mask values around self.x, self.y
@@ -278,6 +292,27 @@ def get_corrwindow_scaling(i, j, WS, rad):
     scale = (WS * WS) / (x_val * y_val.reshape((3, 1)))
 
     return scale
+
+
+def corrWindow_list(x, y, WS):
+    """
+    Creates a corrWindow object for each location in x, y, with window size WS
+
+    If WS is a scalar int, then all windows will be given the same size
+    If not, WS must be the same length as the input
+
+    Args:
+        x (list, int): The x location of the windows
+        y (list, int): The y location of the windows
+        WS (list, odd int): The window sizes
+    """
+
+    if isinstance(WS, int):
+        WS = [WS] * len(x)
+
+    cwList = list(map(CorrWindow, x, y, WS))
+
+    return cwList
 
 
 if __name__ == '__main__':

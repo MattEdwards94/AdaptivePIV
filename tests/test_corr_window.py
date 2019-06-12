@@ -485,6 +485,37 @@ class TestCorrWindow(unittest.TestCase):
 
         self.assertTrue(np.isnan(cw.flag))
 
+    def test_corrwindow_list_from_locations(self):
+        """
+        Test the list is created according to the input values
+        """
+
+        xv, yv, WS = np.arange(100), np.arange(100), np.ones((100,)) * 33
+        expList = []
+        for x, y, WS_ in zip(xv, yv, WS):
+            cw = corr_window.CorrWindow(x, y, WS_)
+            expList.append(cw)
+
+        actlist = corr_window.corrWindow_list(xv, yv, WS)
+
+        self.assertEqual(actlist, expList)
+
+    def test_corrwindow_list_with_scalar_WS(self):
+        """
+        Test that the list is properly initialised if only a single WS value is
+        passed in
+        """
+
+        xv, yv, WS = np.arange(100), np.arange(100), 33
+        expList = []
+        for x, y in zip(xv, yv):
+            cw = corr_window.CorrWindow(x, y, WS)
+            expList.append(cw)
+
+        actlist = corr_window.corrWindow_list(xv, yv, WS)
+
+        self.assertEqual(actlist, expList)
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)
