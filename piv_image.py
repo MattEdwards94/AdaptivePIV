@@ -181,24 +181,27 @@ class PIVImage:
         bottom = max(min(y - rad, self.n_rows - 1), 0)
         top = max(min(y + rad, self.n_rows - 1), 0)
 
+        # pad with 0's where the requested region is outside of the image
+        # domain. If the requested sub region is entirely within the image
+        # then there wont be padding
+        lStart = max(left - (x - rad), 0)
+        rEnd = lStart + (right - left)
+        bStart = max(bottom - (y - rad), 0)
+        tEnd = bStart + top - bottom
+
+        ia, ib = np.zeros((2 * rad + 1, 2 * rad + 1)
+                          ), np.zeros((2 * rad + 1, 2 * rad + 1))
+
         # extract this region out of the images/mask
         # note the +1 is because left:right is not inclusive of right
-        ia_tmp = self.IA[bottom:top + 1, left:right + 1]
-        ib_tmp = self.IB[bottom:top + 1, left:right + 1]
-
-        # now pad the image with 0's if ctr +- rad overlaps the edge
-        pl = max(rad - x, 0)
-        pr = max(x + rad - self.n_cols + 1, 0)
-        pb = max(rad - y, 0)
-        pt = max(y + rad - self.n_rows + 1, 0)
-        pad = ((pb, pt), (pl, pr))
-
-        ia = np.pad(ia_tmp, pad, 'constant', constant_values=0)
-        ib = np.pad(ib_tmp, pad, 'constant', constant_values=0)
+        ia[bStart:tEnd + 1, lStart:rEnd +
+            1] = self.IA[bottom:top + 1, left:right + 1]
+        ib[bStart:tEnd + 1, lStart:rEnd +
+            1] = self.IB[bottom:top + 1, left:right + 1]
         if self.has_mask:
-            mask = np.pad(
-                self.mask[bottom:top + 1, left:right + 1], pad,
-                'constant', constant_values=0)
+            mask = np.zeros((2 * rad + 1, 2 * rad + 1))
+            mask[bStart:tEnd + 1, lStart:rEnd +
+                 1] = self.mask[bottom:top + 1, left:right + 1]
         else:
             mask = np.ones((2 * rad + 1, 2 * rad + 1))
 
