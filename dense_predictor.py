@@ -3,7 +3,6 @@ import warnings
 import matplotlib.pyplot as plt
 
 
-
 class DensePredictor:
 
     def __init__(self, u, v, mask=None):
@@ -343,4 +342,3 @@ class DensePredictor:
         fig, ax = plt.subplots()
         q = ax.quiver(xv, yv, u, v)
         plt.show()
-

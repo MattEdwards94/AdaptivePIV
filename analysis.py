@@ -21,7 +21,8 @@ def widim(img, settings):
     """
 
     img_def = img
-    dp = dense_predictor.DensePredictor(np.zeros(img.dim), np.zeros(img.dim), img.mask)
+    dp = dense_predictor.DensePredictor(
+        np.zeros(img.dim), np.zeros(img.dim), img.mask)
 
     # main iterations
     for iter_ in range(1, settings['n_iter_main'] + 1):
@@ -63,7 +64,6 @@ def widim(img, settings):
         img_def = img.deform_image(dp)
 
     # dp.plot_displacement_field()
-
 
 
 def WS_for_iter(iter_, settings):
@@ -109,6 +109,7 @@ def WS_for_iter(iter_, settings):
 
     # return the nearest odd integer
     return utilities.round_to_odd(WS)
+
 
 def widim_settings(init_WS=97, final_WS=33, WOR=0.5,
                    n_iter_main=3, n_iter_ref=2,
@@ -205,6 +206,7 @@ def widim_settings(init_WS=97, final_WS=33, WOR=0.5,
 
     return settings
 
+
 def run_script():
     IA, IB, mask = piv_image.load_image_from_flow_type(22, 1)
     img = piv_image.PIVImage(IA, IB, mask)
@@ -222,4 +224,3 @@ if __name__ == '__main__':
     settings = widim_settings(final_WS=15)
 
     widim(img, settings)
-

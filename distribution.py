@@ -216,12 +216,12 @@ def NMT_detection(u, v, nb_ind, eps=0.1):
     # calculate the median of all neighbours
     # nb_ind is (N, 9), u/v_med is (N, 1)
     u_med, v_med = (np.median(u[nb_ind[:, 1:]], axis=1),
-                     np.median(v[nb_ind[:, 1:]], axis=1))
+                    np.median(v[nb_ind[:, 1:]], axis=1))
 
     # fluctuations
     # u_fluct_all is (N, 9)
-    u_fluct, v_fluct = (u[nb_ind] - u_med[:,np.newaxis],
-                        v[nb_ind] - v_med[:,np.newaxis])
+    u_fluct, v_fluct = (u[nb_ind] - u_med[:, np.newaxis],
+                        v[nb_ind] - v_med[:, np.newaxis])
 
     # residual is (N, 1)
     resu, resv = (np.median(np.abs(u_fluct[:, 1:]), axis=1) + eps,

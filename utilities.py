@@ -1,6 +1,7 @@
 import numpy as np
 import math
 
+
 def elementwise_diff(A):
     """Returns the list of differences i.e. A[i+1] - A[i]
 
@@ -155,6 +156,7 @@ def round_to_odd(val):
 
     # if even, increment
     return bf + (1 - (bf % 2))
+
 
 if __name__ == '__main__':
     strt, fin, step = 1, 41, 10
