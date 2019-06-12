@@ -320,7 +320,7 @@ class TestPIVImage(unittest.TestCase):
 
         # deform images
         IA_def = sym_filt.bs5_int(IA_filt, 100, 100, npx_a, npy_a)
-        IB_def = sym_filt.bs5_int(IA_filt, 100, 100, npx_b, npy_b)
+        IB_def = sym_filt.bs5_int(IB_filt, 100, 100, npx_b, npy_b)
 
         self.assertTrue(np.allclose(IA_def, img_def.IA))
         self.assertTrue(np.allclose(IB_def, img_def.IB))

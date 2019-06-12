@@ -233,7 +233,7 @@ class PIVImage:
             self.IA_filt, self.n_rows, self.n_cols,
             xx - 0.5 * dp.u, yy - 0.5 * dp.v)
         IB_new = sym_filt.bs5_int(
-            self.IA_filt, self.n_rows, self.n_cols,
+            self.IB_filt, self.n_rows, self.n_cols,
             xx + 0.5 * dp.u, yy + 0.5 * dp.v)
 
         return PIVImage(IA_new, IB_new, self.mask)
