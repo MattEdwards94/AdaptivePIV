@@ -116,6 +116,17 @@ class CorrWindow:
 
         return wsa, wsb, mask
 
+    def get_displacement_from_corrmap(self, corrmap):
+        """Wrapper for the cython code
+
+        Args:
+            corrmap (ndarray): Correlation map
+        """
+        u, v, SNR = cyth_corr_window.get_displacement_from_corrmap(
+            corrmap, self.WS, self.rad)
+
+        return u, v, SNR
+
     def correlate(self, img, dp):
         """
         Correlates the img at the location specified by self.x, self.y with a
