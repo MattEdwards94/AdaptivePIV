@@ -216,11 +216,12 @@ def widim_settings(init_WS=97, final_WS=33, WOR=0.5,
 
     return settings
 
+
 def run_script():
     IA, IB, mask = piv_image.load_image_from_flow_type(22, 1)
     img = piv_image.PIVImage(IA, IB, mask)
     print("here")
-    settings = widim_settings(final_WS=15)
+    settings = widim_settings(final_WS=15, n_iter_ref=0)
 
     widim(img, settings)
 
@@ -230,6 +231,6 @@ if __name__ == '__main__':
     IA, IB, mask = piv_image.load_image_from_flow_type(22, 1)
     img = piv_image.PIVImage(IA, IB, mask)
     print("here")
-    settings = widim_settings(final_WS=15)
+    settings = widim_settings(final_WS=15, n_iter_ref=2)
 
     widim(img, settings)

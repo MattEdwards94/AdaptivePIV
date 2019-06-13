@@ -4,6 +4,8 @@ import dense_predictor
 import math
 import time
 import bottleneck as bn
+import cyth_corr_window
+import pdb
 
 
 class CorrWindow:
@@ -103,67 +105,16 @@ class CorrWindow:
         ID = mask == 1
 
         # subtract the mean values from the intensities
-        wsa = ia - (np.sum(ia[ID]) / np.sum(ID))
-        wsb = ib - (np.sum(ib[ID]) / np.sum(ID))
+        wsa = ia - (np.add.reduce(ia[ID], axis=None) /
+                    np.add.reduce(mask, axis=None))
+        wsb = ib - (np.add.reduce(ib[ID], axis=None) /
+                    np.add.reduce(mask, axis=None))
 
         # set mask pixels to 0
         wsa[mask == 0] = 0
         wsb[mask == 0] = 0
 
         return wsa, wsb, mask
-
-    def get_displacement_from_corrmap(self, corrmap):
-        """
-        Finds the largest and second largest peaks in the correlation map and
-        calculates the SNR ratio
-
-        If the largest peak is on the edge of the domain then u, v, SNR = 0, 0, 1
-        Since this is an invalid displacement anyway
-
-        Then performs a subpixel fit around the largest peak to get the local
-        displacement
-
-        Args:
-            corrmap (ndarray): The correlation map as a numpy ndarray
-
-        Returns:
-            u: The displacement in the u direction, i.e. the horizontal
-               distance from the origin of the window to the largest peak
-            v: The displacement in the v direction, i.e. the vertical
-               distance from the origin of the window to the largest peak
-            SNR: The signal to noise ratio. This is the ratio of the largest
-                 peak in the correlation map to the second largest peak
-
-        """
-
-        # get the biggest peak
-        i, j = np.unravel_index(corrmap.argmax(), corrmap.shape)
-
-        # catch if the peak is on the edge of the domain
-        if (i == 0) or (j == 0) or (i == self.WS - 1) or (j == self.WS - 1):
-            u, v, SNR = 0, 0, 1
-            return u, v, SNR
-
-        # set values around peak to NaN to find the second largest peak
-        R = np.copy(corrmap[i - 1:i + 2, j - 1:j + 2])
-        corrmap[i - 1:i + 2, j - 1:j + 2] = np.NaN
-
-        # get the second peak and calculate SNR
-        SNR = R[1, 1] / (bn.nanmax(corrmap) + np.spacing(1))
-        corrmap[i - 1:i + 2, j - 1:j + 2] = R
-
-        # Get the neighbouring values for the Gaussian fitting
-        R *= get_corrwindow_scaling(i, j, self.WS, self.rad)
-
-        if np.min(R) <= 0:
-            R += 0.00001 - np.min(R)
-
-        u = j - self.rad + 0.5 * ((np.log(R[1, 0]) - np.log(R[1, 2])) / (
-            np.log(R[1, 0]) - 2 * np.log(R[1, 1]) + np.log(R[1, 2])))
-        v = i - self.rad + 0.5 * ((np.log(R[0, 1]) - np.log(R[2, 1])) / (
-            np.log(R[0, 1]) - 2 * np.log(R[1, 1]) + np.log(R[2, 1])))
-
-        return u, v, SNR
 
     def correlate(self, img, dp):
         """
@@ -199,7 +150,8 @@ class CorrWindow:
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
         # find the subpixel displacement from the correlation map
-        self.u, self.v, self.SNR = self.get_displacement_from_corrmap(corrmap)
+        self.u, self.v, self.SNR = cyth_corr_window.get_displacement_from_corrmap(
+            corrmap, self.WS, self.rad)
 
         # combine displacement with predictor
         dpx, dpy, mask = dp.get_region(self.x, self.y, self.rad)
