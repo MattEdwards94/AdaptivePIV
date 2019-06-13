@@ -13,5 +13,9 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"settings":
+	{
+		"python_interpreter": "C:/Users/me12288/documents/pythonEnvs/PIVEnv/python"
+	}
 }

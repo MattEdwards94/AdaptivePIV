@@ -213,25 +213,23 @@ def NMT_detection(u, v, nb_ind, eps=0.1):
         thr (int, optional): threshold for an outlier
     """
 
-    norm = np.empty(np.shape(u))
-    for row in nb_ind:
-        # get the median of u and v from the neighbours
-        # ignore first element (itself)
-        u_nb, v_nb = u[row[1:]], v[row[1:]]
-        u_med, v_med = np.median(u_nb), np.median(v_nb)
+    # calculate the median of all neighbours
+    # nb_ind is (N, 9), u/v_med is (N, 1)
+    u_med, v_med = (np.median(u[nb_ind[:, 1:]], axis=1),
+                    np.median(v[nb_ind[:, 1:]], axis=1))
 
-        # difference of all vectors to median
-        u_fluct, v_fluct = u[row] - u_med, v[row] - v_med
+    # fluctuations
+    # u_fluct_all is (N, 9)
+    u_fluct, v_fluct = (u[nb_ind] - u_med[:, np.newaxis],
+                        v[nb_ind] - v_med[:, np.newaxis])
 
-        # difference of central vector
-        u_ctr_fluct, v_ctr_fluct = u_fluct[0], v_fluct[0]
+    # residual is (N, 1)
+    resu, resv = (np.median(np.abs(u_fluct[:, 1:]), axis=1) + eps,
+                  np.median(np.abs(v_fluct[:, 1:]), axis=1) + eps)
 
-        # calculate norm
-        u_norm, v_norm = (np.abs(u_ctr_fluct /
-                                 (np.median(np.abs(u_fluct[1:])) + eps)),
-                          np.abs(v_ctr_fluct /
-                                 (np.median(np.abs(v_fluct[1:])) + eps)), )
-        norm[row[0]] = np.sqrt(u_norm**2 + v_norm**2)
+    u_norm, v_norm = (np.abs(u_fluct[:, 0] / resu),
+                      np.abs(v_fluct[:, 0] / resv))
+    norm = np.sqrt(u_norm**2 + v_norm**2)
 
     return norm
 

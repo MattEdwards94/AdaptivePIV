@@ -77,7 +77,7 @@ class TestPIVImage(unittest.TestCase):
         img = piv_image.PIVImage(IA, IB, mask)
         self.assertEqual(img.n_rows, 50)
         self.assertEqual(img.n_cols, 100)
-        self.assertEqual(img.img_dim, [50, 100])
+        self.assertEqual(img.dim, (50, 100))
 
     def test_eq_method_evaluates_correctly(self):
         """
@@ -320,7 +320,7 @@ class TestPIVImage(unittest.TestCase):
 
         # deform images
         IA_def = sym_filt.bs5_int(IA_filt, 100, 100, npx_a, npy_a)
-        IB_def = sym_filt.bs5_int(IA_filt, 100, 100, npx_b, npy_b)
+        IB_def = sym_filt.bs5_int(IB_filt, 100, 100, npx_b, npy_b)
 
         self.assertTrue(np.allclose(IA_def, img_def.IA))
         self.assertTrue(np.allclose(IB_def, img_def.IB))

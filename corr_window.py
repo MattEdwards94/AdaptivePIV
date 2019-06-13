@@ -3,6 +3,9 @@ import piv_image
 import dense_predictor
 import math
 import time
+import bottleneck as bn
+import cyth_corr_window
+import pdb
 
 
 class CorrWindow:
@@ -22,6 +25,13 @@ class CorrWindow:
                       must be integer
                       Assumes square windows
         rad (int): (WS-1)*0.5
+        u (double): The horizontal displacement of the window
+        v (double): The vertical displacement of the window
+        u_pre_validation (double): The horizontal displacement of the window
+                                   before validation took place
+        v_pre_validation (double): The vertical displacement of the window
+                                   before validation took place
+        flag (bool): Whether the vector has been validated
     """
 
     def __init__(self, x, y, WS):
@@ -63,6 +73,26 @@ class CorrWindow:
         self.v_pre_validation = np.NaN
         self.flag = np.NaN
 
+    def __eq__(self, other):
+        """
+        Allow for comparing equality between windows
+
+        Args:
+            other (CorrWindow): The other CorrWindow to be compared to
+
+        Returns:
+            Bool: Whether the two CorrWindows match
+        """
+
+        if not isinstance(other, CorrWindow):
+            return NotImplemented
+
+        for s, o in zip(self.__dict__, other.__dict__):
+            if not np.all(s == o):
+                return False
+
+        return True
+
     def prepare_correlation_windows(self, img):
         """
         Extracts the image intensities and mask values around self.x, self.y
@@ -88,8 +118,10 @@ class CorrWindow:
         ID = mask == 1
 
         # subtract the mean values from the intensities
-        wsa = ia - np.mean(ia[ID])
-        wsb = ib - np.mean(ib[ID])
+        wsa = ia - (np.add.reduce(ia[ID], axis=None) /
+                    np.add.reduce(mask, axis=None))
+        wsb = ib - (np.add.reduce(ib[ID], axis=None) /
+                    np.add.reduce(mask, axis=None))
 
         # set mask pixels to 0
         wsa[mask == 0] = 0
@@ -98,58 +130,13 @@ class CorrWindow:
         return wsa, wsb, mask
 
     def get_displacement_from_corrmap(self, corrmap):
-        """
-        Finds the largest and second largest peaks in the correlation map and
-        calculates the SNR ratio
-
-        If the largest peak is on the edge of the domain then u, v, SNR = 0, 0, 1
-        Since this is an invalid displacement anyway
-
-        Then performs a subpixel fit around the largest peak to get the local
-        displacement
+        """Wrapper for the cython code
 
         Args:
-            corrmap (ndarray): The correlation map as a numpy ndarray
-
-        Returns:
-            u: The displacement in the u direction, i.e. the horizontal
-               distance from the origin of the window to the largest peak
-            v: The displacement in the v direction, i.e. the vertical
-               distance from the origin of the window to the largest peak
-            SNR: The signal to noise ratio. This is the ratio of the largest
-                 peak in the correlation map to the second largest peak
-
+            corrmap (ndarray): Correlation map
         """
-
-        # get the biggest peak
-        i, j = np.unravel_index(corrmap.argmax(), corrmap.shape)
-        val_peak = corrmap[i, j]
-
-        # catch if the peak is on the edge of the domain
-        if (i == 0) or (j == 0) or (i == self.WS - 1) or (j == self.WS - 1):
-            u, v, SNR = 0, 0, 1
-            return u, v, SNR
-
-        # set values around peak to NaN to find the second largest peak
-        bf = np.copy(corrmap)
-        bf[i - 1:i + 2, j - 1:j + 2] = np.NaN
-
-        # get the second peak and calculate SNR
-        val_second_peak = np.nanmax(bf)
-        SNR = val_peak / (val_second_peak + np.spacing(1))
-
-        # Get the neighbouring values for the Gaussian fitting
-        R = np.copy(corrmap[i - 1:i + 2, j - 1:j + 2])
-        scale = get_corrwindow_scaling(i, j, self.WS, self.rad)
-        R *= scale
-
-        if np.min(R) <= 0:
-            R += 0.00001 - np.min(R)
-
-        u = j - self.rad + 0.5 * ((np.log(R[1, 0]) - np.log(R[1, 2])) / (
-            np.log(R[1, 0]) - 2 * np.log(R[1, 1]) + np.log(R[1, 2])))
-        v = i - self.rad + 0.5 * ((np.log(R[0, 1]) - np.log(R[2, 1])) / (
-            np.log(R[0, 1]) - 2 * np.log(R[1, 1]) + np.log(R[2, 1])))
+        u, v, SNR = cyth_corr_window.get_displacement_from_corrmap(
+            corrmap, self.WS, self.rad)
 
         return u, v, SNR
 
@@ -187,13 +174,14 @@ class CorrWindow:
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
         # find the subpixel displacement from the correlation map
-        self.u, self.v, self.SNR = self.get_displacement_from_corrmap(corrmap)
+        self.u, self.v, self.SNR = cyth_corr_window.get_displacement_from_corrmap(
+            corrmap, self.WS, self.rad)
 
         # combine displacement with predictor
         dpx, dpy, mask = dp.get_region(self.x, self.y, self.rad)
-        mask = mask.astype('int')
-        self.u += np.mean(dpx[mask])
-        self.v += np.mean(dpy[mask])
+        n_elem = np.sum(mask)
+        self.u += (np.sum(dpx[mask == 1]) / n_elem)
+        self.v += (np.sum(dpy[mask == 1]) / n_elem)
 
         return self.u, self.v, self.SNR
 
@@ -232,7 +220,8 @@ def calculate_correlation_map(wsa, wsb, WS, rad):
 
     # return the correct region
     idx = (np.arange(WS) + rad) % nPow2
-    corrmap = corrmap[np.ix_(idx, idx)]
+    bf = corrmap[idx, :]
+    corrmap = bf[:, idx]
 
     return corrmap
 
@@ -270,14 +259,34 @@ def get_corrwindow_scaling(i, j, WS, rad):
 
     # work out weighting factors for correcting FFT bias
     # (See Raffel pg. 162-162)
-    i_adj = np.arange(i - 1, i + 2)
-    j_adj = np.arange(j - 1, j + 2)
-    y_val = WS - np.abs(rad - i_adj)
-    x_val = WS - np.abs(rad - j_adj)
+    y_val = WS - np.abs(np.array([rad - i + 1, rad - i, rad - i - 1]))
+    x_val = WS - np.abs(np.array([rad - j + 1, rad - j, rad - j - 1]))
 
-    scale = (WS * WS) / (x_val * y_val.reshape((3, 1)))
+    return (WS * WS) / (x_val * y_val[:, np.newaxis])
 
-    return scale
+
+def corrWindow_list(x, y, WS):
+    """
+    Creates a corrWindow object for each location in x, y, with window size WS
+
+    If WS is a scalar int, then all windows will be given the same size
+    If not, WS must be the same length as the input
+
+    Args:
+        x (list, int): The x location of the windows
+        y (list, int): The y location of the windows
+        WS (list, odd int): The window sizes
+
+    Returns:
+        list: List of CorrWindow objects
+    """
+
+    if isinstance(WS, int):
+        WS = [WS] * len(x)
+
+    cwList = list(map(CorrWindow, x, y, WS))
+
+    return cwList
 
 
 if __name__ == '__main__':

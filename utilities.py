@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 
 def elementwise_diff(A):
@@ -139,6 +140,22 @@ def lin_extrap_edges(f, n_pad=1):
         out = np.vstack((prepend, wide, append))
 
         return out
+
+
+def round_to_odd(val):
+    """
+    Rounds the input value to the nearest odd integer
+    Even values round up to the next odd
+
+    Args:
+        WS (float): non-odd-integer value to be rounded up
+    """
+
+    # round down to nearest integer
+    bf = math.floor(val)
+
+    # if even, increment
+    return bf + (1 - (bf % 2))
 
 
 if __name__ == '__main__':

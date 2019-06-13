@@ -92,7 +92,7 @@ class testDensePredictor(unittest.TestCase):
         dp = dense_predictor.DensePredictor(u, v, mask)
         self.assertEqual(dp.n_rows, 50)
         self.assertEqual(dp.n_cols, 100)
-        self.assertEqual(dp.img_dim, [50, 100])
+        self.assertEqual(dp.dim, (50, 100))
 
     def test_get_region_returns_correct_region(self):
         """

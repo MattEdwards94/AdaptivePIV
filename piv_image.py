@@ -16,36 +16,42 @@ class PIVImage:
     select sub regions/perform pre-processing/image deformation etc.
 
     Attributes:
+        has_mask (bool): Defines whether the image has a non-clear mask
         IA (np array): The first image in the pair
         IB (np array): The second image in the pair.
                    Must have the same dimensions as IA
         mask (np array): Image mask indicating regions not to be considered
                      in the analysis
-        n_rows(int): The number of rows in the image
-        n_cols(int): The number of columns in the image
-        img_dim(list): The dimensions of the image [n_rows, n_cols]
+        n_rows (int): Number of rows in the image
+        n_cols (int): Number of columns in the image
+        dim (tuple): (n_rows, n_cols)
+        is_filtered (bool): Indicates whether the image has already been
+                            filtered and my now be interpolated
+        IA_filt (ndarray): Filtered image to be used for re-interpolation
+        IB_filt (ndarray): Filtered image to be used for re-interpolation
 
     Examples:
         >>>IA = np.random.rand(100, 100)
         >>>IB = np.random.rand(100, 100)
         >>>mask = np.random.randint(0, 2, (100, 100))
         >>>obj = PIVImage(IA, IB, mask)
+
+    Deleted Attributes:
+        n_rows(int): The number of rows in the image
+        n_cols(int): The number of columns in the image
+        dim(tuple): The dimensions of the image [n_rows, n_cols]
     """
 
     def __init__(self, IA, IB, mask=None):
         """
         Stores the two images IA and IB along with the associated mask.
 
-        IA (np array): The first image in the pair
-        IB (np array): The second image in the pair.
-                       Must have the same dimensions as IA
-        mask (np array): Image mask indicating regions not to be considered
-                         in the analysis
-
         Args:
-            IA (TYPE): Description
-            IB (TYPE): Description
-            mask (None, optional): Description
+            IA (array like): First image in the pair
+            IB (array like): The second image in the pair.
+                       Must have the same dimensions as IA
+            mask (array like, optional): Image mask indicating regions not to
+                                         be considered in the analysis
 
         Raises:
             ValueError: If the shapes of IA, IB, and mask are not the same
@@ -67,7 +73,7 @@ class PIVImage:
         self.mask = np.array(mask)
         self.n_rows = np.shape(IA)[0]
         self.n_cols = np.shape(IA)[1]
-        self.img_dim = [self.n_rows, self.n_cols]
+        self.dim = (self.n_rows, self.n_cols)
         self.is_filtered = False
 
     def __eq__(self, other):
@@ -91,18 +97,18 @@ class PIVImage:
             Bool: True or False depending on object equality
 
         Examples:
-        >>> obj1 = PIVImage(IA, IB)
-        >>> obj2 = PIVImage(IA, IB)
-        >>> obj1 == obj2
-        ... returns True
+            >>> obj1 = PIVImage(IA, IB)
+            >>> obj2 = PIVImage(IA, IB)
+            >>> obj1 == obj2
+            ... returns True
 
-        >>> obj3 = PIVImage(IA2, IB2)
-        >>> obj3 == obj1
-        ... returns False
+            >>> obj3 = PIVImage(IA2, IB2)
+            >>> obj3 == obj1
+            ... returns False
 
-        >>> obj4 = MyOtherClass(a, b, c)
-        >>> obj4 == obj1
-        ... returns NotImplemented
+            >>> obj4 = MyOtherClass(a, b, c)
+            >>> obj4 == obj1
+            ... returns NotImplemented
         """
         # print(other)
         # print(isinstance(other, PIVImage))
@@ -181,24 +187,27 @@ class PIVImage:
         bottom = max(min(y - rad, self.n_rows - 1), 0)
         top = max(min(y + rad, self.n_rows - 1), 0)
 
+        # pad with 0's where the requested region is outside of the image
+        # domain. If the requested sub region is entirely within the image
+        # then there wont be padding
+        lStart = max(left - (x - rad), 0)
+        rEnd = lStart + (right - left)
+        bStart = max(bottom - (y - rad), 0)
+        tEnd = bStart + top - bottom
+
+        ia, ib = np.zeros((2 * rad + 1, 2 * rad + 1)
+                          ), np.zeros((2 * rad + 1, 2 * rad + 1))
+
         # extract this region out of the images/mask
         # note the +1 is because left:right is not inclusive of right
-        ia_tmp = self.IA[bottom:top + 1, left:right + 1]
-        ib_tmp = self.IB[bottom:top + 1, left:right + 1]
-
-        # now pad the image with 0's if ctr +- rad overlaps the edge
-        pl = max(rad - x, 0)
-        pr = max(x + rad - self.n_cols + 1, 0)
-        pb = max(rad - y, 0)
-        pt = max(y + rad - self.n_rows + 1, 0)
-        pad = ((pb, pt), (pl, pr))
-
-        ia = np.pad(ia_tmp, pad, 'constant', constant_values=0)
-        ib = np.pad(ib_tmp, pad, 'constant', constant_values=0)
+        ia[bStart:tEnd + 1, lStart:rEnd +
+            1] = self.IA[bottom:top + 1, left:right + 1]
+        ib[bStart:tEnd + 1, lStart:rEnd +
+            1] = self.IB[bottom:top + 1, left:right + 1]
         if self.has_mask:
-            mask = np.pad(
-                self.mask[bottom:top + 1, left:right + 1], pad,
-                'constant', constant_values=0)
+            mask = np.zeros((2 * rad + 1, 2 * rad + 1))
+            mask[bStart:tEnd + 1, lStart:rEnd +
+                 1] = self.mask[bottom:top + 1, left:right + 1]
         else:
             mask = np.ones((2 * rad + 1, 2 * rad + 1))
 
@@ -207,16 +216,24 @@ class PIVImage:
     def deform_image(self, dp):
         """
         Deforms the images according to the displacment field dp
+
         Performs a central differencing scheme such that:
-        IA --> -0.5*dp
-        IB --> +0.5*dp
+            IA --> -0.5*dp
+            IB --> +0.5*dp
 
         Args:
-            dp (TYPE): Description
+            dp (Densepredictor): Densepredictor object
+
+        Returns:
+            PIVImage: The image deformed according to dp
+
+        Raises:
+            ValueError: If the dimensions of the Densepredictor and the image
+                        don't match
         """
 
         # check that the image and densepredictor are the same size
-        if not np.all(self.img_dim == dp.img_dim):
+        if not np.all(self.dim == dp.dim):
             raise ValueError("dimensions of image and dp must match")
 
         # check whether the images have already been filtered
@@ -233,7 +250,7 @@ class PIVImage:
             self.IA_filt, self.n_rows, self.n_cols,
             xx - 0.5 * dp.u, yy - 0.5 * dp.v)
         IB_new = sym_filt.bs5_int(
-            self.IA_filt, self.n_rows, self.n_cols,
+            self.IB_filt, self.n_rows, self.n_cols,
             xx + 0.5 * dp.u, yy + 0.5 * dp.v)
 
         return PIVImage(IA_new, IB_new, self.mask)
@@ -330,9 +347,15 @@ def quintic_spline_image_filter(IA):
 
     Args:
         IA (ndarray): Image intensities to be filtered
+
+    Returns:
+        ndarray: The quintic splint filtered image
+
+    Raises:
+        ValueError: Image dimensions must be at least 43px
     """
 
-    # doesn't work if the image is less than 23pixels wide/high
+    # doesn't work if the image is less than 43pixels wide/high
     if np.shape(IA)[0] < 43:
         raise ValueError("number of pixels in x and y must be at least 43")
     if np.shape(IA)[1] < 43:
