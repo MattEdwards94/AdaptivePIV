@@ -25,6 +25,13 @@ class CorrWindow:
                       must be integer
                       Assumes square windows
         rad (int): (WS-1)*0.5
+        u (double): The horizontal displacement of the window
+        v (double): The vertical displacement of the window
+        u_pre_validation (double): The horizontal displacement of the window
+                                   before validation took place
+        v_pre_validation (double): The vertical displacement of the window
+                                   before validation took place
+        flag (bool): Whether the vector has been validated
     """
 
     def __init__(self, x, y, WS):
@@ -69,6 +76,12 @@ class CorrWindow:
     def __eq__(self, other):
         """
         Allow for comparing equality between windows
+
+        Args:
+            other (CorrWindow): The other CorrWindow to be compared to
+
+        Returns:
+            Bool: Whether the two CorrWindows match
         """
 
         if not isinstance(other, CorrWindow):
@@ -263,6 +276,9 @@ def corrWindow_list(x, y, WS):
         x (list, int): The x location of the windows
         y (list, int): The y location of the windows
         WS (list, odd int): The window sizes
+
+    Returns:
+        list: List of CorrWindow objects
     """
 
     if isinstance(WS, int):

@@ -4,6 +4,18 @@ import matplotlib.pyplot as plt
 
 
 class DensePredictor:
+    """Class to contain the displacement fields
+
+    Attributes:
+        has_mask (bool): Indicates if a mask is present
+        u (ndarray): The horizontal displacement field
+        v (ndarray): The vertical displacement field
+        mask (ndarray): Mask flag array, 1 indicates no mask, 0 indicates mask
+        n_rows (int): Number of rows
+        n_cols (int): Number of columns
+        dim (tuple): (n_rows, n_cols)
+
+    """
 
     def __init__(self, u, v, mask=None):
         """
@@ -13,8 +25,8 @@ class DensePredictor:
         Args:
             u (ndarray): The horizontal displacement field
             v (ndarray): The vertical displacement field
-            mask (ndarry, optional): mask flag array. 0 is no mask, 1 is mask
-                                     If not specified then an array of 0's is
+            mask (ndarry, optional): mask flag array. 1 is no mask, 0 is mask
+                                     If not specified then an array of 1's is
                                      created
 
         Examples:
@@ -128,13 +140,17 @@ class DensePredictor:
     def __eq__(self, other):
         """
         Compares two DensePredictor objects to determine equality
+
         Considered equal if:
-        self.u == other.u
-        self.v == other.v
-        self.mask == other.mask
+            self.u == other.u
+            self.v == other.v
+            self.mask == other.mask
 
         Args:
             other (DensePredictor): The other DensePredictor to be compared to
+
+        Returns:
+            Bool: Wheter the two Densepredictors are considered equal
         """
 
         if not isinstance(other, DensePredictor):
@@ -324,7 +340,7 @@ class DensePredictor:
         """
         Method to apply the mask
         locations where the mask is 0 will have the
-        u, v displacements set to nan
+        u, v displacements set to 0
         """
 
         inter = self.mask == 0

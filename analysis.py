@@ -150,6 +150,12 @@ def widim_settings(init_WS=97, final_WS=33, WOR=0.5,
         interp (str, optional): Type of interpolation to perform
                                 Options: 'struc_lin', 'struc_cub'
                                 Default: 'struc_cub'
+
+    Returns:
+        Dict: Dictionary containing the settings
+
+    Raises:
+        ValueError: If any of the settings are invalid
     """
 
     # check all the inputs are valid
