@@ -45,24 +45,35 @@ def widim(img, settings):
 
         print("Correlating all windows")
         dist.correlate_all_windows(img_def, dp)
-        # if iter_ == 2:
-        #     pdb.set_trace()
-        #     u, v = dist.interp_to_densepred(settings['interp'], img_def.dim)
-        #     dp = dense_predictor.DensePredictor(u, v, img_def.mask)
-        #     dp.plot_displacement_field()
+
+        if settings['vec_val'] is not None:
+            print("Validate vectors")
+            dist.validation_NMT_8NN()
+
+        print("Interpolating")
+        u, v = dist.interp_to_densepred(settings['interp'], img_def.dim)
+        dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+
+        print("Deforming image")
+        img_def = img.deform_image(dp)
+
+    print("Starting refinement iterations")
+
+    for iter_ in range(1, settings['n_iter_ref'] + 1):
+
+        print("Correlating all windows")
+        dist.correlate_all_windows(img_def, dp)
 
         if settings['vec_val'] is not None:
             print("validate vectors")
             dist.validation_NMT_8NN()
 
-        print("interpolating")
+        print("Interpolating")
         u, v = dist.interp_to_densepred(settings['interp'], img_def.dim)
         dp = dense_predictor.DensePredictor(u, v, img_def.mask)
 
-        print("deforming image")
+        print("Deforming image")
         img_def = img.deform_image(dp)
-
-    # dp.plot_displacement_field()
 
 
 def WS_for_iter(iter_, settings):
