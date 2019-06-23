@@ -296,12 +296,12 @@ def load_image_from_flow_type(flowtype, im_number):
         try:
             # mat files <7.3
             img = sio.loadmat(filenames[0])
-            IA = img['IA']
+            IA = np.transpose(img['IA'])
             pass
         except NotImplementedError:
             # mat files v7.3
             img = h5py.File(filenames[0])
-            IA = np.array(img['IA'])
+            IA = np.transpose(np.array(img['IA']))
     else:
         # IA = Image.open(filenames[0])
         # IA.load()
@@ -312,12 +312,12 @@ def load_image_from_flow_type(flowtype, im_number):
         try:
             # mat files <7.3
             img = sio.loadmat(filenames[1])
-            IB = img['IB']
+            IB = np.transpose(img['IB'])
             pass
         except NotImplementedError:
             # mat files v7.3
             img = h5py.File(filenames[1])
-            IB = np.array(img['IB'])
+            IB = np.transpose(np.array(img['IB']))
     else:
         IB = np.asarray(Image.open(filenames[1])).copy()
 
@@ -325,7 +325,9 @@ def load_image_from_flow_type(flowtype, im_number):
     if filenames[2] is None:
         mask = np.ones(np.shape(IA))
     else:
-        mask = np.asarray(Image.open(filenames[2])).copy()
+        mask = np.asarray(Image.open(filenames[2]).convert('LA')).copy()
+        if mask.shape[2] > 1:
+            mask = mask[:, :, 0]
 
     return IA, IB, mask
 

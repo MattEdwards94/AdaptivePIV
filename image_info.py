@@ -187,6 +187,22 @@ def list_available_flowtypes():
             print("{} - {}".format(row[0], row[1]))
 
 
+def all_flow_types():
+    """Returns a list of all the available flow types
+
+    Returns:
+        list: List of all the available flow types
+
+    """
+    out_list = []
+    with open(path_to_file_index) as imageDB:
+        all_information = csv.reader(imageDB)
+        # use itertools to avoid the header row
+        for row in itertools.islice(all_information, 1, None):
+            out_list.append(int(row[0]))
+    return out_list
+
+
 def print_table_header():
     """prints the table header e.g. id/label/nImages etc
         """

@@ -3,6 +3,7 @@ import piv_image
 import numpy as np
 import dense_predictor
 import sym_filt
+import image_info
 
 
 class TestPIVImage(unittest.TestCase):
@@ -291,6 +292,25 @@ class TestPIVImage(unittest.TestCase):
         flowtype = 22  # vortex array
         IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
         self.assertTrue(np.allclose(mask, np.ones(np.shape(IA))))
+
+    def test_load_image_builds_object(self):
+        """
+        Created as a result of Issue #4
+
+        When loading images, we are getting a multi layered array for the mask
+        This seems to be because of trying to load a colour image.
+
+        Test loading a single image from every flow type and ensuring that
+        it can create a PIVImage object without raising an error
+        """
+
+        # get flowtypes
+        flowtypes = image_info.all_flow_types()
+        for item in flowtypes:
+            im_number = 1
+            IA, IB, mask = piv_image.load_image_from_flow_type(item, im_number)
+            # test that the object creates just fine
+            piv_image.PIVImage(IA, IB, mask)
 
     def test_deformation_is_done_on_filtered_images(self):
         """
