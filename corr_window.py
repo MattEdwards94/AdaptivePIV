@@ -67,11 +67,11 @@ class CorrWindow:
         self.y = int(y)
         self.WS = int(WS)
         self.rad = int((WS - 1) * 0.5)
-        self.u = np.NaN
-        self.v = np.NaN
-        self.u_pre_validation = np.NaN
-        self.v_pre_validation = np.NaN
-        self.flag = np.NaN
+        self.u = None
+        self.v = None
+        self.u_pre_validation = None
+        self.v_pre_validation = None
+        self.flag = None
 
     def __eq__(self, other):
         """
@@ -87,11 +87,17 @@ class CorrWindow:
         if not isinstance(other, CorrWindow):
             return NotImplemented
 
-        for s, o in zip(self.__dict__, other.__dict__):
+        for s, o in zip(self.__dict__.values(), other.__dict__.values()):
             if not np.all(s == o):
                 return False
 
         return True
+
+    def __str__(self):
+        """Prints the contents of the corrwindow
+        """
+        return "location: ({},{}), displacement: ({}, {}), WS: {}".format(
+            self.x, self.y, self.u, self.v, self.WS)
 
     def prepare_correlation_windows(self, img):
         """

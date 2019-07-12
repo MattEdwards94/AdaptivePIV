@@ -70,6 +70,7 @@ class TestDistributions(unittest.TestCase):
         dist = distribution.Distribution(self.cwList)
         self.assertEqual(type(dist.windows), list)
         self.assertFalse(dist.windows is self.cwList)
+        print(dist.windows[0], self.cwList[0])
         self.assertTrue(dist.windows[0] == self.cwList[0])
 
     def test_n_windows_returns_number_of_windows(self):
@@ -117,7 +118,7 @@ class TestDistributions(unittest.TestCase):
         """
 
         dist = distribution.Distribution(self.cwList)
-        self.assertTrue(np.all(np.isnan(dist.get_values("u"))))
+        self.assertTrue(np.all(dist.get_values("u") == [None, None, None]))
 
         for cw in dist.windows:
             cw.u = 10
@@ -133,7 +134,7 @@ class TestDistributions(unittest.TestCase):
         """
 
         dist = distribution.Distribution(self.cwList)
-        self.assertTrue(np.all(np.isnan(dist.get_values("v"))))
+        self.assertTrue(np.all(dist.get_values("v") == [None, None, None]))
 
         for cw in dist.windows:
             cw.v = 20
