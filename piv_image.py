@@ -325,11 +325,43 @@ def load_image_from_flow_type(flowtype, im_number):
     if filenames[2] is None:
         mask = np.ones(np.shape(IA))
     else:
-        mask = np.asarray(Image.open(filenames[2]).convert('LA')).copy()
-        if mask.shape[2] > 1:
-            mask = mask[:, :, 0]
+        mask = np.asarray(Image.open(filenames[2]).convert('L')).copy()
 
     return IA, IB, mask
+
+
+def load_PIVImage(flowtype, im_number):
+    """Creates a PIVimage object for the specified flowtype and image number
+
+    Args:
+        flowtype (Int): The flowtype of the desired piv images.
+                        For more information call
+                        image_info.list_available_flowtypes()
+        im_number (Int): The number in the ensemble to load into memory.
+                         If im_number is greater than the known number of images
+                         for the specified flowtype, a warning will be raised
+                         The method will still try to open the requested file
+                         If the file does not exist then an error will
+                         be raised
+
+    Examples:
+        >>> import image_info
+        >>> image_info.list_available_flowtypes() # to obtain options
+        >>> img_obj = piv_image.load_PIVImage(flowtype=1, im_number=20)
+        >>> IA, IB, mask = piv_image.load_image_from_flow_type(1, 20)
+        >>> img_obj2 = piv_image.PIVImage(IA, IB, mask)
+        >>> img_obj == img_obj2
+        ... True
+
+    No Longer Returned:
+        IA (ndarray): Image intensities for the first in the image pair
+        IB (ndarray): Image intensities for the second in the image pair
+        mask (ndarray): mask values with 0 for no mask and 1 for mask
+    """
+
+    # load images
+    IA, IB, mask = load_image_from_flow_type(flowtype, im_number)
+    return PIVImage(IA, IB, mask)
 
 
 def quintic_spline_image_filter(IA):
@@ -401,72 +433,7 @@ def quintic_spline_image_filter(IA):
 
 
 if __name__ == "__main__":
-    img = PIVImage(np.random.rand(55, 55), np.random.rand(55, 55))
-    print(img)
-
-    IA, IB, mask = load_image_from_flow_type(22, 1)
-    img = PIVImage(IA, IB, mask)
-
-    start = time.time()
-    C = quintic_spline_image_filter(IA)
-    print(time.time() - start)
-
-    xx, yy = np.meshgrid(np.r_[1:1001.], np.r_[1:1001.])
-    nx = xx - 1
-    print(nx[0, 0])
-    ny = yy
-    print(C[0:5, 0:5])
-    start = time.time()
-    D = np.array(sym_filt.bs5_int(C, 1000, 1000, nx, ny))
-    print(time.time() - start)
-
-    print(D[0:6, 0:6])
-    print(D[-5:, -5:])
-
-    dp = dense_predictor.DensePredictor(
-        np.ones_like(IA) * 10, np.ones_like(IA) * 0, mask)
-    img2 = img.deform_image(dp)
-
-    f = plt.figure(1)
-    plt.imshow(img.IA)
-    f.show()
-
-    f2 = plt.figure(2)
-    plt.imshow(img2.IA)
-    f.show()
-
-    plt.show()
-
-    # img = load_image_from_flow_type(22, 1)
-    # image_info.list_available_flowtypes()
-    # print('loading image details for BFS')
-    # img_details = image_info.ImageInfo(22)
-    # img = piv_image(img_details, 1)
-    # print(img_details)
-
-    # ia, ib, mask = img.get_region(24, 24, 10)
-    # print(ia)
-    # print(ib)
-    # print(mask)
-
-    # start = time.time()
-    # for i in range(0, 10000):
-    #     ia, ib, mask = img.get_region(24, 24, 10)
-    # end = time.time()
-    # print(end - start)
-
-    # print(repr(img))
-    # img_2 = eval(repr(img))
-    # if img_2 == img:
-    #     print("Yay, it worked")
-
-    # en = time.time()
-    # print("Time: {}".format(en - start))
-
-    # print(ia)
-    """for ii in range(1, 5):
-        img_details = img_info.ImageInfo(ii)
-        print(ii)
-        img = piv_image(img_details, 1)
-        print(img.IA[0][0:10])
-    plt.show()"""
+    flowtype, im_number = 1, 20
+    IA, IB, mask = load_image_from_flow_type(flowtype, im_number)
+    print(IA.shape, IB.shape, mask.shape)
+    exp = PIVImage(IA, IB, mask)

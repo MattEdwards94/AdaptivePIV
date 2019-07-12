@@ -345,6 +345,21 @@ class TestPIVImage(unittest.TestCase):
         self.assertTrue(np.allclose(IA_def, img_def.IA))
         self.assertTrue(np.allclose(IB_def, img_def.IB))
 
+    def test_load_PIVImage(self):
+        """
+        Tests that the image loaded is equivalent to loading the image in the
+        manual way
+        """
+
+        # 'manual' way
+        flowtype, im_number = 1, 20
+        IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, im_number)
+        exp = piv_image.PIVImage(IA, IB, mask)
+
+        # test method
+        act = piv_image.load_PIVImage(flowtype, im_number)
+        self.assertEqual(exp, act)
+
 
 if __name__ == "__main__":
     unittest.main(buffer=True)
