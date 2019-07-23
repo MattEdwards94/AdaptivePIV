@@ -35,51 +35,41 @@ class Distribution:
         """
         return len(self.windows)
 
-    def get_values(self, prop):
+    def get_all_xy(self):
         """
-        Returns a list of property values from the list of CorrWindows
-        corresponding to the requested property 'prop'
-
-        Args:
-            prop (str): The property of self.windows to retrieve
+        Returns a (N, 2) array of all the stored locations
 
         Returns:
-            ndarray: array of properties 'prop' from self.windows
-
-        Example:
-            >>> import corr_window
-            >>> x = [10, 20, 30]
-            >>> y = [15, 25, 35]
-            >>> WS = [31, 41, 51]
-            >>> cwList = []
-            >>> for i in range(3)
-            >>>     cwList.append(corr_window.CorrWindow(x[i], y[i], WS[i]))
-            >>> dist = Distribution(cwList)
-            >>> x_vals = dist.get_values("x")
-            >>> print(x_vals)
-            ... [10, 20, 30]
-        """
-        return np.array([cw.__dict__[prop] for cw in self.windows])
-
-    def set_values(self, prop, values):
-        """
-        Set's the values of the CorrWindow objects properties specified by
-        'prop' to be 'values'
-
-        Args:
-            prop (str): The property of self.windows to update
-            values (TYPE): Description
+            ndarray: (N, 2) array of all locations [x, y]
         """
 
-        if not (np.shape(values)[0] == self.n_windows()):
-            raise ValueError('values must be a column vector with the same \
-                number of entries as the number of windows')
+        return np.array([[cw.x, cw.y] for cw in self.windows])
 
-        if prop not in self.windows[0].__dict__:
-            raise KeyError('Property ', prop, ' does not exist')
+    def get_all_uv(self):
+        """
+        Returns a (N, 2) array of all the stored vectors
 
-        for cw, ii in zip(self.windows, range(self.n_windows())):
-            cw.__dict__[prop] = values[ii]
+        Returns:
+            ndarray: (N, 2) array of all vectors [u, v]
+        """
+
+        return np.array([[cw.u, cw.v] for cw in self.windows])
+
+    def get_all_WS(self):
+        """
+        Returns a (N, 1) array of all the stored window sizes
+
+        Returns:
+            ndarray: (N, 1) array of all window sizes
+        """
+        return np.array([cw.WS for cw in self.windows])
+
+    def get_flag_values(self):
+        """
+        Returns:
+            Returns an (N, 1) array of flag values
+        """
+        return np.array([cw.flag for cw in self.windows])
 
     def validation_NMT_8NN(self, threshold=2, eps=0.1):
         """
@@ -105,9 +95,8 @@ class Distribution:
 
         # detection
         # find neighbours
-        x, y, u, v = (self.get_values('x'), self.get_values('y'),
-                      self.get_values('u'), self.get_values('v'),)
-        xy = np.transpose(np.array([x, y]))
+        xy, uv = self.get_all_xy(), self.get_all_uv()
+        u, v = uv[:, 0], uv[:, 1]
         nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
         nb_dist, nb_ind = nbrs.kneighbors(xy)
 
@@ -152,9 +141,8 @@ class Distribution:
                 raise ValueError("Dimensions must be positive integer")
 
         # reshape the data onto a structured grid
-        x, y, u, v = (self.get_values('x'), self.get_values('y'),
-                      self.get_values('u'), self.get_values('v'))
-
+        xy, uv = self.get_all_xy(), self.get_all_uv()
+        x, y, u, v = xy[:, 0], xy[:, 1], uv[:, 0], uv[:, 1]
         x2d, y2d, u2d, v2d = utilities.auto_reshape(x, y, u, v)
 
         # now we need to handle extrapolation

@@ -51,27 +51,14 @@ class CorrWindow:
             ValueError: If there is odd WS or if x, y, WS are negative
         """
 
-        # check that WS is odd
-        if not WS % 2 == 1:
-            raise ValueError("Even sized windows are not allowed")
-
-        # check that negative values are caught
-        if x < 0:
-            raise ValueError("x must be positive")
-        if y < 0:
-            raise ValueError("y must be positive")
-        if WS < 0:
-            raise ValueError("WS must be positive")
-
-        self.x = int(x)
-        self.y = int(y)
-        self.WS = int(WS)
-        self.rad = int((WS - 1) * 0.5)
-        self.u = None
-        self.v = None
-        self.u_pre_validation = None
-        self.v_pre_validation = None
-        self.flag = None
+        self.x = x
+        self.y = y
+        self.WS = WS
+        self.u = np.NaN
+        self.v = np.NaN
+        self.u_pre_validation = np.NaN
+        self.v_pre_validation = np.NaN
+        self.flag = np.NaN
 
     def __eq__(self, other):
         """
@@ -88,8 +75,9 @@ class CorrWindow:
             return NotImplemented
 
         for s, o in zip(self.__dict__.values(), other.__dict__.values()):
-            if not np.all(s == o):
-                return False
+            if s != o:
+                if not np.all(np.isnan((s, o))):
+                    return False
 
         return True
 
@@ -98,6 +86,88 @@ class CorrWindow:
         """
         return "location: ({},{}), displacement: ({}, {}), WS: {}".format(
             self.x, self.y, self.u, self.v, self.WS)
+
+    @property
+    def x(self):
+        """
+        Returns:
+            int: horizontal position of the corr window
+        """
+        return self._x
+
+    @x.setter
+    def x(self, value):
+        """Sets the value of x checking it's validity
+
+        Must be integer and >= 0
+
+        Args:
+            value (int): x location of the corr window
+        """
+
+        if value < 0:
+            raise ValueError("x must be positive")
+        if int(value) != value:
+            raise ValueError("x must be integer")
+
+        self._x = int(value)
+
+    @property
+    def y(self):
+        """
+        Returns:
+            int: vertical position of the corr window
+        """
+        return self._y
+
+    @y.setter
+    def y(self, value):
+        """Sets the value of y checking it's validity
+
+        Must be integer and >= 0
+
+        Args:
+            value (int): y location of the corr window
+        """
+
+        if value < 0:
+            raise ValueError("y must be positive")
+        if int(value) != value:
+            raise ValueError("y must be integer")
+
+        self._y = int(value)
+
+    @property
+    def WS(self):
+        return self._WS
+
+    @WS.setter
+    def WS(self, value):
+        """Sets the value of WS checking its validity
+
+        Must be positive odd integer
+
+        Args:
+            value (int): Size of the correlation window in pixels
+        """
+
+        # check that WS is odd - also implicitly checks for integer
+        if not value % 2 == 1:
+            raise ValueError("Even sized windows are not allowed")
+
+        # check that negative values are caught
+        if value < 0:
+            raise ValueError("WS must be positive")
+
+        self._WS = int(value)
+
+    @property
+    def rad(self):
+        """
+        Returns:
+            int: Radius of the correlation window as (WS-1) * 0.5
+        """
+        return int((self.WS - 1) * 0.5)
 
     def prepare_correlation_windows(self, img):
         """
@@ -172,7 +242,7 @@ class CorrWindow:
 
         # check if the central window location is masked
         if not img.mask[self.y, self.x]:
-            self.u, self.v, self.WS = np.nan, np.nan, np.nan
+            self.u, self.v, self.SNR = np.nan, np.nan, np.nan
             return np.nan, np.nan, np.nan
 
         # load the image and mask values and perform the cross correlation
