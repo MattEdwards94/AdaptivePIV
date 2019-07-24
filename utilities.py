@@ -158,6 +158,23 @@ def round_to_odd(val):
     return bf + (1 - (bf % 2))
 
 
+def nice_print_dict(d):
+    """Prints a dictionary nicely
+
+    Args:
+        values (dict): Dictionary of data to output nicely
+    """
+
+    # find the longest word in the list of keys
+    length = 0
+    for word in d.keys():
+        if len(word) > length:
+            length = len(word)
+
+    for key, value in d.items():
+        print(("{:>" + str(length + 1) + "}: {}").format(key, value))
+
+
 if __name__ == '__main__':
     strt, fin, step = 1, 41, 10
     x = np.arange(strt, fin, step)
