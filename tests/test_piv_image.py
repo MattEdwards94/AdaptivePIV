@@ -69,6 +69,9 @@ def test_initialisation_assigns_intensities_correctly(mock_IA, mock_IB):
     """
     img = piv_image.PIVImage(mock_IA, mock_IB)
     assert np.allclose(mock_IA, img.IA)
+    assert np.allclose(mock_IB, img.IB)
+    assert np.issubdtype(img.IA.dtype, np.float64)
+    assert np.issubdtype(img.IB.dtype, np.float64)
 
 
 def test_initialisation_saves_mask_status(mock_IA, mock_IB, mock_mask):

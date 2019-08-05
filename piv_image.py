@@ -68,9 +68,9 @@ class PIVImage:
             mask = np.ones(np.shape(IA))
             self.has_mask = False
 
-        self.IA = np.array(IA)
-        self.IB = np.array(IB)
-        self.mask = np.array(mask)
+        self.IA = np.array(IA, dtype=np.float64)
+        self.IB = np.array(IB, dtype=np.float64)
+        self.mask = np.array(mask, dtype=np.float64)
         self.n_rows = np.shape(IA)[0]
         self.n_cols = np.shape(IA)[1]
         self.dim = (self.n_rows, self.n_cols)
