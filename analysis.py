@@ -75,6 +75,8 @@ def widim(img, settings):
         print("Deforming image")
         img_def = img.deform_image(dp)
 
+    return dp
+
 
 def WS_for_iter(iter_, settings):
     """
