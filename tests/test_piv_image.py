@@ -287,10 +287,10 @@ def test_load_mat_image_from_flowtype():
 
     # we just want to check that it loads without issue
     flowtype = 22  # vortex array v7
-    IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+    IA, IB, mask = piv_image.load_images(flowtype, 1)
 
     flowtype = 24  # gaussian smoothed v7.3
-    IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+    IA, IB, mask = piv_image.load_images(flowtype, 1)
 
 
 def test_load_image_file():
@@ -301,7 +301,7 @@ def test_load_image_file():
 
     # just checking it loads without issue
     flowtype = 1  # bfs
-    IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+    IA, IB, mask = piv_image.load_images(flowtype, 1)
 
 
 def test_load_image_loads_mask_file_if_no_file():
@@ -312,7 +312,7 @@ def test_load_image_loads_mask_file_if_no_file():
     """
 
     flowtype = 22  # vortex array
-    IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+    IA, IB, mask = piv_image.load_images(flowtype, 1)
     assert np.allclose(mask, np.ones(np.shape(IA)))
 
 
@@ -331,7 +331,7 @@ def test_load_image_builds_object():
     flowtypes = image_info.all_flow_types()
     for item in flowtypes:
         im_number = 1
-        IA, IB, mask = piv_image.load_image_from_flow_type(item, im_number)
+        IA, IB, mask = piv_image.load_images(item, im_number)
         # test that the object creates just fine
         piv_image.PIVImage(IA, IB, mask)
 
@@ -377,7 +377,7 @@ def test_load_PIVImage():
 
     # 'manual' way
     flowtype, im_number = 1, 20
-    IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, im_number)
+    IA, IB, mask = piv_image.load_images(flowtype, im_number)
     exp = piv_image.PIVImage(IA, IB, mask)
 
     # test method

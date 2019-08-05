@@ -140,4 +140,4 @@ def test_all_flow_types():
     flow_types = image_info.all_flow_types()
     for item in flow_types:
         print(item)
-        _, _, _ = piv_image.load_image_from_flow_type(item, im_number=1)
+        _, _, _ = piv_image.load_images(item, im_number=1)

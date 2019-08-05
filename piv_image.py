@@ -256,7 +256,7 @@ class PIVImage:
         return PIVImage(IA_new, IB_new, self.mask)
 
 
-def load_image_from_flow_type(flowtype, im_number):
+def load_images(flowtype, im_number):
     """
     Loads the PIV image pair associated with the specified flowtype and the
     image number
@@ -360,7 +360,7 @@ def load_PIVImage(flowtype, im_number):
     """
 
     # load images
-    IA, IB, mask = load_image_from_flow_type(flowtype, im_number)
+    IA, IB, mask = load_images(flowtype, im_number)
     return PIVImage(IA, IB, mask)
 
 
