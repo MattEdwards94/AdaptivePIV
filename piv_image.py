@@ -434,6 +434,4 @@ def quintic_spline_image_filter(IA):
 
 if __name__ == "__main__":
     flowtype, im_number = 1, 20
-    IA, IB, mask = load_image_from_flow_type(flowtype, im_number)
-    print(IA.shape, IB.shape, mask.shape)
-    exp = PIVImage(IA, IB, mask)
+    img = load_PIVImage(flowtype, im_number)

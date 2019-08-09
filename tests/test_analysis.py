@@ -1,3 +1,5 @@
+import image_info as imi
+import piv_image
 import analysis
 import pytest
 
@@ -252,3 +254,25 @@ def test_calculate_WS_middle_input():
 
     exp = 49
     assert analysis.WS_for_iter(2, settings) == exp
+
+
+def test_all_widim():
+    """
+    Analyses a single image for every available flow type to check that
+    there are no errors
+    """
+
+    flowtypes = imi.all_flow_types()
+
+    for flowtype in flowtypes:
+        print(flowtype)
+        # load the image
+        img = piv_image.load_PIVImage(flowtype, 1)
+
+        settings = analysis.widim_settings(init_WS=127,
+                                           final_WS=63,
+                                           WOR=0.5,
+                                           n_iter_ref=1)
+
+        # analyse the image
+        analysis.widim(img, settings)

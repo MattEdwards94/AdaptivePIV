@@ -102,6 +102,8 @@ class Distribution:
 
         norm = NMT_detection(u, v, nb_ind, eps)
         flag = norm > threshold
+        invalid = np.sum(flag)
+        print(f"  {invalid}/{self.n_windows()} vectors replaced")
 
         # replacement
         u, v = outlier_replacement(flag, u, v, nb_ind)
@@ -185,6 +187,11 @@ class Distribution:
 
         for cw in self.windows:
             cw.correlate(img, dp)
+
+    def plot_distribution(self):
+        fig, ax = plt.subplots()
+        q = ax.quiver(self.x, self.y, self.u, self.v)
+        plt.show()
 
 
 def NMT_detection(u, v, nb_ind, eps=0.1):
