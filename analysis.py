@@ -31,7 +31,7 @@ def widim(img, settings):
         print("Calculating WS and spacing")
         WS = WS_for_iter(iter_, settings)
         print("WS: {}".format(WS))
-        h = max(1, round((1 - settings['WOR']) * WS))
+        h = max(1, math.ceil((1 - settings['WOR']) * WS))
 
         print("Creating grid and windows")
         xv, yv = (np.arange(0, img.n_cols, h),
