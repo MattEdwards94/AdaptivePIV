@@ -418,3 +418,13 @@ def test_load_PIVImage():
     # test method
     act = piv_image.load_PIVImage(flowtype, im_number)
     assert exp, act
+
+
+def test_quintic_spline_image_filt_all_ones():
+    """All ones input should give all ones output
+    """
+
+    a = np.ones((50, 50))
+    b = piv_image.quintic_spline_image_filter(a)
+
+    assert np.allclose(a, b)
