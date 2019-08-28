@@ -202,7 +202,7 @@ def widim_settings(init_WS=97, final_WS=33, WOR=0.5,
         raise ValueError("Number of refinement iterations must be at most 10")
 
     # ====== vector validation ====== #
-    options_vec_val = ['NMT']
+    options_vec_val = ['NMT', None]
     if not vec_val in options_vec_val:
         raise ValueError("Vector validation method not handled")
 
@@ -242,7 +242,8 @@ if __name__ == '__main__':
     settings = widim_settings(init_WS=97,
                               final_WS=33,
                               WOR=0.5,
-                              n_iter_main=3,
+                              vec_val=None,
+                              n_iter_main=2,
                               n_iter_ref=0)
 
     # analyse the image
