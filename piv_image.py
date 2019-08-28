@@ -339,6 +339,7 @@ def load_images(flowtype, im_number):
         mask = np.ones(np.shape(IA))
     else:
         mask = np.asarray(Image.open(filenames[2]).convert('L')).copy()
+        mask[mask > 0] = 1
 
     return IA, IB, mask
 

@@ -1,3 +1,4 @@
+import scipy.io as sio
 import numpy as np
 import distribution
 import utilities
@@ -242,14 +243,17 @@ if __name__ == '__main__':
     settings = widim_settings(init_WS=97,
                               final_WS=33,
                               WOR=0.5,
-                              vec_val=None,
-                              n_iter_main=2,
-                              n_iter_ref=0)
+                              vec_val='NMT',
+                              n_iter_main=3,
+                              n_iter_ref=1,
+                              interp='struc_cub')
 
     # analyse the image
     dp = widim(img, settings)
-    print(dp.u[100, 50])
-    dp.plot_displacement_field(width=0.001,
-                               headlength=2.5,
-                               headwidth=2,
-                               headaxislength=6)
+    print(dp.u[200, 100])
+    # dp.plot_displacement_field(width=0.001,
+    #                            headlength=2.5,
+    #                            headwidth=2,
+    #                            headaxislength=6)
+    mdict = {"u": dp.u, "v": dp.v}
+    sio.savemat("test_file.mat", mdict)

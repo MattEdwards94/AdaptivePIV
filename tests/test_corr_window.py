@@ -282,9 +282,9 @@ def test_correlate_checks_if_location_is_masked():
     cw = corr_window.CorrWindow(x, y, WS)
     u, v, snr = cw.correlate(img, dp)
 
-    assert np.isnan(u)
-    assert np.isnan(v)
-    assert np.isnan(snr)
+    assert u == 0
+    assert v == 0
+    assert snr == 0
 
 
 def test_correlate_combines_with_densepredictor():
