@@ -269,6 +269,19 @@ class CorrWindow:
         return self.u, self.v, self.SNR
 
 
+def plot_regions(wsa, wsb, corrmap):
+    plt.figure(1)
+    plt.imshow(wsa)
+    plt.title("IA")
+    plt.figure(2)
+    plt.imshow(wsb)
+    plt.title("IB")
+    plt.figure(3)
+    plt.imshow(corrmap)
+    plt.title("corrmap")
+    plt.show()
+
+
 def calculate_correlation_map(wsa, wsb, WS, rad):
     """
     Performs cross correlation between the two windows wsa and wsb using fft's
