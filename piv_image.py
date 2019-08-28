@@ -309,7 +309,7 @@ def load_images(flowtype, im_number):
         try:
             # mat files <7.3
             img = sio.loadmat(filenames[0])
-            IA = np.transpose(img['IA'])
+            IA = np.array(img['IA'])
             pass
         except NotImplementedError:
             # mat files v7.3
@@ -325,7 +325,7 @@ def load_images(flowtype, im_number):
         try:
             # mat files <7.3
             img = sio.loadmat(filenames[1])
-            IB = np.transpose(img['IB'])
+            IB = np.array(img['IB'])
             pass
         except NotImplementedError:
             # mat files v7.3

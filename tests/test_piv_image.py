@@ -4,6 +4,8 @@ import numpy as np
 import dense_predictor
 import sym_filt
 import image_info
+import scipy.io as sio
+import h5py
 
 
 @pytest.fixture
@@ -302,10 +304,28 @@ def test_load_mat_image_from_flowtype():
 
     # we just want to check that it loads without issue
     flowtype = 22  # vortex array v7
-    IA, IB, mask = piv_image.load_images(flowtype, 1)
+    IA_act, IB_act, mask = piv_image.load_images(flowtype, 1)
+    # now check that it is transposed correctly by loading it manually and
+    # checking the result
+    im_info = image_info.ImageInfo(flowtype)
+    filenames = im_info.formatted_filenames(1)
+    img = sio.loadmat(filenames[0])
+    IA_exp = np.array(img['IA'])
+    img = sio.loadmat(filenames[1])
+    IB_exp = np.array(img['IB'])
+    assert np.allclose(IA_exp, IA_act)
+    assert np.allclose(IB_exp, IB_act)
 
     flowtype = 24  # gaussian smoothed v7.3
-    IA, IB, mask = piv_image.load_images(flowtype, 1)
+    IA_act, IB_act, mask = piv_image.load_images(flowtype, 1)
+    im_info = image_info.ImageInfo(flowtype)
+    filenames = im_info.formatted_filenames(1)
+    img = h5py.File(filenames[0])
+    IA_exp = np.transpose(np.array(img['IA']))
+    img = h5py.File(filenames[1])
+    IB_exp = np.transpose(np.array(img['IB']))
+    assert np.allclose(IA_exp, IA_act)
+    assert np.allclose(IB_exp, IB_act)
 
 
 def test_load_image_file():
