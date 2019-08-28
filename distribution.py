@@ -190,7 +190,11 @@ class Distribution:
 
     def plot_distribution(self):
         fig, ax = plt.subplots()
-        q = ax.quiver(self.x, self.y, self.u, self.v)
+        xy, uv = self.get_all_xy(), self.get_all_uv()
+        ax.quiver(xy[:, 0],
+                  xy[:, 1],
+                  uv[:, 0],
+                  uv[:, 1])
         plt.show()
 
 
