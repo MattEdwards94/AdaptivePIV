@@ -347,7 +347,7 @@ class DensePredictor:
         self.u[inter] = 0
         self.v[inter] = 0
 
-    def plot_displacement_field(self):
+    def plot_displacement_field(self, **kwargs):
         """
         Plots the displacement field
         """
@@ -356,5 +356,5 @@ class DensePredictor:
         u, v = (self.u[0::16, 0::16], self.v[0::16, 0::16])
 
         fig, ax = plt.subplots()
-        q = ax.quiver(xv, yv, u, v)
+        ax.quiver(xv, yv, u, v, **kwargs)
         plt.show()

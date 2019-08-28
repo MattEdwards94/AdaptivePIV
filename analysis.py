@@ -248,4 +248,7 @@ if __name__ == '__main__':
     # analyse the image
     dp = widim(img, settings)
     print(dp.u[100, 50])
-    dp.plot_displacement_field()
+    dp.plot_displacement_field(width=0.001,
+                               headlength=2.5,
+                               headwidth=2,
+                               headaxislength=6)
