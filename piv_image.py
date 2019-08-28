@@ -446,5 +446,19 @@ def quintic_spline_image_filter(IA):
 
 
 if __name__ == "__main__":
-    flowtype, im_number = 1, 20
-    img = load_PIVImage(flowtype, im_number)
+    img = load_PIVImage(1, 1)
+    u, v = 5 * np.ones((640, 1280)), 5 * np.ones((640, 1280))
+    dp = dense_predictor.DensePredictor(u, v)
+    img_def = img.deform_image(dp)
+
+    # save into mat file
+    IA, IB = img.IA, img.IB
+    IAf, IBf = img_def.IA, img_def.IB
+    mdict = {"IA": IA,
+             "IB": IB,
+             "IAf": IAf,
+             "IBf": IBf,
+             "u": u,
+             "v": v,
+             }
+    sio.savemat("test_file.mat", mdict)
