@@ -236,15 +236,16 @@ def run_script():
 
 if __name__ == '__main__':
     # load the image
-    flowtype, im_number = 1, 20
+    flowtype, im_number = 1, 1
     img = piv_image.load_PIVImage(flowtype, im_number)
-    settings = widim_settings(init_WS=127,
-                              final_WS=63,
+    # img.plot_images()
+    settings = widim_settings(init_WS=97,
+                              final_WS=33,
                               WOR=0.5,
-                              n_iter_main=1,
+                              n_iter_main=3,
                               n_iter_ref=0)
 
     # analyse the image
     dp = widim(img, settings)
-    print(dp.u[100:200, 100:200])
+    print(dp.u[100, 50])
     dp.plot_displacement_field()

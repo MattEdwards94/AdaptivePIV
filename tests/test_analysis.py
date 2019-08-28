@@ -256,23 +256,23 @@ def test_calculate_WS_middle_input():
     assert analysis.WS_for_iter(2, settings) == exp
 
 
-def test_all_widim():
-    """
-    Analyses a single image for every available flow type to check that
-    there are no errors
-    """
+# def test_all_widim():
+#     """
+#     Analyses a single image for every available flow type to check that
+#     there are no errors
+#     """
 
-    flowtypes = imi.all_flow_types()
+#     flowtypes = imi.all_flow_types()
 
-    for flowtype in flowtypes:
-        print(flowtype)
-        # load the image
-        img = piv_image.load_PIVImage(flowtype, 1)
+#     for flowtype in flowtypes:
+#         print(flowtype)
+#         # load the image
+#         img = piv_image.load_PIVImage(flowtype, 1)
 
-        settings = analysis.widim_settings(init_WS=127,
-                                           final_WS=63,
-                                           WOR=0.5,
-                                           n_iter_ref=1)
+#         settings = analysis.widim_settings(init_WS=127,
+#                                            final_WS=63,
+#                                            WOR=0.5,
+#                                            n_iter_ref=1)
 
-        # analyse the image
-        analysis.widim(img, settings)
+#         # analyse the image
+#         analysis.widim(img, settings)

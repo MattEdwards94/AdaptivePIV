@@ -5,6 +5,7 @@ import math
 import cython
 from cpython cimport array
 import bottleneck as bn
+import matplotlib.pyplot as plt
 
 
 @cython.boundscheck(False)
@@ -102,21 +103,21 @@ def get_displacement_from_corrmap(double[:, :] corrmap, int WS, int rad):
     scale = get_corrwindow_scaling(i, j, WS, rad)
     cdef int flag
     cdef double min_R = 0
-    for i in range(3):
-        for j in range(3):
-            R[i, j] *= scale[i][j]
-            if R[i, j] <= min_R:
+    for ii in range(3):
+        for jj in range(3):
+            R[ii, jj] *= scale[ii][jj]
+            if R[ii, jj] <= min_R:
                 flag = 1
-                min_R = R[i, j]
+                min_R = R[ii, jj]
 
     if flag == 1:
-        for i in range(3):
-            for j in range(3):
-                R[i, j] += 0.00001 - min_R
+        for ii in range(3):
+            for jj in range(3):
+                R[ii, jj] += 0.00001 - min_R
 
-    for i in range(3):
-        for j in range(3):
-            R[i, j] = log(R[i, j])
+    for ii in range(3):
+        for jj in range(3):
+            R[ii, jj] = log(R[ii, jj])
 
     # R *= np.asarray(get_corrwindow_scaling(i, j, WS, rad))
 

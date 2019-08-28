@@ -8,6 +8,7 @@ import math
 import time
 import sym_filt
 import dense_predictor
+import matplotlib.pyplot as plt
 
 
 class PIVImage:
@@ -255,6 +256,17 @@ class PIVImage:
 
         return PIVImage(IA_new, IB_new, self.mask)
 
+    def plot_images(self):
+        """Summary
+        """
+        plt.figure(1)
+        plt.imshow(self.IA)
+        plt.title("IA")
+        plt.figure(2)
+        plt.imshow(self.IB)
+        plt.title("IB")
+        plt.show()
+
 
 def load_images(flowtype, im_number):
     """
@@ -290,6 +302,7 @@ def load_images(flowtype, im_number):
 
     # get the formatted filename with the correct image number inserted
     filenames = im_info.formatted_filenames(im_number)
+    print(filenames)
 
     # try to load image A
     if filenames[0][-4:] == ".mat":

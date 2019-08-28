@@ -245,6 +245,18 @@ def test_get_region_returns_correct_region():
     assert np.allclose(ib, exp_arr)
     assert np.allclose(mask, exp_arr)
 
+    # check the x and y are correct:
+    ia, ib, mask = img.get_region(3, 4, 2)
+    exp_arr = np.array([[14, 15, 16, 17, 18],
+                        [20, 21, 22, 23, 24],
+                        [26, 27, 28, 29, 30],
+                        [32, 33, 34, 35, 36],
+                        [0, 0, 0, 0, 0]])
+    print(ia)
+    assert np.allclose(ia, exp_arr)
+    assert np.allclose(ib, exp_arr)
+    assert np.allclose(mask, exp_arr)
+
 
 def test_get_region_returns_mask_if_not_defined():
     """

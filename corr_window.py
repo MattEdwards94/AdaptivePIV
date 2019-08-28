@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import piv_image
 import dense_predictor
@@ -247,11 +248,17 @@ class CorrWindow:
 
         # load the image and mask values and perform the cross correlation
         wsa, wsb, mask = self.prepare_correlation_windows(img)
+        # plt.imshow(wsa)
+        # plt.show()
+        # plt.imshow(wsb)
+        # plt.show()
+
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
         # find the subpixel displacement from the correlation map
         self.u, self.v, self.SNR = cyth_corr_window.get_displacement_from_corrmap(
             corrmap, self.WS, self.rad)
+        # print(f"u: {self.u}, v: {self.v}, SNR: {self.SNR}")
 
         # combine displacement with predictor
         dpx, dpy, mask = dp.get_region(self.x, self.y, self.rad)
@@ -298,6 +305,8 @@ def calculate_correlation_map(wsa, wsb, WS, rad):
     idx = (np.arange(WS) + rad) % nPow2
     bf = corrmap[idx, :]
     corrmap = bf[:, idx]
+    # plt.imshow(corrmap)
+    # plt.show()
 
     return corrmap
 
