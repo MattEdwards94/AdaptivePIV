@@ -5,6 +5,7 @@ import piv_image
 import math
 import scipy.signal
 import dense_predictor
+import cyth_corr_window
 
 
 def test_initialisation_correct_inputs():
@@ -281,9 +282,9 @@ def test_correlate_checks_if_location_is_masked():
     cw = corr_window.CorrWindow(x, y, WS)
     u, v, snr = cw.correlate(img, dp)
 
-    assert np.isnan(u)
-    assert np.isnan(v)
-    assert np.isnan(snr)
+    assert u == 0
+    assert v == 0
+    assert snr == 0
 
 
 def test_correlate_combines_with_densepredictor():
@@ -392,6 +393,18 @@ def test_get_displacement_from_corrmap_catches_if_max_is_on_edge():
     assert v == 0
     assert SNR == 1
     a[2, -1] = 0
+
+
+def test_get_displacement_from_corrmap_central_peak():
+    # create a dummy correlation
+    corrmap = np.zeros((7, 7))
+    corrmap[3, 3] = 1
+
+    # run through the script to get the displacement
+    u, v, SNR = cyth_corr_window.get_displacement_from_corrmap(corrmap, 7, 3)
+
+    assert u == 0
+    assert v == 0
 
 
 def test_changing_values_in_get_displacement_doesnt_change_outer():

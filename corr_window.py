@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import piv_image
 import dense_predictor
@@ -242,16 +243,22 @@ class CorrWindow:
 
         # check if the central window location is masked
         if not img.mask[self.y, self.x]:
-            self.u, self.v, self.SNR = np.nan, np.nan, np.nan
-            return np.nan, np.nan, np.nan
+            self.u, self.v, self.SNR = 0, 0, 0
+            return self.u, self.v, self.SNR
 
         # load the image and mask values and perform the cross correlation
         wsa, wsb, mask = self.prepare_correlation_windows(img)
+        # plt.imshow(wsa)
+        # plt.show()
+        # plt.imshow(wsb)
+        # plt.show()
+
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
         # find the subpixel displacement from the correlation map
         self.u, self.v, self.SNR = cyth_corr_window.get_displacement_from_corrmap(
             corrmap, self.WS, self.rad)
+        # print(f"u: {self.u}, v: {self.v}, SNR: {self.SNR}")
 
         # combine displacement with predictor
         dpx, dpy, mask = dp.get_region(self.x, self.y, self.rad)
@@ -260,6 +267,19 @@ class CorrWindow:
         self.v += (np.sum(dpy[mask == 1]) / n_elem)
 
         return self.u, self.v, self.SNR
+
+
+def plot_regions(wsa, wsb, corrmap):
+    plt.figure(1)
+    plt.imshow(wsa)
+    plt.title("IA")
+    plt.figure(2)
+    plt.imshow(wsb)
+    plt.title("IB")
+    plt.figure(3)
+    plt.imshow(corrmap)
+    plt.title("corrmap")
+    plt.show()
 
 
 def calculate_correlation_map(wsa, wsb, WS, rad):
@@ -298,6 +318,8 @@ def calculate_correlation_map(wsa, wsb, WS, rad):
     idx = (np.arange(WS) + rad) % nPow2
     bf = corrmap[idx, :]
     corrmap = bf[:, idx]
+    # plt.imshow(corrmap)
+    # plt.show()
 
     return corrmap
 

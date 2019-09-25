@@ -3,7 +3,7 @@ import numpy as np
 import time
 from sklearn.neighbors import NearestNeighbors
 import utilities
-from scipy import interpolate
+from scipy import interpolate as interp
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -102,6 +102,8 @@ class Distribution:
 
         norm = NMT_detection(u, v, nb_ind, eps)
         flag = norm > threshold
+        invalid = np.sum(flag)
+        print(f"  {invalid}/{self.n_windows()} vectors replaced")
 
         # replacement
         u, v = outlier_replacement(flag, u, v, nb_ind)
@@ -154,17 +156,18 @@ class Distribution:
         # calculate evaluation range
         xe = np.arange(eval_dim[1])
         ye = np.arange(eval_dim[0])
+        xx, yy = np.meshgrid(xe, ye)
 
         if method == "struc_lin":
             # interpolate using scipy
-            f_u = interpolate.interp2d(x[0, :], y[:, 0], u, kind='linear')
-            f_v = interpolate.interp2d(x[0, :], y[:, 0], v, kind='linear')
+            f_u = interp.interp2d(x[0, :], y[:, 0], u, kind='linear')
+            f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='linear')
             u_int = f_u(xe, ye)
             v_int = f_v(xe, ye)
         elif method == "struc_cub":
             # interpolate using scipy
-            f_u = interpolate.interp2d(x[0, :], y[:, 0], u, kind='cubic')
-            f_v = interpolate.interp2d(x[0, :], y[:, 0], v, kind='cubic')
+            f_u = interp.interp2d(x[0, :], y[:, 0], u, kind='cubic')
+            f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='cubic')
             u_int = f_u(xe, ye)
             v_int = f_v(xe, ye)
 
@@ -186,6 +189,15 @@ class Distribution:
         for cw in self.windows:
             cw.correlate(img, dp)
 
+    def plot_distribution(self):
+        fig, ax = plt.subplots()
+        xy, uv = self.get_all_xy(), self.get_all_uv()
+        ax.quiver(xy[:, 0],
+                  xy[:, 1],
+                  uv[:, 0],
+                  uv[:, 1])
+        plt.show()
+
 
 def NMT_detection(u, v, nb_ind, eps=0.1):
     """
@@ -203,8 +215,8 @@ def NMT_detection(u, v, nb_ind, eps=0.1):
 
     # calculate the median of all neighbours
     # nb_ind is (N, 9), u/v_med is (N, 1)
-    u_med, v_med = (np.median(u[nb_ind[:, 1:]], axis=1),
-                    np.median(v[nb_ind[:, 1:]], axis=1))
+    u_med, v_med = (np.nanmedian(u[nb_ind[:, 1:]], axis=1),
+                    np.nanmedian(v[nb_ind[:, 1:]], axis=1))
 
     # fluctuations
     # u_fluct_all is (N, 9)
@@ -212,8 +224,8 @@ def NMT_detection(u, v, nb_ind, eps=0.1):
                         v[nb_ind] - v_med[:, np.newaxis])
 
     # residual is (N, 1)
-    resu, resv = (np.median(np.abs(u_fluct[:, 1:]), axis=1) + eps,
-                  np.median(np.abs(v_fluct[:, 1:]), axis=1) + eps)
+    resu, resv = (np.nanmedian(np.abs(u_fluct[:, 1:]), axis=1) + eps,
+                  np.nanmedian(np.abs(v_fluct[:, 1:]), axis=1) + eps)
 
     u_norm, v_norm = (np.abs(u_fluct[:, 0] / resu),
                       np.abs(v_fluct[:, 0] / resv))

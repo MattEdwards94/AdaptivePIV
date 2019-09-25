@@ -8,6 +8,7 @@ import math
 import time
 import sym_filt
 import dense_predictor
+import matplotlib.pyplot as plt
 
 
 class PIVImage:
@@ -68,9 +69,9 @@ class PIVImage:
             mask = np.ones(np.shape(IA))
             self.has_mask = False
 
-        self.IA = np.array(IA)
-        self.IB = np.array(IB)
-        self.mask = np.array(mask)
+        self.IA = np.array(IA, dtype=np.float64)
+        self.IB = np.array(IB, dtype=np.float64)
+        self.mask = np.array(mask, dtype=np.float64)
         self.n_rows = np.shape(IA)[0]
         self.n_cols = np.shape(IA)[1]
         self.dim = (self.n_rows, self.n_cols)
@@ -243,8 +244,8 @@ class PIVImage:
             self.is_filtered = True
 
         # calculate pixel locations
-        xx, yy = np.meshgrid(np.r_[1:self.n_rows + 1],
-                             np.r_[1:self.n_cols + 1])
+        xx, yy = np.meshgrid(np.r_[1:self.n_cols + 1],
+                             np.r_[1:self.n_rows + 1])
 
         IA_new = sym_filt.bs5_int(
             self.IA_filt, self.n_rows, self.n_cols,
@@ -255,8 +256,19 @@ class PIVImage:
 
         return PIVImage(IA_new, IB_new, self.mask)
 
+    def plot_images(self):
+        """Summary
+        """
+        plt.figure(1)
+        plt.imshow(self.IA)
+        plt.title("IA")
+        plt.figure(2)
+        plt.imshow(self.IB)
+        plt.title("IB")
+        plt.show()
 
-def load_image_from_flow_type(flowtype, im_number):
+
+def load_images(flowtype, im_number):
     """
     Loads the PIV image pair associated with the specified flowtype and the
     image number
@@ -290,13 +302,14 @@ def load_image_from_flow_type(flowtype, im_number):
 
     # get the formatted filename with the correct image number inserted
     filenames = im_info.formatted_filenames(im_number)
+    print(filenames)
 
     # try to load image A
     if filenames[0][-4:] == ".mat":
         try:
             # mat files <7.3
             img = sio.loadmat(filenames[0])
-            IA = np.transpose(img['IA'])
+            IA = np.array(img['IA'])
             pass
         except NotImplementedError:
             # mat files v7.3
@@ -312,7 +325,7 @@ def load_image_from_flow_type(flowtype, im_number):
         try:
             # mat files <7.3
             img = sio.loadmat(filenames[1])
-            IB = np.transpose(img['IB'])
+            IB = np.array(img['IB'])
             pass
         except NotImplementedError:
             # mat files v7.3
@@ -326,6 +339,7 @@ def load_image_from_flow_type(flowtype, im_number):
         mask = np.ones(np.shape(IA))
     else:
         mask = np.asarray(Image.open(filenames[2]).convert('L')).copy()
+        mask[mask > 0] = 1
 
     return IA, IB, mask
 
@@ -360,7 +374,7 @@ def load_PIVImage(flowtype, im_number):
     """
 
     # load images
-    IA, IB, mask = load_image_from_flow_type(flowtype, im_number)
+    IA, IB, mask = load_images(flowtype, im_number)
     return PIVImage(IA, IB, mask)
 
 
@@ -433,7 +447,19 @@ def quintic_spline_image_filter(IA):
 
 
 if __name__ == "__main__":
-    flowtype, im_number = 1, 20
-    IA, IB, mask = load_image_from_flow_type(flowtype, im_number)
-    print(IA.shape, IB.shape, mask.shape)
-    exp = PIVImage(IA, IB, mask)
+    img = load_PIVImage(1, 1)
+    u, v = 5 * np.ones((640, 1280)), 5 * np.ones((640, 1280))
+    dp = dense_predictor.DensePredictor(u, v)
+    img_def = img.deform_image(dp)
+
+    # save into mat file
+    IA, IB = img.IA, img.IB
+    IAf, IBf = img_def.IA, img_def.IB
+    mdict = {"IA": IA,
+             "IB": IB,
+             "IAf": IAf,
+             "IBf": IBf,
+             "u": u,
+             "v": v,
+             }
+    sio.savemat("test_file.mat", mdict)

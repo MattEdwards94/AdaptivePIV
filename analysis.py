@@ -1,3 +1,4 @@
+import scipy.io as sio
 import numpy as np
 import distribution
 import utilities
@@ -31,7 +32,7 @@ def widim(img, settings):
         print("Calculating WS and spacing")
         WS = WS_for_iter(iter_, settings)
         print("WS: {}".format(WS))
-        h = max(1, round((1 - settings['WOR']) * WS))
+        h = max(1, math.ceil((1 - settings['WOR']) * WS))
 
         print("Creating grid and windows")
         xv, yv = (np.arange(0, img.n_cols, h),
@@ -74,6 +75,8 @@ def widim(img, settings):
 
         print("Deforming image")
         img_def = img.deform_image(dp)
+
+    return dp
 
 
 def WS_for_iter(iter_, settings):
@@ -200,7 +203,7 @@ def widim_settings(init_WS=97, final_WS=33, WOR=0.5,
         raise ValueError("Number of refinement iterations must be at most 10")
 
     # ====== vector validation ====== #
-    options_vec_val = ['NMT']
+    options_vec_val = ['NMT', None]
     if not vec_val in options_vec_val:
         raise ValueError("Vector validation method not handled")
 
@@ -234,9 +237,23 @@ def run_script():
 
 if __name__ == '__main__':
     # load the image
-    IA, IB, mask = piv_image.load_image_from_flow_type(22, 1)
-    img = piv_image.PIVImage(IA, IB, mask)
-    print("here")
-    settings = widim_settings(final_WS=15, n_iter_ref=2)
+    flowtype, im_number = 1, 1
+    img = piv_image.load_PIVImage(flowtype, im_number)
+    # img.plot_images()
+    settings = widim_settings(init_WS=97,
+                              final_WS=33,
+                              WOR=0.5,
+                              vec_val='NMT',
+                              n_iter_main=3,
+                              n_iter_ref=1,
+                              interp='struc_cub')
 
-    widim(img, settings)
+    # analyse the image
+    dp = widim(img, settings)
+    print(dp.u[200, 100])
+    # dp.plot_displacement_field(width=0.001,
+    #                            headlength=2.5,
+    #                            headwidth=2,
+    #                            headaxislength=6)
+    mdict = {"u": dp.u, "v": dp.v}
+    sio.savemat("test_file.mat", mdict)

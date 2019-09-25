@@ -4,6 +4,8 @@ import numpy as np
 import dense_predictor
 import sym_filt
 import image_info
+import scipy.io as sio
+import h5py
 
 
 @pytest.fixture
@@ -69,6 +71,9 @@ def test_initialisation_assigns_intensities_correctly(mock_IA, mock_IB):
     """
     img = piv_image.PIVImage(mock_IA, mock_IB)
     assert np.allclose(mock_IA, img.IA)
+    assert np.allclose(mock_IB, img.IB)
+    assert np.issubdtype(img.IA.dtype, np.float64)
+    assert np.issubdtype(img.IB.dtype, np.float64)
 
 
 def test_initialisation_saves_mask_status(mock_IA, mock_IB, mock_mask):
@@ -242,6 +247,18 @@ def test_get_region_returns_correct_region():
     assert np.allclose(ib, exp_arr)
     assert np.allclose(mask, exp_arr)
 
+    # check the x and y are correct:
+    ia, ib, mask = img.get_region(3, 4, 2)
+    exp_arr = np.array([[14, 15, 16, 17, 18],
+                        [20, 21, 22, 23, 24],
+                        [26, 27, 28, 29, 30],
+                        [32, 33, 34, 35, 36],
+                        [0, 0, 0, 0, 0]])
+    print(ia)
+    assert np.allclose(ia, exp_arr)
+    assert np.allclose(ib, exp_arr)
+    assert np.allclose(mask, exp_arr)
+
 
 def test_get_region_returns_mask_if_not_defined():
     """
@@ -287,10 +304,28 @@ def test_load_mat_image_from_flowtype():
 
     # we just want to check that it loads without issue
     flowtype = 22  # vortex array v7
-    IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+    IA_act, IB_act, mask = piv_image.load_images(flowtype, 1)
+    # now check that it is transposed correctly by loading it manually and
+    # checking the result
+    im_info = image_info.ImageInfo(flowtype)
+    filenames = im_info.formatted_filenames(1)
+    img = sio.loadmat(filenames[0])
+    IA_exp = np.array(img['IA'])
+    img = sio.loadmat(filenames[1])
+    IB_exp = np.array(img['IB'])
+    assert np.allclose(IA_exp, IA_act)
+    assert np.allclose(IB_exp, IB_act)
 
     flowtype = 24  # gaussian smoothed v7.3
-    IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+    IA_act, IB_act, mask = piv_image.load_images(flowtype, 1)
+    im_info = image_info.ImageInfo(flowtype)
+    filenames = im_info.formatted_filenames(1)
+    img = h5py.File(filenames[0])
+    IA_exp = np.transpose(np.array(img['IA']))
+    img = h5py.File(filenames[1])
+    IB_exp = np.transpose(np.array(img['IB']))
+    assert np.allclose(IA_exp, IA_act)
+    assert np.allclose(IB_exp, IB_act)
 
 
 def test_load_image_file():
@@ -301,7 +336,7 @@ def test_load_image_file():
 
     # just checking it loads without issue
     flowtype = 1  # bfs
-    IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+    IA, IB, mask = piv_image.load_images(flowtype, 1)
 
 
 def test_load_image_loads_mask_file_if_no_file():
@@ -312,7 +347,7 @@ def test_load_image_loads_mask_file_if_no_file():
     """
 
     flowtype = 22  # vortex array
-    IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, 1)
+    IA, IB, mask = piv_image.load_images(flowtype, 1)
     assert np.allclose(mask, np.ones(np.shape(IA)))
 
 
@@ -331,7 +366,7 @@ def test_load_image_builds_object():
     flowtypes = image_info.all_flow_types()
     for item in flowtypes:
         im_number = 1
-        IA, IB, mask = piv_image.load_image_from_flow_type(item, im_number)
+        IA, IB, mask = piv_image.load_images(item, im_number)
         # test that the object creates just fine
         piv_image.PIVImage(IA, IB, mask)
 
@@ -377,9 +412,19 @@ def test_load_PIVImage():
 
     # 'manual' way
     flowtype, im_number = 1, 20
-    IA, IB, mask = piv_image.load_image_from_flow_type(flowtype, im_number)
+    IA, IB, mask = piv_image.load_images(flowtype, im_number)
     exp = piv_image.PIVImage(IA, IB, mask)
 
     # test method
     act = piv_image.load_PIVImage(flowtype, im_number)
     assert exp, act
+
+
+def test_quintic_spline_image_filt_all_ones():
+    """All ones input should give all ones output
+    """
+
+    a = np.ones((50, 50))
+    b = piv_image.quintic_spline_image_filter(a)
+
+    assert np.allclose(a, b)
