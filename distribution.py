@@ -164,20 +164,8 @@ class Distribution:
             f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='linear')
             u_int = f_u(xe, ye)
             v_int = f_v(xe, ye)
-            # u_int = interp.griddata(np.array([x.ravel(), y.ravel()]).T,
-            #                         u.ravel(),
-            #                         (xx, yy), method='linear')
-            # v_int = interp.griddata(np.array([x.ravel(), y.ravel()]).T,
-            #                         v.ravel(),
-            #                         (xx, yy), method='linear')
         elif method == "struc_cub":
             # interpolate using scipy
-            # u_int = interp.griddata(np.array([x.ravel(), y.ravel()]).T,
-            #                         u.ravel(),
-            #                         (xx, yy), method='cubic')
-            # v_int = interp.griddata(np.array([x.ravel(), y.ravel()]).T,
-            #                         v.ravel(),
-            #                         (xx, yy), method='cubic')
             f_u = interp.interp2d(x[0, :], y[:, 0], u, kind='cubic')
             f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='cubic')
             u_int = f_u(xe, ye)
