@@ -25,14 +25,14 @@ def widim(img, settings):
         np.zeros(img.dim), np.zeros(img.dim), img.mask)
 
     # main iterations
-    for iter_ in range(1, settings['n_iter_main'] + 1):
+    for iter_ in range(1, settings.n_iter_main + 1):
         print("Starting main iteration, {}".format(iter_))
 
         # calculate spacing and create sample grid
         print("Calculating WS and spacing")
         WS = WS_for_iter(iter_, settings)
         print("WS: {}".format(WS))
-        h = max(1, math.ceil((1 - settings['WOR']) * WS))
+        h = max(1, math.ceil((1 - settings.WOR) * WS))
 
         print("Creating grid and windows")
         xv, yv = (np.arange(0, img.n_cols, h),
@@ -47,12 +47,12 @@ def widim(img, settings):
         print("Correlating all windows")
         dist.correlate_all_windows(img_def, dp)
 
-        if settings['vec_val'] is not None:
+        if settings.vec_val is not None:
             print("Validate vectors")
             dist.validation_NMT_8NN()
 
         print("Interpolating")
-        u, v = dist.interp_to_densepred(settings['interp'], img_def.dim)
+        u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
         dp = dense_predictor.DensePredictor(u, v, img_def.mask)
 
         print("Deforming image")
@@ -60,17 +60,17 @@ def widim(img, settings):
 
     print("Starting refinement iterations")
 
-    for iter_ in range(1, settings['n_iter_ref'] + 1):
+    for iter_ in range(1, settings.n_iter_ref + 1):
 
         print("Correlating all windows")
         dist.correlate_all_windows(img_def, dp)
 
-        if settings['vec_val'] is not None:
+        if settings.vec_val is not None:
             print("validate vectors")
             dist.validation_NMT_8NN()
 
         print("Interpolating")
-        u, v = dist.interp_to_densepred(settings['interp'], img_def.dim)
+        u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
         dp = dense_predictor.DensePredictor(u, v, img_def.mask)
 
         print("Deforming image")
@@ -84,15 +84,15 @@ def WS_for_iter(iter_, settings):
     Returns the WS to be used for iteration iter_ for the current settings
 
     The window size is calculated by finding what reduction factor (RF) would
-    need to be applied to settings['init_WS'], ['n_iter_main'] times
+    need to be applied to init_WS, n_iter_main times
     such that at the end
 
-    WS = ['init_WS']*(RF^['n_iter_main']) = ['final_WS']
+    WS = init_WS*(RF^n_iter_main) = final_WS
 
-    iter_ = 1 returns ['init_WS']
+    iter_ = 1 returns init_WS
         UNLESS
-        iter_ = 1 and ['n_iter_main'] == 1, which returns ['final_WS']
-    iter_ >= ['n_iter_main'] returns ['final_WS']
+        iter_ = 1 and n_iter_main == 1, which returns final_WS
+    iter_ >= n_iter_main returns final_WS
 
     Args:
         iter_ (int): The iteration to calculate the WS for.
@@ -105,125 +105,246 @@ def WS_for_iter(iter_, settings):
 
     # check inputs for special cases
     if iter_ == 1:
-        if settings['n_iter_main'] == 1:
-            return settings['final_WS']
+        if settings.n_iter_main == 1:
+            return settings.final_WS
         else:
-            return settings['init_WS']
+            return settings.init_WS
 
-    if iter_ >= settings['n_iter_main']:
-        return settings['final_WS']
+    if iter_ >= settings.n_iter_main:
+        return settings.final_WS
 
     # now calculate intermediate WS value
     reduction_fact = np.exp(
-        np.log(settings['final_WS'] / settings['init_WS'])
-        / (settings['n_iter_main'] - 1)
+        np.log(settings.final_WS / settings.init_WS)
+        / (settings.n_iter_main - 1)
     )
-    WS = settings['init_WS'] * (reduction_fact ** (iter_ - 1))
+    WS = settings.init_WS * (reduction_fact ** (iter_ - 1))
 
     # return the nearest odd integer
     return utilities.round_to_odd(WS)
 
 
-def widim_settings(init_WS=97, final_WS=33, WOR=0.5,
-                   n_iter_main=3, n_iter_ref=2,
-                   vec_val='NMT', interp='struc_cub'):
-    """
-    Returns a dict with interrogation settings for a widim analysis
+class WidimSettings():
 
-    Args:
-        init_WS (int, optional): Initial window size, must be odd and
-                                 5 <= init_WS <= 245
-        final_WS (int, optional): Final window size, must be odd and
-                                  5 <= final_WS <= 245
-        WOR (float, optional): Window overlap ratio, must be 0 <= WOR < 1
-        n_iter_main (int, optional): Number of main iterations, wherein the WS
-                                     and spacing will reduce from init_WS to
-                                     final_WS
-                                     Must be 1 <= n_iter_main <= 10
-                                     If the number of main iterations is 1
-                                     then the final_WS is ignored
-        n_iter_ref (int, optional): Number of refinement iterations, where the
-                                    WS and locations remain fixed, however,
-                                    subsequent iterations are performed to
-                                    improve the solution
-                                    Must be 0 <= n_iter_ref <= 10
-        vec_val (str, optional): Type of vector validation to perform.
-                                 Options: 'NMT'
-                                 Default: 'NMT'
-        interp (str, optional): Type of interpolation to perform
-                                Options: 'struc_lin', 'struc_cub'
-                                Default: 'struc_cub'
+    def __init__(self, init_WS=97, final_WS=33, WOR=0.5,
+                 n_iter_main=3, n_iter_ref=2,
+                 vec_val='NMT', interp='struc_cub'):
+        """
 
-    Returns:
-        Dict: Dictionary containing the settings
+        Args:
+            init_WS (int, optional): Initial window size, must be odd and
+                                     5 <= init_WS <= 245
+            final_WS (int, optional): Final window size, must be odd and
+                                      5 <= final_WS <= 245
+            WOR (float, optional): Window overlap ratio, must be 0 <= WOR < 1
+            n_iter_main (int, optional): Number of main iterations, wherein the
+                                         WS and spacing will reduce from init_WS
+                                         to final_WS
+                                         Must be 1 <= n_iter_main <= 10
+                                         If the number of main iterations is 1
+                                         then the final_WS is ignored
+            n_iter_ref (int, optional): Number of refinement iterations, where
+                                        the WS and locations remain fixed,
+                                        however, subsequent iterations are
+                                        performed to improve the solution
+                                        Must be 0 <= n_iter_ref <= 10
+            vec_val (str, optional): Type of vector validation to perform.
+                                     Options: 'NMT', None
+                                     Default: 'NMT'
+            interp (str, optional): Type of interpolation to perform
+                                    Options: 'struc_lin', 'struc_cub'
+                                    Default: 'struc_cub'
+        """
+        self.init_WS = init_WS
+        self.final_WS = final_WS
+        self.WOR = WOR
+        self.n_iter_main = n_iter_main
+        self.n_iter_ref = n_iter_ref
+        self.vec_val = vec_val
+        self.interp = interp
 
-    Raises:
-        ValueError: If any of the settings are invalid
-    """
+    def __eq__(self, other):
+        """
+        Allow for comparing equality between settings classes
 
-    # check all the inputs are valid
-    # ====== init_WS ====== #
-    if int(init_WS) != init_WS:
-        raise ValueError("Initial WS must be integer")
-    if (init_WS < 5) or (init_WS > 245):
-        raise ValueError("Initial WS must be 5 <= WS <= 245")
-    if init_WS % 2 != 1:
-        raise ValueError("Initial WS must be odd")
-    if init_WS < final_WS:
-        raise ValueError("Initial WS must be at least as big as final_WS")
+        Args:
+            other (WidimSettings): The other WidimSettings to be compared to
 
-    # ====== final_WS ====== #
-    if int(final_WS) != final_WS:
-        raise ValueError("Final WS must be integer")
-    if (final_WS < 5) or (final_WS > 245):
-        raise ValueError("Final WS must be 5 <= WS <= 245")
-    if final_WS % 2 != 1:
-        raise ValueError("Final WS must be odd")
+        Returns:
+            Bool: Whether the two WidimSettings match
+        """
 
-    # ====== WOR ====== #
-    if WOR < 0:
-        raise ValueError("WOR must be greater than 0")
-    if WOR >= 1:
-        raise ValueError("WOR must be strictly less than 1")
+        if not isinstance(other, WidimSettings):
+            return NotImplemented
 
-    # ====== n_iter_main ====== #
-    if int(n_iter_main) != n_iter_main:
-        raise ValueError("Number of iterations must be integer")
-    if n_iter_main < 1:
-        raise ValueError("Number of iterations must be at least 1")
-    if n_iter_main > 10:
-        raise ValueError("Number of main iterations must be at most 10")
+        for s, o in zip(self.__dict__.values(), other.__dict__.values()):
+            if s != o:
+                if not np.all(np.isnan((s, o))):
+                    return False
 
-    # ====== n_iter_ref ====== #
-    if int(n_iter_ref) != n_iter_ref:
-        raise ValueError("Number of refinement iterations must be integer")
-    if n_iter_ref < 0:
-        raise ValueError("Number of refinement iterations must be at least 0")
-    if n_iter_ref > 10:
-        raise ValueError("Number of refinement iterations must be at most 10")
+        return True
 
-    # ====== vector validation ====== #
-    options_vec_val = ['NMT', None]
-    if not vec_val in options_vec_val:
-        raise ValueError("Vector validation method not handled")
+    @property
+    def init_WS(self):
+        return self._init_ws
 
-    # ====== Interpolation ====== #
-    options_interp = ['struc_lin', 'struc_cub']
-    if not interp in options_interp:
-        raise ValueError("Interpolation method not handled")
+    @init_WS.setter
+    def init_WS(self, value):
+        """Sets the value of initial window size checking its validity
 
-    # all settings are now considered valid
-    settings = {
-        "init_WS": init_WS,
-        "final_WS": final_WS,
-        "WOR": WOR,
-        "n_iter_main": n_iter_main,
-        "n_iter_ref": n_iter_ref,
-        "vec_val": vec_val,
-        "interp": interp,
-    }
+        Args:
+            value (int): Initial window size,
+                         must be odd
+                         5 <= init_WS <= 245
+                         init_WS >= final_WS (Checked in final_WS)
+        """
 
-    return settings
+        if int(value) != value:
+            raise ValueError("Initial WS must be integer")
+        if (value < 5) or (value > 245):
+            raise ValueError("Initial WS must be 5 <= WS <= 245")
+        if value % 2 != 1:
+            raise ValueError("Initial WS must be odd")
+
+        self._init_ws = int(value)
+
+    @property
+    def final_WS(self):
+        return self._final_WS
+
+    @final_WS.setter
+    def final_WS(self, value):
+        """Sets the value of the final window size, checking validity
+
+        Args:
+            value (int): Final window size,
+                         Must be odd
+                         5 <= final_WS <= 245
+                         final_WS <= init_WS
+        """
+
+        if int(value) != value:
+            raise ValueError("Final WS must be integer")
+        if (value < 5) or (value > 245):
+            raise ValueError("Final WS must be 5 <= WS <= 245")
+        if value % 2 != 1:
+            raise ValueError("Final WS must be odd")
+        if self.init_WS < value:
+            raise ValueError("Final WS must be <= init WS")
+        self._final_WS = value
+
+    @property
+    def WOR(self):
+        return self._WOR
+
+    @WOR.setter
+    def WOR(self, value):
+        """Sets the window overlap ratio, checking validity
+
+        Args:
+            value (float): overlap factor as decimal 0 <= WOR < 1
+                           0 represents no overlap
+                           1 represents full overlap
+                              This would result in all windows in the same
+                              location and is hence invalid
+        """
+        if value < 0:
+            raise ValueError("WOR must be greater than 0")
+        if value >= 1:
+            raise ValueError("WOR must be strictly less than 1")
+        self._WOR = value
+
+    @property
+    def n_iter_main(self):
+        return self._n_iter_main
+
+    @n_iter_main.setter
+    def n_iter_main(self, value):
+        """Sets the number of main iterations, checking validity
+
+        Args:
+            value (float): Number of main iterations, wherein the WS and
+                           spacing will reduce from init_WS to final_WS
+                           1 <= n_iter_main <= 10
+                           If the number of main iterations is 1
+                           then the final_WS is ignored
+        """
+        if int(value) != value:
+            raise ValueError("Number of iterations must be integer")
+        if value < 1:
+            raise ValueError("Number of iterations must be at least 1")
+        if value > 10:
+            raise ValueError(
+                "Number of main iterations must be at most 10")
+
+        self._n_iter_main = value
+
+    @property
+    def n_iter_ref(self):
+        return self._n_iter_ref
+
+    @n_iter_ref.setter
+    def n_iter_ref(self, value):
+        """Sets the number of refinement iterations, checking validity
+
+        Args:
+            value (float): Number of refinement iterations, where the
+                           WS and locations remain fixed, however,
+                           subsequent iterations are performed to
+                           improve the solution
+                           0 <= n_iter_ref <= 10
+        """
+
+        if int(value) != value:
+            msg = "Number of refinement iterations must be integer"
+            raise ValueError(msg)
+        if value < 0:
+            msg = "Number of refinement iterations must be at least 0"
+            raise ValueError(msg)
+        if value > 10:
+            msg = "Number of refinement iterations must be at most 10"
+            raise ValueError(msg)
+
+        self._n_iter_ref = value
+
+    @property
+    def vec_val(self):
+        return self._vec_val
+
+    @vec_val.setter
+    def vec_val(self, value):
+        """Sets the type of vector validation, checking validity
+
+        Args:
+            value (float): Type of vector validation to perform.
+                           Options: 'NMT', None
+        """
+
+        options = ['NMT', None]
+
+        if value not in options:
+            raise ValueError("Vector validation method not handled")
+
+        self._vec_val = value
+
+    @property
+    def interp(self):
+        return self._interp
+
+    @interp.setter
+    def interp(self, value):
+        """Sets the type of interpolation, checking validity
+
+        Args:
+            value (float): Type of interpolation to perform
+                            Options: 'struc_lin', 'struc_cub'
+        """
+
+        options = ['struc_lin', 'struc_cub']
+        if value not in options:
+            raise ValueError("Interpolation method not handled")
+
+        self._interp = value
 
 
 def run_script():
