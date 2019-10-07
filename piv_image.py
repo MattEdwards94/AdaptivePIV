@@ -302,7 +302,7 @@ def load_images(flowtype, im_number):
 
     # get the formatted filename with the correct image number inserted
     filenames = im_info.formatted_filenames(im_number)
-    print(filenames)
+    # print(filenames)
 
     # try to load image A
     if filenames[0][-4:] == ".mat":

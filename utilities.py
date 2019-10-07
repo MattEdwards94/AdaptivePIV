@@ -15,6 +15,27 @@ class MeanAndVarCalculator():
         self.S = np.zeros_like(init_values)
         self.N = 1
 
+    def __eq__(self, other):
+        """
+        Allow for comparing equality between MeanAndVarCalculator classes
+
+        Args:
+            other (MeanAndVarCalculator): The other MeanAndVarCalculator
+                                          to be compared to
+
+        Returns:
+            Bool: Whether the two MeanAndVarCalculator match
+        """
+
+        if not isinstance(other, MeanAndVarCalculator):
+            return NotImplemented
+
+        for s, o in zip(self.__dict__.values(), other.__dict__.values()):
+            if not np.allclose(s, o, equal_nan=True):  # check for equality
+                return False
+
+        return True
+
     @property
     def dim(self):
         """Gets the dimensions of the displacement field being calculated

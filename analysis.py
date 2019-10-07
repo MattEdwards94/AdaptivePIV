@@ -5,8 +5,32 @@ import utilities
 import math
 import corr_window
 import dense_predictor
-import matplotlib.pyplot as plt
 import piv_image
+import ensemble_solution as es
+
+
+def ensemble_widim(flowtype, im_start, im_stop, settings):
+    """Analyses an ensemble of images and returns an EnsembleSolution object
+
+    Args:
+        flowtype (int): The flow type id. See image_info.all_flow_types()
+        im_start (int): The number of the first image in the series to analyse
+        im_stop (int): The number of the last image in the series to analyse
+                       Inclusive. i.e. 1-3 will analyse 1, 2, and 3
+        settings (dict): Settings to analyse the images with
+
+    Returns:
+        EnsembleSolution: An EnsembleSolution object. See ensemble_solution.py
+    """
+    ensR = es.EnsembleSolution(settings, flowtype)
+
+    for i in range(im_start, im_stop + 1):
+        print("Analysing image {}".format(i))
+        dp = widim(piv_image.load_PIVImage(flowtype, i),
+                   settings)
+        ensR.add_displacement_field(dp)
+
+    return ensR
 
 
 def widim(img, settings):
@@ -155,6 +179,8 @@ class WidimSettings():
                                     Options: 'struc_lin', 'struc_cub'
                                     Default: 'struc_cub'
         """
+
+        self._init_ws = None
         self.init_WS = init_WS
         self.final_WS = final_WS
         self.WOR = WOR
@@ -351,30 +377,35 @@ def run_script():
     IA, IB, mask = piv_image.load_image_from_flow_type(22, 1)
     img = piv_image.PIVImage(IA, IB, mask)
     print("here")
-    settings = widim_settings(final_WS=15, n_iter_ref=0)
+    settings = WidimSettings(final_WS=15, n_iter_ref=0)
 
     widim(img, settings)
 
 
 if __name__ == '__main__':
     # load the image
-    flowtype, im_number = 1, 1
-    img = piv_image.load_PIVImage(flowtype, im_number)
+    # flowtype, im_number = 1, 1
+    # img = piv_image.load_PIVImage(flowtype, im_number)
     # img.plot_images()
-    settings = widim_settings(init_WS=97,
-                              final_WS=33,
-                              WOR=0.5,
-                              vec_val='NMT',
-                              n_iter_main=3,
-                              n_iter_ref=1,
-                              interp='struc_cub')
+    settings = WidimSettings(init_WS=97,
+                             final_WS=33,
+                             WOR=0.5,
+                             vec_val='NMT',
+                             n_iter_main=3,
+                             n_iter_ref=1,
+                             interp='struc_cub')
 
     # analyse the image
-    dp = widim(img, settings)
-    print(dp.u[200, 100])
+    # dp = widim(img, settings)
+
+    # print(dp.u[200, 100])
     # dp.plot_displacement_field(width=0.001,
     #                            headlength=2.5,
     #                            headwidth=2,
     #                            headaxislength=6)
-    mdict = {"u": dp.u, "v": dp.v}
-    sio.savemat("test_file.mat", mdict)
+
+    ensR = ensemble_widim(22, 1, 5, settings)
+    ensR.save_to_file('test_file.mat')
+
+    # mdict = {"u": ensR.u.mean, "v": ensR.v.mean}
+    # sio.savemat("test_file.mat", mdict)
