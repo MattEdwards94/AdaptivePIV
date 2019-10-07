@@ -3,6 +3,61 @@ import numpy as np
 import utilities
 
 
+@pytest.fixture
+def mock_mv():
+    vals = np.ones((100, 200))
+    return utilities.MeanAndVarCalculator(vals)
+
+
+def test_mean_var_init():
+    """Tests that the mean is initialised to the first
+    """
+
+    vals = np.random.rand(100, 200)
+    mv = utilities.MeanAndVarCalculator(vals)
+
+    assert np.all(mv.mean == vals)
+    assert np.all(mv.S == np.zeros_like(vals))
+    assert mv.N == 1
+
+
+def test_mean_var_wrong_dimensions(mock_mv):
+    """Checks that if the wrong shape of data is attempted to be added to the
+    solution that an error is raised
+    """
+    vals = np.ones((50, 100))
+    with pytest.raises(ValueError):
+        mock_mv.add_values(vals)
+
+
+def test_add_samples_updates_mean(mock_mv):
+    """Checks that added a new set of data updates the mean solution correctly
+    """
+    vals = 2 * np.ones((100, 200))
+    mock_mv.add_values(vals)
+    assert np.allclose(1.5 * np.ones_like(vals), mock_mv.mean)
+    assert mock_mv.N == 2
+
+
+def test_add_samples_updates_var(mock_mv):
+    """Checks that the variance is correctly calculated as new data is added
+    """
+    vals = 2 * np.ones((100, 200))
+    assert np.allclose(mock_mv.variance, np.zeros_like(vals))
+    mock_mv.add_values(vals)
+    exp = np.var([1, 2], ddof=1) * np.ones_like(vals)
+    assert np.allclose(mock_mv.variance, exp)
+    mock_mv.add_values(3 * vals)
+    exp = np.var([1, 2, 6], ddof=1) * np.ones_like(vals)
+    assert np.allclose(mock_mv.variance, exp)
+
+
+def test_dim_gets_dimensions(mock_mv):
+    """Checks that this property method returns the correct dimensions
+    """
+    assert mock_mv.dim == (100, 200)
+
+
 def test_elementwise_diff_checks_input_size():
     """
     Elementwise diff doesn't work if there is only 1 element

@@ -15,31 +15,33 @@ def test_widim_settings_init_WS():
 
     # check that a Value error is raised if init_WS is even
     with pytest.raises(ValueError):
-        analysis.widim_settings(init_WS=96)
+        analysis.WidimSettings(init_WS=96)
 
     # check that a Value error is raised if init_WS is less than 5
     # set final WS to 3 too to prevent init_WS < final_WS being violated
     with pytest.raises(ValueError):
-        analysis.widim_settings(init_WS=3, final_WS=3)
+        analysis.WidimSettings(init_WS=3, final_WS=3)
 
     # check that a value error is not raised if init_WS is 5
     # set final WS to 5 too to prevent init_WS < final_WS being violated
-    analysis.widim_settings(init_WS=5, final_WS=5)
+    analysis.WidimSettings(init_WS=5, final_WS=5)
 
     # check that a Value error is raised if init_WS is greater than 245
     with pytest.raises(ValueError):
-        analysis.widim_settings(init_WS=257)
+        analysis.WidimSettings(init_WS=257)
 
     # check that a value error is not raised if init_WS is 245
 
-    analysis.widim_settings(init_WS=245)
+    analysis.WidimSettings(init_WS=245)
 
     # check that a Value error is raised if init_WS is less than final_WS
     with pytest.raises(ValueError):
-        analysis.widim_settings(init_WS=97, final_WS=101)
+        analysis.WidimSettings(init_WS=97, final_WS=101)
 
     # check that a value error is not raised if init_WS == final_WS
-    analysis.widim_settings(init_WS=97, final_WS=97)
+    settings = analysis.WidimSettings(init_WS=97, final_WS=97)
+
+    assert settings.init_WS == 97
 
 
 def test_widim_settings_final_WS():
@@ -53,22 +55,23 @@ def test_widim_settings_final_WS():
 
     # check that a Value error is raised if final_WS is even
     with pytest.raises(ValueError):
-        analysis.widim_settings(final_WS=32)
+        analysis.WidimSettings(final_WS=32)
 
     # check that a Value error is raised if final_WS is less than 5
     with pytest.raises(ValueError):
-        analysis.widim_settings(final_WS=3)
+        analysis.WidimSettings(final_WS=3)
 
     # check that a value error is not raised if final_WS is 5
-    analysis.widim_settings(final_WS=5)
+    analysis.WidimSettings(final_WS=5)
 
     # check that a Value error is raised if final_WS is greater than 245
     with pytest.raises(ValueError):
-        analysis.widim_settings(final_WS=257)
+        analysis.WidimSettings(final_WS=257)
 
     # check that a value error is not raised if final_WS is 245
     # init_ws to 245 to satisfy init_WS >= final_WS
-    analysis.widim_settings(final_WS=245, init_WS=245)
+    settings = analysis.WidimSettings(final_WS=245, init_WS=245)
+    assert settings.final_WS == 245
 
 
 def test_widim_settings_WOR():
@@ -79,14 +82,18 @@ def test_widim_settings_WOR():
 
     # check that a value error is raised for WOR < 0
     with pytest.raises(ValueError):
-        analysis.widim_settings(WOR=-0.3)
+        analysis.WidimSettings(WOR=-0.3)
 
     # check that a value error is not raised for WOR == 0
-    analysis.widim_settings(WOR=0)
+    analysis.WidimSettings(WOR=0)
 
     # check that a value error is raised for WOR == 1
     with pytest.raises(ValueError):
-        analysis.widim_settings(WOR=1)
+        analysis.WidimSettings(WOR=1)
+
+    settings = analysis.WidimSettings(WOR=0.5)
+
+    assert settings.WOR == 0.5
 
 
 def test_widim_settings_n_iter_main():
@@ -97,21 +104,22 @@ def test_widim_settings_n_iter_main():
 
     # check that a value error is raised for n_iter_main == 0
     with pytest.raises(ValueError):
-        analysis.widim_settings(n_iter_main=0)
+        analysis.WidimSettings(n_iter_main=0)
 
     # check that a value error is not raised for n_iter_main == 1
-    analysis.widim_settings(n_iter_main=1)
+    analysis.WidimSettings(n_iter_main=1)
 
     # check that a value error is raised for n_iter_main == 11
     with pytest.raises(ValueError):
-        analysis.widim_settings(n_iter_main=11)
+        analysis.WidimSettings(n_iter_main=11)
 
     # check that a value error is not raised for n_iter_main == 10
-    analysis.widim_settings(n_iter_main=10)
+    settings = analysis.WidimSettings(n_iter_main=10)
+    assert settings.n_iter_main == 10
 
     # check that a value error is raised if the input is not an integer
     with pytest.raises(ValueError):
-        analysis.widim_settings(n_iter_main=3.5)
+        analysis.WidimSettings(n_iter_main=3.5)
 
 
 def test_widim_settings_n_iter_ref():
@@ -122,35 +130,38 @@ def test_widim_settings_n_iter_ref():
 
     # check that a value error is raised for n_iter_ref == -1
     with pytest.raises(ValueError):
-        analysis.widim_settings(n_iter_ref=-1)
+        analysis.WidimSettings(n_iter_ref=-1)
 
     # check that a value error is not raised for n_iter_ref == 0
-    analysis.widim_settings(n_iter_ref=0)
+    analysis.WidimSettings(n_iter_ref=0)
 
     # check that a value error is raised for n_iter_ref == 11
     with pytest.raises(ValueError):
-        analysis.widim_settings(n_iter_ref=11)
+        analysis.WidimSettings(n_iter_ref=11)
 
     # check that a value error is not raised for n_iter_ref == 10
-    analysis.widim_settings(n_iter_ref=10)
+    settings = analysis.WidimSettings(n_iter_ref=10)
+    assert settings.n_iter_ref == 10
 
     # check that a value error is raised if the input is not an integer
     with pytest.raises(ValueError):
-        analysis.widim_settings(n_iter_ref=3.5)
+        analysis.WidimSettings(n_iter_ref=3.5)
 
 
 def test_widim_settings_vec_val():
     """
     Checks that the vector validation method is one of the valid options
-    for now this is only NMT
     """
 
     # check that a value error is raised for vec_val != 'NMT'
     with pytest.raises(ValueError):
-        analysis.widim_settings(vec_val='testing')
+        analysis.WidimSettings(vec_val='testing')
 
-    # check that a value error is not raised for vec_val == 'NMT'
-    analysis.widim_settings(vec_val='NMT')
+    # check that a value error is not raised for valid interp method
+    options = ['NMT', None]
+    for option in options:
+        settings = analysis.WidimSettings(vec_val=option)
+        settings.vec_val == option
 
 
 def test_widim_settings_interp():
@@ -161,17 +172,18 @@ def test_widim_settings_interp():
 
     # check that a value error is raised for invalid interp
     with pytest.raises(ValueError):
-        analysis.widim_settings(interp='testing')
+        analysis.WidimSettings(interp='testing')
 
     # check that a value error is not raised for valid interp method
     options = ['struc_lin', 'struc_cub']
     for option in options:
-        analysis.widim_settings(interp=option)
+        settings = analysis.WidimSettings(interp=option)
+        settings.interp == option
 
 
 def test_widim_settings_default_config():
     """
-    Check the default configuration of widim_settings returns the expected
+    Check the default configuration of WidimSettings returns the expected
     dict values
     """
     # expected
@@ -185,31 +197,7 @@ def test_widim_settings_default_config():
         "interp": 'struc_cub',
     }
 
-    assert settings == analysis.widim_settings()
-
-
-def test_widim_settings_with_non_default_config():
-    """
-    Check the default configuration of widim_settings returns the expected
-    dict values
-    """
-    # expected
-    settings = {
-        "init_WS": 55,
-        "final_WS": 15,
-        "WOR": 0.75,
-        "n_iter_main": 4,
-        "n_iter_ref": 3,
-        "vec_val": 'NMT',
-        "interp": 'struc_lin',
-    }
-
-    assert settings == analysis.widim_settings(init_WS=55,
-                                               final_WS=15,
-                                               WOR=0.75,
-                                               n_iter_main=4,
-                                               n_iter_ref=3,
-                                               interp='struc_lin')
+    assert analysis.WidimSettings() == analysis.WidimSettings(**settings)
 
 
 def test_calculate_WS_specific_inputs():
@@ -222,8 +210,8 @@ def test_calculate_WS_specific_inputs():
     """
 
     # create settings dict
-    settings = analysis.widim_settings(n_iter_main=4, n_iter_ref=2,
-                                       init_WS=57, final_WS=33)
+    settings = analysis.WidimSettings(n_iter_main=4, n_iter_ref=2,
+                                      init_WS=57, final_WS=33)
 
     # input with iter > n_iter_main => WS = final_WS
     WS = analysis.WS_for_iter(6, settings)
@@ -238,7 +226,7 @@ def test_calculate_WS_specific_inputs():
     assert WS == 57
 
     # input with iter == 1, n_iter_main == 1 => WS = init_WS
-    settings['n_iter_main'] = 1
+    settings.n_iter_main = 1
     WS = analysis.WS_for_iter(1, settings)
     assert WS == 33
 
@@ -248,31 +236,35 @@ def test_calculate_WS_middle_input():
     Simply tests an example usage
     """
 
-    settings = analysis.widim_settings(n_iter_main=3,
-                                       init_WS=97,
-                                       final_WS=25)
+    settings = analysis.WidimSettings(n_iter_main=3,
+                                      init_WS=97,
+                                      final_WS=25)
 
     exp = 49
     assert analysis.WS_for_iter(2, settings) == exp
 
 
-# def test_all_widim():
-#     """
-#     Analyses a single image for every available flow type to check that
-#     there are no errors
-#     """
+def test__quick_widim():
+    """
+    Analyses a single image for a selection of images:
+        Test BFS - experimental with mask - 1
+        Test Weam flow - large experimental with mask - 20
+        Test vortex array - synthetic without mask (matlab v7) - 22
+        Test gaussian smoothed - synthetic without mask (matlab 7.3) - 24
+    """
 
-#     flowtypes = imi.all_flow_types()
+    flowtypes = [1, 20, 22, 24]
 
-#     for flowtype in flowtypes:
-#         print(flowtype)
-#         # load the image
-#         img = piv_image.load_PIVImage(flowtype, 1)
+    for flowtype in flowtypes:
+        print(flowtype)
+        # load the image
+        img = piv_image.load_PIVImage(flowtype, 1)
 
-#         settings = analysis.widim_settings(init_WS=127,
-#                                            final_WS=63,
-#                                            WOR=0.5,
-#                                            n_iter_ref=1)
+        settings = analysis.WidimSettings(init_WS=127,
+                                          final_WS=63,
+                                          WOR=0.25,
+                                          n_iter_main=2,
+                                          n_iter_ref=1)
 
-#         # analyse the image
-#         analysis.widim(img, settings)
+        # analyse the image
+        analysis.widim(img, settings)

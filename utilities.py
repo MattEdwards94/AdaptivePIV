@@ -2,6 +2,83 @@ import numpy as np
 import math
 
 
+class MeanAndVarCalculator():
+
+    def __init__(self, init_values):
+        """Initialises the updating algorithm with the first values
+
+        Args:
+            init_values (ndarray): Initial displacement values
+        """
+
+        self.mean = init_values
+        self.S = np.zeros_like(init_values)
+        self.N = 1
+
+    def __eq__(self, other):
+        """
+        Allow for comparing equality between MeanAndVarCalculator classes
+
+        Args:
+            other (MeanAndVarCalculator): The other MeanAndVarCalculator
+                                          to be compared to
+
+        Returns:
+            Bool: Whether the two MeanAndVarCalculator match
+        """
+
+        if not isinstance(other, MeanAndVarCalculator):
+            return NotImplemented
+
+        for s, o in zip(self.__dict__.values(), other.__dict__.values()):
+            if not np.allclose(s, o, equal_nan=True):  # check for equality
+                return False
+
+        return True
+
+    @property
+    def dim(self):
+        """Gets the dimensions of the displacement field being calculated
+
+        Returns:
+            tuple: shape of the displacement field.
+        """
+        return np.shape(self.mean)
+
+    @property
+    def variance(self):
+        """Gets the sample variane of the population over the domain
+
+        Returns:
+            ndarray: Sample variance of population
+        """
+        if self.N == 1:
+            return np.zeros_like(self.mean)
+        else:
+            return self.S / (self.N - 1)
+
+    def add_values(self, values):
+        """Adds another set of sample data to the distribution
+
+        Updates the mean and the variance
+
+        Args:
+            values (ndarray): new displacement values to add to the ensemble
+        """
+
+        # check first that the input values are the same dimensions as the
+        # stored values
+        if not np.all(np.shape(values) == self.dim):
+            print("Shape of input: {}".format(np.shape(values)))
+            print("Shape of stored values: {}".format(self.dim))
+            raise ValueError("Dimensions must match")
+
+        self.N += 1
+        bf = values - self.mean
+        self.mean += bf / self.N
+        self.S += bf * (values - self.mean)
+
+
 def elementwise_diff(A):
     """Returns the list of differences i.e. A[i+1] - A[i]
 
@@ -156,6 +233,23 @@ def round_to_odd(val):
 
     # if even, increment
     return bf + (1 - (bf % 2))
+
+
+def nice_print_dict(d):
+    """Prints a dictionary nicely
+
+    Args:
+        values (dict): Dictionary of data to output nicely
+    """
+
+    # find the longest word in the list of keys
+    length = 0
+    for word in d.keys():
+        if len(word) > length:
+            length = len(word)
+
+    for key, value in d.items():
+        print(("{:>" + str(length + 1) + "}: {}").format(key, value))
 
 
 if __name__ == '__main__':
