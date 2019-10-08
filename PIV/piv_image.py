@@ -1,14 +1,12 @@
-import image_info
+import PIV.image_info as image_info
 import scipy.io as sio
 import h5py
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-import time
 import sym_filt
-import dense_predictor
-import matplotlib.pyplot as plt
+import PIV.dense_predictor as dense_predictor
 
 
 class PIVImage:

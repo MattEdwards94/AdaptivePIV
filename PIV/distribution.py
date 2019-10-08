@@ -1,8 +1,6 @@
-import corr_window
 import numpy as np
-import time
 from sklearn.neighbors import NearestNeighbors
-import utilities
+import PIV.utilities as utilities
 from scipy import interpolate as interp
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -276,7 +274,7 @@ if __name__ == '__main__':
     U = np.exp(-(2 * xx / 101)**2 - (yy / (2 * 101))**2)
 
     # interpolate U on x and y
-    vals = interpolate.interp2d(xx[0, :], yy[:, 0], U)
+    vals = interp.interp2d(xx[0, :], yy[:, 0], U)
 
     xe = np.arange(strt, fin, 1)
     ye = np.arange(strt, fin, 1)

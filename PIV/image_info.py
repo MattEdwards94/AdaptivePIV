@@ -1,7 +1,9 @@
 import csv
 import itertools
 import warnings
-path_to_file_index = 'index.csv'
+import os
+path_to_file_index = os.path.join(
+    os.path.dirname(__file__), './Data/index.csv')
 
 
 class ImageInfo:
