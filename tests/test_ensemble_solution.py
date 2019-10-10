@@ -1,8 +1,8 @@
-import ensemble_solution as ens
-from analysis import WidimSettings
+import PIV.ensemble_solution as ens
+from PIV.analysis import WidimSettings
 import numpy as np
-import dense_predictor
-import utilities
+import PIV.dense_predictor as dense_predictor
+import PIV.utilities as utilities
 
 
 def test_ensemble_solution_init():

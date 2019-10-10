@@ -1,9 +1,9 @@
 import pytest
-import piv_image
+import PIV.piv_image as piv_image
 import numpy as np
-import dense_predictor
+import PIV.dense_predictor as dense_predictor
 import sym_filt
-import image_info
+import PIV.image_info as image_info
 import scipy.io as sio
 import h5py
 

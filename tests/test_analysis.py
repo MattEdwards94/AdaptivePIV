@@ -1,6 +1,6 @@
-import image_info as imi
-import piv_image
-import analysis
+import PIV.image_info as imi
+import PIV.piv_image as piv_image
+import PIV.analysis as analysis
 import pytest
 
 

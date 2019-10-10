@@ -1,6 +1,6 @@
 import pytest
-import image_info
-import piv_image
+import PIV.image_info as image_info
+import PIV.piv_image as piv_image
 
 
 def test_initialisation():

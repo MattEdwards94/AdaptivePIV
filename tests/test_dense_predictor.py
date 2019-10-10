@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-import dense_predictor
+import PIV.dense_predictor as dense_predictor
 
 
 def test_initialisation_with_mask():

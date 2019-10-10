@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import math
 
@@ -250,6 +251,25 @@ def nice_print_dict(d):
 
     for key, value in d.items():
         print(("{:>" + str(length + 1) + "}: {}").format(key, value))
+
+
+def root_path():
+    """Gets the path to the root.
+
+    For my machine this will be
+        "C:/Users/me12288/Documents"
+    For BC3 it will be
+        "/newhome/me12288"
+    """
+
+    # get current path
+    cwd = os.getcwd()
+
+    if "C:" in cwd:
+        return "C:/Users/me12288/Documents/"
+    else:
+        return "/newhome/me12288/"
+
 
 
 if __name__ == '__main__':

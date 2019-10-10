@@ -1,10 +1,10 @@
 import pytest
-import corr_window
+import PIV.corr_window as corr_window
 import numpy as np
-import piv_image
+import PIV.piv_image as piv_image
 import math
 import scipy.signal
-import dense_predictor
+import PIV.dense_predictor as dense_predictor
 import cyth_corr_window
 
 

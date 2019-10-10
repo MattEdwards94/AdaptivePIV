@@ -415,14 +415,16 @@ def quintic_spline_image_filter(IA):
     # initialise output
     C = IA * scale * scale
     dims = np.shape(C)
-    C_rows = dims[0]
-    C_cols = dims[1]
+    C_rows = int(dims[0])
+    C_cols = int(dims[1])
+    # print(type(C_rows))
 
     # start = time.time()
 
     for i in range(2):
         K0 = math.ceil(math.log(K0_tol) / math.log(np.absolute(z[i])))
-        indices = np.arange(K0)
+        indices = np.arange(K0, dtype=np.int32)
+        # print(type(indices))
 
         # scaling term for current pole
         C0 = -z[i] / (1 - z[i]**2)

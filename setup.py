@@ -2,7 +2,7 @@ import setuptools
 from distutils.extension import Extension
 import numpy
 
-USE_CYTHON = False
+USE_CYTHON = True
 
 ext = '.pyx' if USE_CYTHON else '.c'
 
@@ -21,7 +21,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="PIV",
-    version="1.1",
+    version="1.1.1",
     author="Matt Edwards",
     author_email="m.edwards@bristol.ac.uk",
     description="A framework for analysis PIV images",
