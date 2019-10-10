@@ -1,12 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import piv_image
-import dense_predictor
+import PIV.piv_image as piv_image
+import PIV.dense_predictor as dense_predictor
 import math
 import time
-import bottleneck as bn
 import cyth_corr_window
-import pdb
 
 
 class CorrWindow:

@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-import utilities
+import PIV.utilities as utilities
 
 
 @pytest.fixture

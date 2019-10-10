@@ -1,12 +1,11 @@
-import scipy.io as sio
 import numpy as np
-import distribution
-import utilities
+import PIV.distribution as distribution
+import PIV.utilities as utilities
 import math
-import corr_window
-import dense_predictor
-import piv_image
-import ensemble_solution as es
+import PIV.corr_window as corr_window
+import PIV.dense_predictor as dense_predictor
+import PIV.piv_image as piv_image
+import PIV.ensemble_solution as es
 
 
 def ensemble_widim(flowtype, im_start, im_stop, settings):
@@ -388,12 +387,7 @@ if __name__ == '__main__':
     # img = piv_image.load_PIVImage(flowtype, im_number)
     # img.plot_images()
     settings = WidimSettings(init_WS=97,
-                             final_WS=33,
-                             WOR=0.5,
-                             vec_val='NMT',
-                             n_iter_main=3,
-                             n_iter_ref=1,
-                             interp='struc_cub')
+                             final_WS=33)
 
     # analyse the image
     # dp = widim(img, settings)
@@ -404,8 +398,5 @@ if __name__ == '__main__':
     #                            headwidth=2,
     #                            headaxislength=6)
 
-    ensR = ensemble_widim(22, 1, 5, settings)
+    ensR = ensemble_widim(22, 1, 2, settings)
     ensR.save_to_file('test_file.mat')
-
-    # mdict = {"u": ensR.u.mean, "v": ensR.v.mean}
-    # sio.savemat("test_file.mat", mdict)

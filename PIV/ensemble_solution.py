@@ -1,5 +1,5 @@
 import scipy.io as sio
-import utilities
+import PIV.utilities as utilities
 
 
 class EnsembleSolution():

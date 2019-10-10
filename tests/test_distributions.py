@@ -1,11 +1,11 @@
 import pytest
 import numpy as np
-import distribution
-import corr_window
-import piv_image
+import PIV.distribution as distribution
+import PIV.corr_window as corr_window
+import PIV.piv_image as piv_image
 from scipy import interpolate
 from sklearn.neighbors import NearestNeighbors
-import dense_predictor
+import PIV.dense_predictor as dense_predictor
 
 
 def nan_equal(a, b):

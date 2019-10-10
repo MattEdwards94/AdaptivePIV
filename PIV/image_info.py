@@ -1,7 +1,10 @@
+import PIV.utilities as utilities
 import csv
 import itertools
 import warnings
-path_to_file_index = 'index.csv'
+import os
+path_to_file_index = os.path.join(
+    os.path.dirname(__file__), './Data/index.csv')
 
 
 class ImageInfo:
@@ -151,7 +154,7 @@ class ImageInfo:
         if im_number > self.n_images:
             warnings.warn("im_number exceeds known number of images.")
 
-        root = "C:/Users/me12288/Documents/"
+        root = utilities.root_path()
         folder = "images/imageDB/" + self.folder + "/"
         filenames = []
         filenames.append(root + folder + self.filename % (im_number, 'a'))
