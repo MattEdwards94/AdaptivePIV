@@ -17,7 +17,6 @@ class Distribution:
                                                           windows to initialise
                                                           the distribution with
         """
-
         # if there is nothing passed, then initialise empty list
         if init_locations is None:
             self.windows = []
@@ -32,6 +31,26 @@ class Distribution:
         Returns the number of windows currently stored in the distribution
         """
         return len(self.windows)
+
+    @property
+    def x(self):
+        return np.array([cw.x for cw in self.windows])
+
+    @property
+    def y(self):
+        return np.array([cw.y for cw in self.windows])
+
+    @property
+    def u(self):
+        return np.array([cw.u for cw in self.windows])
+
+    @property
+    def v(self):
+        return np.array([cw.v for cw in self.windows])
+
+    @property
+    def WS(self):
+        return np.array([cw.WS for cw in self.windows])
 
     def get_all_xy(self):
         """

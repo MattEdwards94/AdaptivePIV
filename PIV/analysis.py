@@ -55,7 +55,8 @@ def widim(img, settings):
         print("Calculating WS and spacing")
         WS = WS_for_iter(iter_, settings)
         print("WS: {}".format(WS))
-        h = max(1, math.ceil((1 - settings.WOR) * WS))
+        h = max(1, math.floor((1 - settings.WOR) * WS))
+        print(h)
 
         print("Creating grid and windows")
         xv, yv = (np.arange(0, img.n_cols, h),
@@ -383,14 +384,15 @@ def run_script():
 
 if __name__ == '__main__':
     # load the image
-    # flowtype, im_number = 1, 1
-    # img = piv_image.load_PIVImage(flowtype, im_number)
+    flowtype, im_number = 1, 1
+    img = piv_image.load_PIVImage(flowtype, im_number)
     # img.plot_images()
-    settings = WidimSettings(init_WS=97,
-                             final_WS=33)
+    settings = WidimSettings(init_WS=129,
+                             final_WS=65,
+                             n_iter_main=2)
 
     # analyse the image
-    # dp = widim(img, settings)
+    dp = widim(img, settings)
 
     # print(dp.u[200, 100])
     # dp.plot_displacement_field(width=0.001,
@@ -398,5 +400,5 @@ if __name__ == '__main__':
     #                            headwidth=2,
     #                            headaxislength=6)
 
-    ensR = ensemble_widim(22, 1, 2, settings)
-    ensR.save_to_file('test_file.mat')
+    # ensR = ensemble_widim(22, 1, 2, settings)
+    # ensR.save_to_file('test_file.mat')

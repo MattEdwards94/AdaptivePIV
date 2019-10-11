@@ -111,6 +111,68 @@ def test_n_windows_returns_number_of_windows(mock_cw, mock_cwList):
     assert dist.n_windows() == 3
 
 
+def test_get_all_x(mock_cwList):
+    """Check that calling obj.x returns a numpy array of the correlation window
+    horizontal locations
+    """
+
+    # create the distribution with known locations
+    dist = distribution.Distribution(mock_cwList)
+    x_exp = np.array([20, 30, 40])
+    assert np.allclose(x_exp, dist.x)
+
+
+def test_get_all_y(mock_cwList):
+    """Check that calling obj.y returns a numpy array of the correlation window
+    vertical locations
+    """
+
+    # create the distribution with known locations
+    dist = distribution.Distribution(mock_cwList)
+    y_exp = np.array([30, 45, 60])
+    assert np.allclose(y_exp, dist.y)
+
+
+def test_get_all_u(mock_cwList):
+    """Check that calling obj.u returns a numpy array of the correlation window
+    horizontal displacements
+    """
+
+    # create the distribution with known locations
+    dist = distribution.Distribution(mock_cwList)
+
+    # check that to begin with the u values are all set to NaN
+    u_exp = np.array([np.NaN, np.NaN, np.NaN])
+    assert np.allclose(u_exp, dist.u, equal_nan=True)
+
+    # now set the displacements to something and check just for good measure
+    for ii, cw in enumerate(dist.windows):
+        cw.u = 10 * ii
+
+    u_exp = np.array([0, 10, 20])
+    assert np.allclose(u_exp, dist.u)
+
+
+def test_get_all_v(mock_cwList):
+    """Check that calling obj.v returns a numpy array of the correlation window
+    vertical displacements
+    """
+
+    # create the distribution with known locations
+    dist = distribution.Distribution(mock_cwList)
+
+    # check that to begin with the u values are all set to NaN
+    v_exp = np.array([np.NaN, np.NaN, np.NaN])
+    assert np.allclose(v_exp, dist.v, equal_nan=True)
+
+    # now set the displacements to something and check just for good measure
+    for ii, cw in enumerate(dist.windows):
+        cw.v = 15 * ii
+
+    v_exp = np.array([0, 15, 30])
+    assert np.allclose(v_exp, dist.v)
+
+
 def test_get_all_xy_returns_array_of_xy_locations(mock_cwList):
     """
     Test that an array of all xy locations are returned

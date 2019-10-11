@@ -1,183 +1,84 @@
 import numpy as np
+import PIV.distribution as distribution
+import PIV.corr_window as corr_window
 
 
-class GridCell:
+class MultiGrid(distribution.Distribution):
 
-    def __init__(self, xIn, yIn):
-        """
-        Initialises a grid cell based upon the four input coordinates
-        defined in xIn and yIn
+    def __init__(self, img_dim, spacing, WS):
+        """Defines a multigrid object with an initial grid spacing
 
         Args:
-            xIn (TYPE): Description
-            yIn (TYPE): Description
-
-        Deleted Parameters:
-            xIn(TYPE): Description
-            yIn(TYPE): Description
+            img_dim (tuple): The dimensions of the image to be sampled.
+                             (n_rows, n_cols)
+            spacing (int): The initial spacing between samples
         """
 
-        # sort according to x and then y
-        self.x, self.y = (list(x) for x in zip(*sorted(zip(xIn, yIn))))
-        self.tier = 0
+        # create the coordinate grid
+        x_vec = np.arange(0, img_dim[1], spacing)
+        y_vec = np.arange(0, img_dim[0], spacing)
+        xx, yy = np.meshgrid(x_vec, y_vec)
+        self.windows = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), WS)
 
-        # initialise other variables
-        self.children = None
-        self.parent = None
+        # now go through and create the cells, identifying the coordinates for
+        # each corner
+        self.cells = []
+        n_rows, n_cols = np.shape(xx)
+
+        for rr in range(n_rows - 1):
+            for cc in range(n_cols - 1):
+                bl = rr * n_cols + cc
+                br = bl + 1
+                tl = bl + n_cols
+                tr = tl + 1
+                gc = GridCell(self.windows, bl, br, tl, tr)
+                gc.tier = 1
+                self.cells.append(gc)
+
+    def validation_NMT_8NN(self):
+        raise ValueError("Not defined for MultiGrid")
+
+    def interp_to_densepred(self):
+        raise ValueError("Not defined for MultiGrid")
+
+
+class GridCell():
+    def __init__(self, cwList, id_bl, id_br, id_tl, id_tr):
+        # cwList will act as a pointer to the list of corr windows and hence
+        # shouldn't impose too much of a memory overhead.
+        self.cwList = cwList
+        # print(id_bl, id_br, id_tl, id_tr)
+        self.bl = self.cwList[id_bl]
+        self.br = self.cwList[id_br]
+        self.tl = self.cwList[id_tl]
+        self.tr = self.cwList[id_tr]
+
+        self.tier = 0
+        self.children, self.parent = None, None
         self.neighbours = {"north": None,
                            "east": None,
                            "south": None,
                            "west": None,
                            }
 
-    def bl(self):
-        """gets the bottom left coordinate of the current cell
-        """
-        return self.x[0], self.y[0]
-
-    def tr(self):
-        """gets the top right coordinates of the corrent cell
-        """
-        return self.x[2], self.y[2]
-
-    def cellCentre(self):
-        """Returns the central pixel of the cell
-        """
-        xCtr = sum(self.x) / 4
-        yCtr = sum(self.y) / 4
-        return xCtr, yCtr
-
-    def split(self):
-        """
-        splits the current cell into 4 new ones.
-        returns the new vertices and cells which are created as a result
-        each new cell has the same MultiGrid handle as the current cells, and
-        the tier level is incremented by 1.
-        Throws an error if the split results in non-integer locations
-
-        This does not actually save the cell into a multigrid distribution
-
-        USAGE
-           [newVertices, newCells] = obj.split(self)
-
-        """
-
-        xl, yb = self.bl()
-        xr, yt = self.tr()
-        xc, yc = self.cellCentre()
-
-        newVert = np.array([[xl, xc],
-                            [xr, yc],
-                            [xc, yb],
-                            [xc, yt],
-                            [xc, yc]])
-
-        # define the new cells
-        nCell = []
-        # bottom left
-        nCell.append(GridCell([xl, xl, xc, xc], [yb, yc, yb, yc]))
-        # bottom right
-        nCell.append(GridCell([xc, xc, xr, xr], [yb, yc, yb, yc]))
-        # top left
-        nCell.append(GridCell([xl, xl, xc, xc], [yc, yt, yc, yt]))
-        # top right
-        nCell.append(GridCell([xc, xc, xr, xr], [yc, yt, yc, yt]))
-
-        if self.tier == 0:
-            self.tier = 1
-
-        for ii, gc in enumerate(nCell):
-            gc.tier = self.tier + 1
-            gc.parent = self
-            gc.position = ii
-
-        self.children = nCell
-
-        return nCell, newVert
-
-
-class MultiGrid:
-
-    def __init__(self, imgDim, h):
-        """
-        intialises the multi grid object by creating a grid as
-        [x,y] = meshgrid(1:h:imgDim(2), 1:h:imgDim(1));
-        Each 2x2 cell is then identified and constructed as a gridCell which
-        stores information about its vertices and which cells it is connected
-        to.
-
-        Args:
-            imgDim (TYPE): Description
-            h (TYPE): Description
-        """
-        xVec = np.arange(0, imgDim[1], h)
-        yVec = np.arange(0, imgDim[0], h)
-        x, y = np.meshgrid(xVec, yVec)
-
-        nRows, nCols = np.shape(x)
-        nRows -= 1
-        nCols -= 1
-        self.gridCellList = []
-        # loop over the x and y coordinates
-        for cc, col in enumerate(xVec[1:]):
-            for rr, row in enumerate(yVec[1:]):
-                xIn = [xVec[cc - 1], xVec[cc - 1], col, col]
-                yIn = [yVec[rr - 1], yVec[rr - 1], row, row]
-                gc = GridCell(xIn, yIn)
-                gc.tier = 1
-                self.gridCellList.append(gc)
-
-        # loop through all cells and declare the neighbours
-        for cc in range(0, nCols - 1):
-            for rr in range(0, nRows - 1):
-                id = cc * nRows + rr
-                if rr != nRows:
-                    # north
-                    self.gridCellList[id].neighbours["north"] = \
-                        self.gridCellList[id + 1]
-                if cc != nCols:
-                    # east
-                    self.gridCellList[id].neighbours["east"] = \
-                        self.gridCellList[id + nRows]
-                if rr != 0:
-                    # south
-                    self.gridCellList[id].neighbours["south"] = \
-                        self.gridCellList[id - 1]
-                if cc != 0:
-                    self.gridCellList[id].neighbours["west"] = \
-                        self.gridCellList[id - nRows]
-
-    def addCell(self, gc):
-        self.gridCellList.append(gc)
-
-    def splitCell(self, id):
-        """Summary
-
-        Args:
-            id (TYPE): Description
-        """
-        newCells, newVertices = self.gridCellList[id].split()
-
-        for nC in newCells:
-            self.gridCellList.append(nC)
-
-    def nCells(self):
-        """returns the number of cells
-
-        Returns:
-            TYPE: Description
-        """
-        return np.size(self.gridCellList)
+    def print_locations(self):
+        print("bl", self.bl)
+        print("br", self.br)
+        print("tl", self.tl)
+        print("tr", self.tr)
 
 
 if __name__ == "__main__":
-    imgDim = [3500, 3500]
+    imgDim = [65, 65]
     h = 64
-    mg = MultiGrid(imgDim, h)
+    mg = MultiGrid(imgDim, h, WS=127)
 
-    for counter in range(0, mg.nCells()):
-        mg.splitCell(counter)
-        # if counter == 5000:
-        #     break
+    mg.cells[0].print_locations()
 
-    print(mg.nCells())
+    mg.cwList[1].x = 75
+
+    mg.cells[0].print_locations()
+
+    print(mg.cwList is mg.cells[0].cwList)
+
+    print(mg.cwList[2] is mg.cells[0].tl)
