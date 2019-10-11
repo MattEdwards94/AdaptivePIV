@@ -266,7 +266,10 @@ def root_path():
     cwd = os.getcwd()
 
     if "C:" in cwd:
-        return "C:/Users/me12288/Documents/"
+        if "me12288" in cwd:
+            return "C:/Users/me12288/Documents/"
+        else:
+            return "C:/Users/Matt/MyDocuments/General/PhD/"
     else:
         return "/newhome/me12288/"
 
