@@ -64,21 +64,32 @@ def test_multigrid_calculates_neighbours_correctly():
     amg = mg.MultiGrid(img_dim, h, WS=127)
 
     # check that each cell has the expected neighbours
+    print(amg.n_cells)
 
     # expected neieghbours left to right, bottom to top
-    cells = [{"north": 3, "east": 1, "south": None, "west": None},  # bl
-             {"north": 4, "east": 2, "south": None, "west": 0},  # bm
-             {"north": 5, "east": None, "south": None, "west": 1},  # br
-             {"north": 6, "east": 4, "south": 0, "west": None},  # ml
-             {"north": 7, "east": 5, "south": 1, "west": 3},  # mm
-             {"north": 8, "east": None, "south": 2, "west": 4},  # mr
-             {"north": None, "east": 7, "south": 3, "west": None},  # tl
-             {"north": None, "east": 8, "south": 4, "west": 6},  # tm
-             {"north": None, "east": None, "south": 5, "west": 7},  # tr
+    cells = [{"north": amg.cells[3], "east": amg.cells[1], "south": None, "west": None},  # bl
+             {"north": amg.cells[4], "east": amg.cells[2],
+                 "south": None, "west": amg.cells[0]},  # bm
+             {"north": amg.cells[5], "east": None,
+                 "south": None, "west": amg.cells[1]},  # br
+             {"north": amg.cells[6], "east": amg.cells[4],
+                 "south": amg.cells[0], "west": None},  # ml
+             {"north": amg.cells[7], "east": amg.cells[5],
+                 "south": amg.cells[1], "west": amg.cells[3]},  # mm
+             {"north": amg.cells[8], "east": None,
+                 "south": amg.cells[2], "west": amg.cells[4]},  # mr
+             # tl
+             {"north": None, "east": amg.cells[7],
+                 "south": amg.cells[3], "west": None},
+             # tm
+             {"north": None,
+                 "east": amg.cells[8], "south": amg.cells[4], "west": amg.cells[6]},
+             {"north": None, "east": None,
+                 "south": amg.cells[5], "west": amg.cells[7]},  # tr
              ]
 
-    for gc, cell in zip(amg.cells, cells):
-
+    for ii, (gc, cell) in enumerate(zip(amg.cells, cells)):
+        print(ii)
         assert gc.neighbours == cell
 
 
@@ -228,3 +239,69 @@ def test_split_cell_adds_new_windows_correctly(mock_amg):
     assert new_tr.multigrid is mock_amg
     assert new_tr.cw_list is mock_amg.windows
     assert new_tr.coordinates == [(32, 32), (64, 32), (32, 64), (64, 64)]
+
+
+def test_split_cell_sets_new_tier_level(mock_amg):
+    """Check that the tier level of the new cells is 1 more than the cell
+    being split
+    """
+
+    mock_amg.cells[0].split()
+
+    assert mock_amg.cells[-4].tier == 1
+    assert mock_amg.cells[-3].tier == 1
+    assert mock_amg.cells[-2].tier == 1
+    assert mock_amg.cells[-1].tier == 1
+
+    mock_amg.cells[-1].split()
+    assert mock_amg.cells[-4].tier == 2
+    assert mock_amg.cells[-3].tier == 2
+    assert mock_amg.cells[-2].tier == 2
+    assert mock_amg.cells[-1].tier == 2
+
+
+def test_split_adds_children(mock_amg):
+    """Check that when splitting a cell, the new cells are stored as children
+    of the cell that is split
+    """
+
+    mock_amg.cells[0].split()
+    assert mock_amg.cells[0].children['bl'] is mock_amg.cells[-4]
+    assert mock_amg.cells[0].children['br'] is mock_amg.cells[-3]
+    assert mock_amg.cells[0].children['tl'] is mock_amg.cells[-2]
+    assert mock_amg.cells[0].children['tr'] is mock_amg.cells[-1]
+
+
+def test_split_adds_parents(mock_amg):
+    """Check that the newly spawned cells have the correct parent updated
+    """
+
+    mock_amg.cells[0].split()
+    assert mock_amg.cells[-4].parent is mock_amg.cells[0]
+    assert mock_amg.cells[-3].parent is mock_amg.cells[0]
+    assert mock_amg.cells[-2].parent is mock_amg.cells[0]
+    assert mock_amg.cells[-1].parent is mock_amg.cells[0]
+
+
+def test_split_adds_known_neighbours(mock_amg):
+    """test that the easy neighbours are added
+    i.e. the bl has the north and east known
+    the br has the nort and west known
+    """
+
+    mock_amg.cells[4].split()
+    # bl
+    assert mock_amg.cells[-4].neighbours['north'] is mock_amg.cells[-2]
+    assert mock_amg.cells[-4].neighbours['east'] is mock_amg.cells[-3]
+
+    # br
+    assert mock_amg.cells[-3].neighbours['north'] is mock_amg.cells[-1]
+    assert mock_amg.cells[-3].neighbours['west'] is mock_amg.cells[-4]
+
+    # tl
+    assert mock_amg.cells[-2].neighbours['south'] is mock_amg.cells[-4]
+    assert mock_amg.cells[-2].neighbours['east'] is mock_amg.cells[-1]
+
+    # tr
+    assert mock_amg.cells[-1].neighbours['south'] is mock_amg.cells[-3]
+    assert mock_amg.cells[-1].neighbours['west'] is mock_amg.cells[-2]
