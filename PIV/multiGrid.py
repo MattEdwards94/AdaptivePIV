@@ -18,22 +18,52 @@ class MultiGrid(distribution.Distribution):
         x_vec = np.arange(0, img_dim[1], spacing)
         y_vec = np.arange(0, img_dim[0], spacing)
         xx, yy = np.meshgrid(x_vec, y_vec)
+
+        # turn each of the coordinates into a corrwindow object
+        # note that this flattens the grid row by row
         self.windows = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), WS)
 
         # now go through and create the cells, identifying the coordinates for
         # each corner
         self.cells = []
+        # this refers to the number of grid points, there will be 1 less cell
+        # in each direction
         n_rows, n_cols = np.shape(xx)
+        n_rc, n_cc = n_rows - 1, n_cols - 1  # number of cells each dir
 
-        for rr in range(n_rows - 1):
-            for cc in range(n_cols - 1):
-                bl = rr * n_cols + cc
+        # loop over each row and column of 'cells'
+        # note that cells are 0 index and range does not include the last value
+        for rr in range(n_rc):
+            for cc in range(n_cc):
+                # as above, the grid has been flattened row by row
+                # bl, br, tl, tr correspond to the index of the grid point
+                # (i.e. corr window) within the list self.windows
+                bl = rr * n_cc + cc
                 br = bl + 1
                 tl = bl + n_cols
                 tr = tl + 1
-                gc = GridCell(self.windows, bl, br, tl, tr)
-                gc.tier = 1
+                gc = GridCell(self, bl, br, tl, tr)
+                # define this as the first tier
+                gc.tier = 0
+                # define the cells neighbours
+                # north is cell number + num cells per row, unless on top row
+                # east is cell number + 1, unless on right most col
+                # south is cell number - num cells per row, unless on bottom row
+                # west is cell number - 1 , unless on left most col
+                gc.neighbours["north"] = bl + \
+                    n_cc if rr != (n_rc - 1) else None
+                gc.neighbours["east"] = bl + 1 if cc != (n_cc - 1) else None
+                gc.neighbours["south"] = bl - n_cc if rr != 0 else None
+                gc.neighbours["west"] = bl - 1 if cc != 0 else None
                 self.cells.append(gc)
+
+    @property
+    def n_windows(self):
+        return len(self.windows)
+
+    @property
+    def n_cells(self):
+        return len(self.cells)
 
     def validation_NMT_8NN(self):
         raise ValueError("Not defined for MultiGrid")
@@ -43,15 +73,20 @@ class MultiGrid(distribution.Distribution):
 
 
 class GridCell():
-    def __init__(self, cwList, id_bl, id_br, id_tl, id_tr):
+    def __init__(self, multigrid, id_bl, id_br, id_tl, id_tr):
         # cwList will act as a pointer to the list of corr windows and hence
         # shouldn't impose too much of a memory overhead.
-        self.cwList = cwList
-        # print(id_bl, id_br, id_tl, id_tr)
-        self.bl = self.cwList[id_bl]
-        self.br = self.cwList[id_br]
-        self.tl = self.cwList[id_tl]
-        self.tr = self.cwList[id_tr]
+        self.multigrid = multigrid
+        self.cw_list = multigrid.windows
+
+        self.id_bl = id_bl
+        self.id_br = id_br
+        self.id_tl = id_tl
+        self.id_tr = id_tr
+        self.bl = self.cw_list[id_bl]
+        self.br = self.cw_list[id_br]
+        self.tl = self.cw_list[id_tl]
+        self.tr = self.cw_list[id_tr]
 
         self.tier = 0
         self.children, self.parent = None, None
@@ -60,6 +95,52 @@ class GridCell():
                            "south": None,
                            "west": None,
                            }
+
+    def split(self):
+        """Split a cell into 4 child cells. At the same time, update the
+        neighbour list of surrounding cells
+        """
+
+        # create the new windows at mid-points.
+        # CorrWindow will throw error is non-int is passed
+        ctr_x, ctr_y = (self.bl.x + self.br.x) / 2, (self.bl.y + self.tl.y) / 2
+        left_mid = corr_window.CorrWindow(self.bl.x, ctr_y, self.bl.WS)
+        ctr_btm = corr_window.CorrWindow(ctr_x, self.bl.y, self.bl.WS)
+        ctr_mid = corr_window.CorrWindow(ctr_x, ctr_y, self.bl.WS)
+        ctr_top = corr_window.CorrWindow(ctr_x, self.tl.y, self.bl.WS)
+        right_mid = corr_window.CorrWindow(self.br.x, ctr_y, self.bl.WS)
+        self.cw_list.append(left_mid)
+        self.cw_list.append(ctr_btm)
+        self.cw_list.append(ctr_mid)
+        self.cw_list.append(ctr_top)
+        self.cw_list.append(right_mid)
+
+        # get the ids of the new cw's for adding in the new cells
+        lm = self.multigrid.n_windows - 5
+        cb = lm + 1
+        cm = lm + 2
+        ct = lm + 3
+        rm = lm + 4
+
+        # now create the cells and add them into the multigrid object
+        bl = GridCell(self.multigrid, self.id_bl, cb, lm, cm)
+        br = GridCell(self.multigrid, cb, self.id_br, cm, rm)
+        tl = GridCell(self.multigrid, lm, cm, self.id_tl, ct)
+        tr = GridCell(self.multigrid, cm, rm, ct, self.id_tr)
+        self.multigrid.cells.append(bl)
+        self.multigrid.cells.append(br)
+        self.multigrid.cells.append(tl)
+        self.multigrid.cells.append(tr)
+
+    @property
+    def coordinates(self):
+        """Return the coordinates of the current cell going anti clockwise
+        from the bottom left
+        """
+        return [(self.bl.x, self.bl.y),
+                (self.br.x, self.br.y),
+                (self.tl.x, self.tl.y),
+                (self.tr.x, self.tr.y), ]
 
     def print_locations(self):
         print("bl", self.bl)
