@@ -59,14 +59,14 @@ class MultiGrid(distribution.Distribution):
                 # west is cell number - 1 , unless on left most col
                 # cell num
                 cn = rr * n_cc + cc
-                self.cells[cn].neighbours["north"] = self.cells[cn +
-                                                                n_cc] if rr != (n_rc - 1) else None
-                self.cells[cn].neighbours["east"] = self.cells[cn +
-                                                               1] if cc != (n_cc - 1) else None
-                self.cells[cn].neighbours["south"] = self.cells[cn -
-                                                                n_cc] if rr != 0 else None
-                self.cells[cn].neighbours["west"] = self.cells[cn -
-                                                               1] if cc != 0 else None
+                self.cells[cn].north = self.cells[cn +
+                                        n_cc] if rr != (n_rc - 1) else None
+                self.cells[cn].east = self.cells[cn +
+                                         1] if cc != (n_cc - 1) else None
+                self.cells[cn].south = self.cells[cn -
+                                           n_cc] if rr != 0 else None
+                self.cells[cn].west = self.cells[cn -
+                                         1] if cc != 0 else None
 
     @property
     def n_windows(self):
@@ -109,11 +109,51 @@ class GridCell():
 
         self.tier = 0
         self.children, self.parent = None, None
-        self.neighbours = {"north": None,
-                           "east": None,
-                           "south": None,
-                           "west": None,
-                           }
+        self._north = None
+        self._east = None
+        self._south = None
+        self._west = None
+
+    @property
+    def has_children(self):
+        return False if self.children is None else True
+
+    @property
+    def north(self):
+        """Get the neighbour to the north, if there is one
+
+        Returns:
+            GridCell: The grid cell immediately to the north, if there is one
+        """
+        return self._north
+
+    @north.setter
+    def north(self, value):
+        self._north = value
+
+    @property
+    def east(self):
+        return self._east
+
+    @east.setter
+    def east(self, value):
+        self._east = value
+
+    @property
+    def south(self):
+        return self._south
+
+    @south.setter
+    def south(self, value):
+        self._south = value
+
+    @property
+    def west(self):
+        return self._west
+
+    @west.setter
+    def west(self, value):
+        self._west = value
 
     def split_neighbs_if_needed(self):
         """This function is intended to be called when a cell is requested to
@@ -125,29 +165,29 @@ class GridCell():
 
         # if the neighbour exists at this level then we don't need to split
         # anything
-        if self.neighbours['north'] is None:
+        if self.north is None:
             # test if the parent's north neighbour exists
             # it might not if it is at a border
-            if self.parent.neighbours['north'] is not None:
-                self.parent.neighbours['north'].split()
+            if self.parent.north is not None:
+                self.parent.north.split()
 
-        if self.neighbours['east'] is None:
+        if self.east is None:
             # test if the parent's east neighbour exists
             # it might not if it is at a border
-            if self.parent.neighbours['east'] is not None:
-                self.parent.neighbours['east'].split()
+            if self.parent.east is not None:
+                self.parent.east.split()
 
-        if self.neighbours['south'] is None:
+        if self.south is None:
             # test if the parent's south neighbour exists
             # it might not if it is at a border
-            if self.parent.neighbours['south'] is not None:
-                self.parent.neighbours['south'].split()
+            if self.parent.south is not None:
+                self.parent.south.split()
 
-        if self.neighbours['west'] is None:
+        if self.west is None:
             # test if the parent's west neighbour exists
             # it might not if it is at a border
-            if self.parent.neighbours['west'] is not None:
-                self.parent.neighbours['west'].split()
+            if self.parent.west is not None:
+                self.parent.west.split()
 
     def split(self):
         """Split a cell into 4 child cells. At the same time, update the
@@ -193,67 +233,67 @@ class GridCell():
         tr.parent = self
 
         # set known neigbours
-        bl.neighbours['north'] = tl
-        bl.neighbours['east'] = br
-        br.neighbours['north'] = tr
-        br.neighbours['west'] = bl
-        tl.neighbours['south'] = bl
-        tl.neighbours['east'] = tr
-        tr.neighbours['south'] = br
-        tr.neighbours['west'] = tl
+        bl.north = tl
+        bl.east = br
+        br.north = tr
+        br.west = bl
+        tl.south = bl
+        tl.east = tr
+        tr.south = br
+        tr.west = tl
 
         # check for neighbours at the same tier level as the current cell
         # check north
-        if self.neighbours['north'] is not None:
-            ney_child = self.neighbours['north'].children
+        if self.north is not None:
+            ney_child = self.north.children
             if ney_child is not None:
                 # There are neighbouring cells at the current tier to the north
                 # set these cells as the northerly neighbours of the new child
                 # cells.
                 # also set the southerly neighbours of the northerly cells
-                tl.neighbours['north'] = ney_child['bl']
-                ney_child['bl'].neighbours['south'] = tl
-                tr.neighbours['north'] = ney_child['br']
-                ney_child['br'].neighbours['south'] = tr
+                tl.north = ney_child['bl']
+                ney_child['bl'].south = tl
+                tr.north = ney_child['br']
+                ney_child['br'].south = tr
 
         # check east
-        if self.neighbours['east'] is not None:
-            ney_child = self.neighbours['east'].children
+        if self.east is not None:
+            ney_child = self.east.children
             if ney_child is not None:
                 # There are neighbouring cells at the current tier to the east
                 # set these cells as the easterly neighbours of the new child
                 # cells.
                 # also set the westerly neighbours of the easterly cells
-                br.neighbours['east'] = ney_child['bl']
-                ney_child['bl'].neighbours['west'] = br
-                tr.neighbours['east'] = ney_child['tl']
-                ney_child['tl'].neighbours['west'] = tr
+                br.east = ney_child['bl']
+                ney_child['bl'].west = br
+                tr.east = ney_child['tl']
+                ney_child['tl'].west = tr
 
         # check south
-        if self.neighbours['south'] is not None:
-            ney_child = self.neighbours['south'].children
+        if self.south is not None:
+            ney_child = self.south.children
             if ney_child is not None:
                 # There are neighbouring cells at the current tier to the south
                 # set these cells as the southerly neighbours of the new child
                 # cells.
                 # also set the northerly neighbours of the southerly cells
-                bl.neighbours['south'] = ney_child['tl']
-                ney_child['tl'].neighbours['north'] = bl
-                br.neighbours['south'] = ney_child['tr']
-                ney_child['tr'].neighbours['north'] = br
+                bl.south = ney_child['tl']
+                ney_child['tl'].north = bl
+                br.south = ney_child['tr']
+                ney_child['tr'].north = br
 
         # check west
-        if self.neighbours['west'] is not None:
-            ney_child = self.neighbours['west'].children
+        if self.west is not None:
+            ney_child = self.west.children
             if ney_child is not None:
                 # There are neighbouring cells at the current tier to the west
                 # set these cells as the westerly neighbours of the new child
                 # cells.
                 # also set the easterly neighbours of the westerly cells
-                bl.neighbours['west'] = ney_child['br']
-                ney_child['br'].neighbours['east'] = bl
-                tl.neighbours['west'] = ney_child['tr']
-                ney_child['tr'].neighbours['east'] = tl
+                bl.west = ney_child['br']
+                ney_child['br'].east = bl
+                tl.west = ney_child['tr']
+                ney_child['tr'].east = tl
 
         self.multigrid.cells.append(bl)
         self.multigrid.cells.append(br)

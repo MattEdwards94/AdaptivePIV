@@ -47,11 +47,10 @@ def test_multigrid_single_cell_has_no_neighbours():
     h = 64
     amg = mg.MultiGrid(img_dim, h, WS=127)
 
-    assert amg.cells[0].neighbours == {"north": None,
-                                       "east": None,
-                                       "south": None,
-                                       "west": None,
-                                       }
+    assert amg.cells[0].north == None
+    assert amg.cells[0].east == None
+    assert amg.cells[0].south == None
+    assert amg.cells[0].west == None
 
 
 def test_multigrid_calculates_neighbours_correctly():
@@ -90,7 +89,11 @@ def test_multigrid_calculates_neighbours_correctly():
 
     for ii, (gc, cell) in enumerate(zip(amg.cells, cells)):
         print(ii)
-        assert gc.neighbours == cell
+        assert gc.north == cell['north']
+        assert gc.east == cell['east']
+        assert gc.south == cell['south']
+        assert gc.west == cell['west']
+
 
 
 def test_grid_cell_init_stores_cwlist_and_multigrid(mock_amg):
@@ -156,6 +159,68 @@ def test_n_cells(mock_amg):
     mock amg should produce a 4x4 grid of points, hence 9 cells
     """
     assert mock_amg.n_cells == 9
+
+def test_cell_north(mock_amg):
+    """Tests the property 'north' that it returns the neighbour to the north
+    """
+
+    assert mock_amg.cells[0].north is mock_amg.cells[3]
+
+def test_set_cell_north(mock_amg):
+    """Test that we can set the northerly value of a cell
+    """
+
+    # change the neighbour to the north.
+    # this is not the correct neighbour
+    mock_amg.cells[0].north = mock_amg.cells[1]
+    assert mock_amg.cells[0].north == mock_amg.cells[1]
+
+
+def test_cell_east(mock_amg):
+    """Tests the property 'east' that it returns the neighbour to the east
+    """
+
+    assert mock_amg.cells[0].east is mock_amg.cells[1]
+
+def test_set_cell_east(mock_amg):
+    """Test that we can set the easterly value of a cell
+    """
+
+    # change the neighbour to the east.
+    # this is not the correct neighbour
+    mock_amg.cells[0].east = mock_amg.cells[2]
+    assert mock_amg.cells[0].east == mock_amg.cells[2]
+
+def test_cell_south(mock_amg):
+    """Tests the property 'south' that it returns the neighbour to the south
+    """
+
+    assert mock_amg.cells[4].south is mock_amg.cells[1]
+
+def test_set_cell_south(mock_amg):
+    """Test that we can set the southerly value of a cell
+    """
+
+    # change the neighbour to the south.
+    # this is not the correct neighbour
+    mock_amg.cells[4].south = mock_amg.cells[2]
+    assert mock_amg.cells[4].south == mock_amg.cells[2]
+
+def test_cell_west(mock_amg):
+    """Tests the property 'west' that it returns the neighbour to the west
+    """
+
+    assert mock_amg.cells[4].west is mock_amg.cells[3]
+
+def test_set_cell_west(mock_amg):
+    """Test that we can set the westerly value of a cell
+    """
+
+    # change the neighbour to the west.
+    # this is not the correct neighbour
+    mock_amg.cells[4].west = mock_amg.cells[2]
+    assert mock_amg.cells[4].west == mock_amg.cells[2]
+
 
 
 def test_split_cell_creates_four_more_cells(mock_amg):
@@ -291,17 +356,46 @@ def test_split_adds_known_neighbours(mock_amg):
 
     mock_amg.cells[4].split()
     # bl
-    assert mock_amg.cells[-4].neighbours['north'] is mock_amg.cells[-2]
-    assert mock_amg.cells[-4].neighbours['east'] is mock_amg.cells[-3]
+    assert mock_amg.cells[-4].north is mock_amg.cells[-2]
+    assert mock_amg.cells[-4].east is mock_amg.cells[-3]
 
     # br
-    assert mock_amg.cells[-3].neighbours['north'] is mock_amg.cells[-1]
-    assert mock_amg.cells[-3].neighbours['west'] is mock_amg.cells[-4]
+    assert mock_amg.cells[-3].north is mock_amg.cells[-1]
+    assert mock_amg.cells[-3].west is mock_amg.cells[-4]
 
     # tl
-    assert mock_amg.cells[-2].neighbours['south'] is mock_amg.cells[-4]
-    assert mock_amg.cells[-2].neighbours['east'] is mock_amg.cells[-1]
+    assert mock_amg.cells[-2].south is mock_amg.cells[-4]
+    assert mock_amg.cells[-2].east is mock_amg.cells[-1]
 
     # tr
-    assert mock_amg.cells[-1].neighbours['south'] is mock_amg.cells[-3]
-    assert mock_amg.cells[-1].neighbours['west'] is mock_amg.cells[-2]
+    assert mock_amg.cells[-1].south is mock_amg.cells[-3]
+    assert mock_amg.cells[-1].west is mock_amg.cells[-2]
+
+def test_has_children_property(mock_amg):
+    """Test that has_children returns true or false accordingly
+    """
+
+    # split a cell so we can be sure it should have children
+    mock_amg.cells[4].split()
+
+    assert mock_amg.cells[4].has_children
+    assert not mock_amg.cells[1].has_children
+    assert not mock_amg.cells[4].children['bl'].has_children
+
+
+def test_split_cell_splits_neighbours(mock_amg):
+    """When a cell is split, we need the neighbouring cells to also be split
+    if they would be 2 levels of fine-ness different
+    """
+
+    # split the centre cell in the mock grid
+    # this will create 4 more cells at tier 1
+    mock_amg.cells[4].split()
+
+    # now split the bottom right of these cells
+    # this should force the east and south cells to also be split
+    mock_amg.cells[4].children['br'].split()
+
+    assert mock_amg.cells[5].has_children
+    assert mock_amg.cells[1].has_children
+
