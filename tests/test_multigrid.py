@@ -131,18 +131,18 @@ def test_grid_cell_init_stores_corrWindows():
 
     # check the locations of the corr windows, and check that it hasn't
     # created a copy
-    assert gc.bl is amg.windows[0]
-    assert gc.bl.x == 0
-    assert gc.bl.y == 0
-    assert gc.br is amg.windows[1]
-    assert gc.br.x == 64
-    assert gc.br.y == 0
-    assert gc.tl is amg.windows[2]
-    assert gc.tl.x == 0
-    assert gc.tl.y == 64
-    assert gc.tr is amg.windows[3]
-    assert gc.tr.x == 64
-    assert gc.tr.y == 64
+    assert gc.bl_win is amg.windows[0]
+    assert gc.bl_win.x == 0
+    assert gc.bl_win.y == 0
+    assert gc.br_win is amg.windows[1]
+    assert gc.br_win.x == 64
+    assert gc.br_win.y == 0
+    assert gc.tl_win is amg.windows[2]
+    assert gc.tl_win.x == 0
+    assert gc.tl_win.y == 64
+    assert gc.tr_win is amg.windows[3]
+    assert gc.tr_win.x == 64
+    assert gc.tr_win.y == 64
 
 
 def test_n_windows(mock_amg):
@@ -257,7 +257,7 @@ def test_split_cell_sets_new_ws_to_bl(mock_amg):
 
     # change the bottom left window size (from 127) such that we know it is
     # this window which is being referenced
-    mock_amg.cells[0].bl.WS = 73
+    mock_amg.cells[0].bl_win.WS = 73
     mock_amg.cells[0].split()
 
     for window in mock_amg.windows[-5:]:

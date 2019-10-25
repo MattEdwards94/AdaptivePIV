@@ -102,10 +102,10 @@ class GridCell():
         self.id_br = id_br
         self.id_tl = id_tl
         self.id_tr = id_tr
-        self.bl = self.cw_list[id_bl]
-        self.br = self.cw_list[id_br]
-        self.tl = self.cw_list[id_tl]
-        self.tr = self.cw_list[id_tr]
+        self.bl_win = self.cw_list[id_bl]
+        self.br_win = self.cw_list[id_br]
+        self.tl_win = self.cw_list[id_tl]
+        self.tr_win = self.cw_list[id_tr]
 
         self.tier = 0
         self.children, self.parent = None, None
@@ -189,6 +189,28 @@ class GridCell():
             if self.parent.west is not None:
                 self.parent.west.split()
 
+    def create_new_corrWindows(self):
+        """This method creates 5 new correlation windows at the midpoints and
+        centre of the 4 existing windows.
+
+        Returns:
+            CorrWindow: All 5 CorrWindows
+                        left_mid, ctr_btm, ctr_mid, ctr_top, right_mid
+        """
+
+        # create the new windows at mid-points.
+        # CorrWindow will throw error is non-int is passed
+        ctr_x  = (self.bl_win.x + self.br_win.x) / 2
+        ctr_y = (self.bl_win.y + self.tl_win.y) / 2
+
+        left_mid = corr_window.CorrWindow(self.bl_win.x, ctr_y, self.bl_win.WS)
+        ctr_btm = corr_window.CorrWindow(ctr_x, self.bl_win.y, self.bl_win.WS)
+        ctr_mid = corr_window.CorrWindow(ctr_x, ctr_y, self.bl_win.WS)
+        ctr_top = corr_window.CorrWindow(ctr_x, self.tl_win.y, self.bl_win.WS)
+        right_mid = corr_window.CorrWindow(self.br_win.x, ctr_y, self.bl_win.WS)
+
+        return left_mid, ctr_btm, ctr_mid, ctr_top, right_mid
+
     def split(self):
         """Split a cell into 4 child cells. At the same time, update the
         neighbour list of surrounding cells
@@ -197,19 +219,9 @@ class GridCell():
         if self.tier > 0:
             self.split_neighbs_if_needed()
 
-        # create the new windows at mid-points.
-        # CorrWindow will throw error is non-int is passed
-        ctr_x, ctr_y = (self.bl.x + self.br.x) / 2, (self.bl.y + self.tl.y) / 2
-        left_mid = corr_window.CorrWindow(self.bl.x, ctr_y, self.bl.WS)
-        ctr_btm = corr_window.CorrWindow(ctr_x, self.bl.y, self.bl.WS)
-        ctr_mid = corr_window.CorrWindow(ctr_x, ctr_y, self.bl.WS)
-        ctr_top = corr_window.CorrWindow(ctr_x, self.tl.y, self.bl.WS)
-        right_mid = corr_window.CorrWindow(self.br.x, ctr_y, self.bl.WS)
-        self.cw_list.append(left_mid)
-        self.cw_list.append(ctr_btm)
-        self.cw_list.append(ctr_mid)
-        self.cw_list.append(ctr_top)
-        self.cw_list.append(right_mid)
+        (left_mid, ctr_btm,
+            ctr_mid, ctr_top, right_mid) = self.create_new_corrWindows()
+        self.cw_list.extend([left_mid, ctr_btm, ctr_mid, ctr_top, right_mid])
 
         # get the ids of the new cw's for adding in the new cells
         lm = self.multigrid.n_windows - 5
@@ -309,16 +321,16 @@ class GridCell():
         """Return the coordinates of the current cell going anti clockwise
         from the bottom left
         """
-        return [(self.bl.x, self.bl.y),
-                (self.br.x, self.br.y),
-                (self.tl.x, self.tl.y),
-                (self.tr.x, self.tr.y), ]
+        return [(self.bl_win.x, self.bl_win.y),
+                (self.br_win.x, self.br_win.y),
+                (self.tl_win.x, self.tl_win.y),
+                (self.tr_win.x, self.tr_win.y), ]
 
     def print_locations(self):
-        print("bl", self.bl)
-        print("br", self.br)
-        print("tl", self.tl)
-        print("tr", self.tr)
+        print("bl", self.bl_win)
+        print("br", self.br_win)
+        print("tl", self.tl_win)
+        print("tr", self.tr_win)
 
 
 if __name__ == "__main__":
