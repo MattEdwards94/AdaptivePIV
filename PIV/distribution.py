@@ -206,6 +206,13 @@ class Distribution:
         for cw in self.windows:
             cw.correlate(img, dp)
 
+    def plot_locations(self, *args, **kwargs):
+        """Plots the locations of all the windows within the distribution
+        """
+        fig = plt.figure()
+        plt.plot(self.x, self.y, *args, **kwargs)
+        fig.show()
+
     def plot_distribution(self):
         fig, ax = plt.subplots()
         xy, uv = self.get_all_xy(), self.get_all_uv()
