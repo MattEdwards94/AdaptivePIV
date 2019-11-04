@@ -8,5 +8,3 @@ from . import image_info
 from . import multiGrid
 from . import piv_image
 from . import utilities
-
-print("testing")

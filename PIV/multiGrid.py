@@ -60,13 +60,13 @@ class MultiGrid(distribution.Distribution):
                 # cell num
                 cn = rr * n_cc + cc
                 self.cells[cn].north = self.cells[cn +
-                                        n_cc] if rr != (n_rc - 1) else None
+                                                  n_cc] if rr != (n_rc - 1) else None
                 self.cells[cn].east = self.cells[cn +
-                                         1] if cc != (n_cc - 1) else None
+                                                 1] if cc != (n_cc - 1) else None
                 self.cells[cn].south = self.cells[cn -
-                                           n_cc] if rr != 0 else None
+                                                  n_cc] if rr != 0 else None
                 self.cells[cn].west = self.cells[cn -
-                                         1] if cc != 0 else None
+                                                 1] if cc != 0 else None
 
     @property
     def n_windows(self):
@@ -207,7 +207,8 @@ class GridCell():
         ctr_btm = corr_window.CorrWindow(ctr_x, self.bl_win.y, self.bl_win.WS)
         ctr_mid = corr_window.CorrWindow(ctr_x, ctr_y, self.bl_win.WS)
         ctr_top = corr_window.CorrWindow(ctr_x, self.tl_win.y, self.bl_win.WS)
-        right_mid = corr_window.CorrWindow(self.br_win.x, ctr_y, self.bl_win.WS)
+        right_mid = corr_window.CorrWindow(
+            self.br_win.x, ctr_y, self.bl_win.WS)
 
         return left_mid, ctr_btm, ctr_mid, ctr_top, right_mid
 
@@ -334,16 +335,5 @@ class GridCell():
 
 
 if __name__ == "__main__":
-    imgDim = [65, 65]
-    h = 64
-    mg = MultiGrid(imgDim, h, WS=127)
 
-    mg.cells[0].print_locations()
-
-    mg.cwList[1].x = 75
-
-    mg.cells[0].print_locations()
-
-    print(mg.cwList is mg.cells[0].cwList)
-
-    print(mg.cwList[2] is mg.cells[0].tl)
+    a = MultiGrid((100, 100), 64, 127)

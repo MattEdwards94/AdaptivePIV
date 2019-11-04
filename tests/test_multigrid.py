@@ -95,7 +95,6 @@ def test_multigrid_calculates_neighbours_correctly():
         assert gc.west == cell['west']
 
 
-
 def test_grid_cell_init_stores_cwlist_and_multigrid(mock_amg):
     """Check that the GridCell stores a 'pointer' to the parent multigrid and
     to the correlation window list.
@@ -160,11 +159,13 @@ def test_n_cells(mock_amg):
     """
     assert mock_amg.n_cells == 9
 
+
 def test_cell_north(mock_amg):
     """Tests the property 'north' that it returns the neighbour to the north
     """
 
     assert mock_amg.cells[0].north is mock_amg.cells[3]
+
 
 def test_set_cell_north(mock_amg):
     """Test that we can set the northerly value of a cell
@@ -182,6 +183,7 @@ def test_cell_east(mock_amg):
 
     assert mock_amg.cells[0].east is mock_amg.cells[1]
 
+
 def test_set_cell_east(mock_amg):
     """Test that we can set the easterly value of a cell
     """
@@ -191,11 +193,13 @@ def test_set_cell_east(mock_amg):
     mock_amg.cells[0].east = mock_amg.cells[2]
     assert mock_amg.cells[0].east == mock_amg.cells[2]
 
+
 def test_cell_south(mock_amg):
     """Tests the property 'south' that it returns the neighbour to the south
     """
 
     assert mock_amg.cells[4].south is mock_amg.cells[1]
+
 
 def test_set_cell_south(mock_amg):
     """Test that we can set the southerly value of a cell
@@ -206,11 +210,13 @@ def test_set_cell_south(mock_amg):
     mock_amg.cells[4].south = mock_amg.cells[2]
     assert mock_amg.cells[4].south == mock_amg.cells[2]
 
+
 def test_cell_west(mock_amg):
     """Tests the property 'west' that it returns the neighbour to the west
     """
 
     assert mock_amg.cells[4].west is mock_amg.cells[3]
+
 
 def test_set_cell_west(mock_amg):
     """Test that we can set the westerly value of a cell
@@ -220,7 +226,6 @@ def test_set_cell_west(mock_amg):
     # this is not the correct neighbour
     mock_amg.cells[4].west = mock_amg.cells[2]
     assert mock_amg.cells[4].west == mock_amg.cells[2]
-
 
 
 def test_split_cell_creates_four_more_cells(mock_amg):
@@ -370,6 +375,7 @@ def test_split_adds_known_neighbours(mock_amg):
     # tr
     assert mock_amg.cells[-1].south is mock_amg.cells[-3]
     assert mock_amg.cells[-1].west is mock_amg.cells[-2]
+
 
 def test_has_children_property(mock_amg):
     """Test that has_children returns true or false accordingly
