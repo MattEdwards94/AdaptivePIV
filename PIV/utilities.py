@@ -265,7 +265,7 @@ def root_path():
     # get current path
     cwd = os.getcwd()
 
-    if "C:" in cwd:
+    if "c:" in cwd.lower():
         if "me12288" in cwd:
             return "C:/Users/me12288/Documents/"
         else:
