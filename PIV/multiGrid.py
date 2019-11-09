@@ -26,6 +26,7 @@ class MultiGrid(distribution.Distribution):
         # now go through and create the cells, identifying the coordinates for
         # each corner
         self.cells = []
+        self.max_tier = 0
         # this refers to the number of grid points, there will be 1 less cell
         # in each direction
         n_rows, n_cols = np.shape(xx)
@@ -197,6 +198,9 @@ class GridCell():
         # now create the cells and add them into the multigrid object
         bl = GridCell(self.multigrid, self.id_bl, cb, lm, cm)
         bl.tier = self.tier + 1
+        # update the multigrid max tier setting if required
+        if bl.tier > self.multigrid.max_tier:
+            self.multigrid.max_tier = bl.tier
         bl.parent = self
         br = GridCell(self.multigrid, cb, self.id_br, cm, rm)
         br.tier = self.tier + 1

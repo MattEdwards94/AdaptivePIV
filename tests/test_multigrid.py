@@ -405,3 +405,18 @@ def test_split_cell_splits_neighbours(mock_amg):
     assert mock_amg.cells[5].has_children
     assert mock_amg.cells[1].has_children
 
+
+def test_n_tiers_setting(mock_amg):
+    """Checks that the current tier setting is stored in the multigrid
+    """
+
+    # check the largest tier when the multigrid is just created, should be 0
+    assert mock_amg.max_tier == 0
+
+    # now split a cell and check the max tier
+    mock_amg.cells[4].split()
+    assert mock_amg.max_tier == 1
+
+    # and same again
+    mock_amg.cells[-1].split()
+    assert mock_amg.max_tier == 2
