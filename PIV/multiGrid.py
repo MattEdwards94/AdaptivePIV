@@ -318,6 +318,31 @@ class GridCell():
         print("tr", self.tr_win)
 
 
-if __name__ == "__main__":
+class Grid():
+    def __init__(self, img_dim, spacing):
+        """A grid stores references to the relavent CorrWindows for given image
+        dimensions and window spacing
 
-    a = MultiGrid((100, 100), 64, 127)
+        Arguments:
+            img_dim {tuple, ints} -- (height, width) of the total grid domain
+            spacing {int} -- Spacing between windows
+        """
+
+        # determine how many 'entries' we need to be able to accomodate
+        self.ny = (img_dim[0]//spacing) + 1
+        self.nx = (img_dim[1]//spacing) + 1
+
+        self._array = [[None for j in range(self.nx)]
+                       for i in range(self.ny)]
+
+    @property
+    def x_vec(self):
+        return [cw.x for cw in self._array[0]]
+
+    @property
+    def y_vec(self):
+        return [row[0].y for row in self._array]
+
+
+if __name__ == "__main__":
+    pass

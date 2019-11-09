@@ -14,6 +14,12 @@ def mock_amg():
     return amg
 
 
+@pytest.fixture
+def mock_grid():
+    img_dim, spacing = (193, 129), 64
+    return mg.Grid(img_dim, spacing)
+
+
 def test_init_multigrid():
     """Tests the initialisation of a multiGrid object
 
@@ -420,3 +426,59 @@ def test_n_tiers_setting(mock_amg):
     # and same again
     mock_amg.cells[-1].split()
     assert mock_amg.max_tier == 2
+
+
+def test_Grid_creates_array_space():
+    """A grid stores references to the relavent CorrWindows in a grid. 
+    For a given image dimension and spacing there can only be a certain number
+    of windows fitting in
+    """
+
+    # create dummy meshgrid
+    img_dim, spacing = (193, 193), 64
+    x_vec = np.arange(0, img_dim[1], spacing)
+    y_vec = np.arange(0, img_dim[0], spacing)
+    xx, yy = np.meshgrid(x_vec, y_vec)
+
+    # create Grid
+    g = mg.Grid(img_dim, spacing)
+
+    assert g.ny == len(y_vec)
+    assert g.nx == len(x_vec)
+
+
+def test_Grid_creates_list_of_lists_of_None(mock_grid):
+    """Checks that a private array of size [ny, nx] is created
+    """
+    # note: img_dim, spacing = (193, 129), 64
+    # hence we get 4 points in y and 3 points in x
+    exp = [[None, None, None], [None, None, None],
+           [None, None, None], [None, None, None]]
+    assert mock_grid._array == exp
+
+
+def test_Grid_get_x_vec(mock_grid):
+    """we want to be able to get Grid.x_vec to return a vector of x locations
+    """
+
+    # we will get the x locations from the first row, so we only need to create
+    # 3 windows to test this
+    windows = [corr_window.CorrWindow(j, 0, WS=127) for j in range(0, 129, 64)]
+    mock_grid._array[0] = windows
+
+    exp = [0, 64, 128]
+    assert exp == mock_grid.x_vec
+
+
+def test_Grid_get_y_vec(mock_grid):
+    """we want to be able to get Grid.y_vec to return a vector of x locations
+    """
+
+    # we will get the y locations from the first column, so we only need to
+    # create 4 windows to test this
+    windows = [corr_window.CorrWindow(0, i, WS=127) for i in range(0, 193, 64)]
+    for ii in range(4):
+        mock_grid._array[ii][0] = windows[ii]
+
+    exp = [0, 64, 128, 192]
+    assert exp == mock_grid.y_vec
