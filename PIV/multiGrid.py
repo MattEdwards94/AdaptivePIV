@@ -109,51 +109,14 @@ class GridCell():
 
         self.tier = 0
         self.children, self.parent = None, None
-        self._north = None
-        self._east = None
-        self._south = None
-        self._west = None
+        self.north = None
+        self.east = None
+        self.south = None
+        self.west = None
 
     @property
     def has_children(self):
         return False if self.children is None else True
-
-    @property
-    def north(self):
-        """Get the neighbour to the north, if there is one
-
-        Returns:
-            GridCell: The grid cell immediately to the north, if there is one
-        """
-        return self._north
-
-    @north.setter
-    def north(self, value):
-        self._north = value
-
-    @property
-    def east(self):
-        return self._east
-
-    @east.setter
-    def east(self, value):
-        self._east = value
-
-    @property
-    def south(self):
-        return self._south
-
-    @south.setter
-    def south(self, value):
-        self._south = value
-
-    @property
-    def west(self):
-        return self._west
-
-    @west.setter
-    def west(self, value):
-        self._west = value
 
     def split_neighbs_if_needed(self):
         """This function is intended to be called when a cell is requested to
