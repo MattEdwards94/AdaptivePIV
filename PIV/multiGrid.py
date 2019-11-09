@@ -30,7 +30,7 @@ class MultiGrid(distribution.Distribution):
         # this refers to the number of grid points, there will be 1 less cell
         # in each direction
         n_rows, n_cols = np.shape(xx)
-        n_rc, n_cc = n_rows - 1, n_cols - 1  # number of cells each dir
+        n_rc, n_cc = n_rows - 1, n_cols - 1  # number of cells each direction
 
         # loop over each row and column of 'cells'
         # note that cells are 0 index and range does not include the last value
@@ -60,14 +60,17 @@ class MultiGrid(distribution.Distribution):
                 # west is cell number - 1 , unless on left most col
                 # cell num
                 cn = rr * n_cc + cc
-                self.cells[cn].north = self.cells[cn +
-                                                  n_cc] if rr != (n_rc - 1) else None
-                self.cells[cn].east = self.cells[cn +
-                                                 1] if cc != (n_cc - 1) else None
-                self.cells[cn].south = self.cells[cn -
-                                                  n_cc] if rr != 0 else None
-                self.cells[cn].west = self.cells[cn -
-                                                 1] if cc != 0 else None
+                if rr != (n_rc - 1):
+                    self.cells[cn].north = self.cells[cn + n_cc]
+
+                if cc != (n_cc - 1):
+                    self.cells[cn].east = self.cells[cn + 1]
+
+                if rr != 0:
+                    self.cells[cn].south = self.cells[cn - n_cc]
+
+                if cc != 0:
+                    self.cells[cn].west = self.cells[cn - 1]
 
     @property
     def n_windows(self):
@@ -94,6 +97,20 @@ class MultiGrid(distribution.Distribution):
 
 class GridCell():
     def __init__(self, multigrid, id_bl, id_br, id_tl, id_tr):
+        """Initialise a grid cell, given a parent multigrid and the ids of 
+        the 4 windows which makes up the 'cell'
+
+        Arguments:
+            multigrid {MultiGrid} -- The parent multigrid
+            id_bl {int} -- index into multigrid.windows for the bottom left 
+                           window
+            id_br {int} -- index into multigrid.windows for the bottom right 
+                           window
+            id_tl {int} -- index into multigrid.windows for the top left 
+                           window
+            id_tr {int} -- index into multigrid.windows for the top right 
+                           window
+        """
         # cwList will act as a pointer to the list of corr windows and hence
         # shouldn't impose too much of a memory overhead.
         self.multigrid = multigrid
@@ -164,7 +181,7 @@ class GridCell():
 
         # create the new windows at mid-points.
         # CorrWindow will throw error is non-int is passed
-        ctr_x  = (self.bl_win.x + self.br_win.x) / 2
+        ctr_x = (self.bl_win.x + self.br_win.x) / 2
         ctr_y = (self.bl_win.y + self.tl_win.y) / 2
 
         left_mid = corr_window.CorrWindow(self.bl_win.x, ctr_y, self.bl_win.WS)
