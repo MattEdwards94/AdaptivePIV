@@ -7,9 +7,12 @@ import PIV.corr_window as corr_window
 @pytest.fixture
 def mock_amg():
     """Creates a grid of correlation windows and returns them as a list
+    h = 64
+
+    img_dim = (4 * h + 1, 3 * h + 1)
     """
     h = 64
-    img_dim = (3 * h + 1, 3 * h + 1)
+    img_dim = (4 * h + 1, 3 * h + 1)
     amg = mg.MultiGrid(img_dim, h, WS=127)
     return amg
 
@@ -153,17 +156,17 @@ def test_grid_cell_init_stores_corrWindows():
 def test_n_windows(mock_amg):
     """Check the property number of windows
 
-    mock amg should produce a 4x4 grid of points, hence 16 windows
+    mock amg should produce a 5x4 grid of points, hence 16 windows
     """
-    assert mock_amg.n_windows == 16
+    assert mock_amg.n_windows == 20
 
 
 def test_n_cells(mock_amg):
     """Check the property number of cells
 
-    mock amg should produce a 4x4 grid of points, hence 9 cells
+    mock amg should produce a 5x4 grid of points, hence 12 cells
     """
-    assert mock_amg.n_cells == 9
+    assert mock_amg.n_cells == 12
 
 
 def test_cell_north(mock_amg):
@@ -496,6 +499,33 @@ def test_n_tiers_setting(mock_amg):
     assert mock_amg.max_tier == 2
 
 
+def test_split_beyond_resolution_raises_ValueError():
+    """
+    Check that if a split would result in a non integer spacing that this
+    would raise a ValueError
+    """
+
+    h = 11
+    img_dim = (50, 50)
+    amg = mg.MultiGrid(img_dim, h, WS=127)
+    with pytest.raises(ValueError):
+        amg.cells[0].split()
+
+
+def test_new_tier_creates_new_grid(mock_amg):
+    """
+    When splitting a cell, it might cause a new tier to be created, 
+    if this happens, then we also need to define the new Grid for that tier
+    """
+
+    assert len(mock_amg.grids) == mock_amg.max_tier + 1
+
+    # cause a new tier to be created
+    mock_amg.cells[4].split()
+
+    assert len(mock_amg.grids) == mock_amg.max_tier + 1
+
+
 def test_Grid_creates_array_space():
     """A grid stores references to the relavent CorrWindows in a grid. 
     For a given image dimension and spacing there can only be a certain number
@@ -525,31 +555,21 @@ def test_Grid_creates_list_of_lists_of_None(mock_grid):
     assert mock_grid._array == exp
 
 
-def test_Grid_get_x_vec(mock_grid):
+def test_Grid_get_x_vec_and_y_vec(mock_grid):
     """we want to be able to get Grid.x_vec to return a vector of x locations
+
+    These locations need not have actual windows placed there, this is just
+    to define the sample locations
     """
 
-    # we will get the x locations from the first row, so we only need to create
-    # 3 windows to test this
-    windows = [corr_window.CorrWindow(j, 0, WS=127) for j in range(0, 129, 64)]
-    mock_grid._array[0] = windows
+    # img_dim = (193, 193)
+    # spacing = 64
 
     exp = [0, 64, 128]
-    assert exp == mock_grid.x_vec
-
-
-def test_Grid_get_y_vec(mock_grid):
-    """we want to be able to get Grid.y_vec to return a vector of x locations
-    """
-
-    # we will get the y locations from the first column, so we only need to
-    # create 4 windows to test this
-    windows = [corr_window.CorrWindow(0, i, WS=127) for i in range(0, 193, 64)]
-    for ii in range(4):
-        mock_grid._array[ii][0] = windows[ii]
+    assert np.allclose(exp, mock_grid.x_vec)
 
     exp = [0, 64, 128, 192]
-    assert exp == mock_grid.y_vec
+    assert np.allclose(exp, mock_grid.y_vec)
 
 
 def test_get_meshgrid(mock_grid):
@@ -572,17 +592,16 @@ def test_get_meshgrid(mock_grid):
     assert np.all(acty == expy)
 
 
-def test_get_values_returns_zeros_with_no_windows(mock_grid):
-    """Since this is to be used in a multilevel interpolation, we want the 
-    default value to be 0, since if there is no window we want the error 
-    function to be 0
+def test_get_values_returns_None_with_no_windows(mock_grid):
+    """If there is no window at a location, then it should return np.nan
     """
 
-    exp = np.zeros((mock_grid.ny, mock_grid.nx))
+    exp = np.empty((mock_grid.ny, mock_grid.nx))
+    exp[:] = np.nan
     u, v = mock_grid.get_values()
 
-    assert np.allclose(u, exp)
-    assert np.allclose(v, exp)
+    assert np.allclose(u, exp, equal_nan=True)
+    assert np.allclose(v, exp, equal_nan=True)
 
 
 def test_get_values_with_sample_window_values(mock_grid):
@@ -607,3 +626,86 @@ def test_get_values_with_sample_window_values(mock_grid):
 
     assert np.allclose(u, randu)
     assert np.allclose(v, randv)
+
+
+def test_get_values_from_within_MultiGrid_first_iter(mock_amg):
+    """
+    Checks the method "get_values" works when calling it from the MultiGrid
+    object - this is checking that the windows are assigned properly
+
+    This just applies to the first iteration
+    """
+
+    # create an array of random displacements
+    randu = np.random.rand(5, 4)
+    randv = np.random.rand(5, 4)
+
+    # assign these to the values in mock_amg.windows
+    for ii, window in enumerate(mock_amg.windows):
+        window.u = randu[ii//4][ii % 4]
+        window.v = randv[ii//4][ii % 4]
+
+    gridu, gridv = mock_amg.grids[0].get_values()
+
+    assert np.allclose(gridu, randu)
+    assert np.allclose(gridv, randv)
+
+
+def test_get_values_from_new_grid(mock_amg):
+    """
+    The first grid level is easy enough to get correct - we are simply looping
+    through the windows and adding them into the equivalent place in the first
+    grid level. 
+
+    For a new tier, however, we need to make sure that the window is being 
+    added to the correct locations
+    """
+
+    # create an array of random displacements
+    randu = np.random.rand(5, 4)
+    randv = np.random.rand(5, 4)
+
+    # create 5 random values which will be the new windows
+    randu_new = np.random.rand(5)
+    randv_new = np.random.rand(5)
+
+    # split the central cell
+    mock_amg.cells[7].split()
+
+    # define the window values for the new locations
+    for ii in range(5):
+        mock_amg.windows[-5+ii].u = randu_new[ii]
+        mock_amg.windows[-5+ii].v = randv_new[ii]
+
+    # create the expected grid
+    expu, expv = np.zeros((9, 7)), np.zeros((9, 7))
+
+    # set the expected values in the middle
+    # we have split the middle cell (out of 3) on row 3
+    # bl_index = [4, 2]
+    # left middle
+    expu[5, 2] = randu_new[0]
+    expv[5, 2] = randv_new[0]
+
+    # middle bottom
+    expu[4, 3] = randu_new[1]
+    expv[4, 3] = randv_new[1]
+
+    # middle middle
+    expu[5, 3] = randu_new[2]
+    expv[5, 3] = randv_new[2]
+
+    # middle top
+    expu[6, 3] = randu_new[3]
+    expv[6, 3] = randv_new[3]
+
+    # right middle
+    expu[5, 4] = randu_new[4]
+    expv[5, 4] = randv_new[4]
+
+    # get the values
+    uu, vv = mock_amg.grids[1].get_values()
+    uu[np.isnan(uu)] = 0
+    vv[np.isnan(vv)] = 0
+    assert np.allclose(uu, expu)
+    assert np.allclose(vv, expv)

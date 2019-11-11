@@ -1,6 +1,8 @@
 import numpy as np
 import PIV.distribution as distribution
 import PIV.corr_window as corr_window
+import scipy.interpolate as interp
+import matplotlib.pyplot as plt
 
 
 class MultiGrid(distribution.Distribution):
@@ -14,6 +16,9 @@ class MultiGrid(distribution.Distribution):
             spacing (int): The initial spacing between samples
         """
 
+        self.img_dim = img_dim
+        self.spacing = spacing
+
         # create the coordinate grid
         x_vec = np.arange(0, img_dim[1], spacing)
         y_vec = np.arange(0, img_dim[0], spacing)
@@ -22,6 +27,12 @@ class MultiGrid(distribution.Distribution):
         # turn each of the coordinates into a corrwindow object
         # note that this flattens the grid row by row
         self.windows = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), WS)
+
+        # create a new grid for the base tier
+        self.grids = [Grid(img_dim, spacing)]
+        for ii in range(len(y_vec)):
+            for jj in range(len(x_vec)):
+                self.grids[0]._array[ii][jj] = self.windows[jj + ii*len(x_vec)]
 
         # now go through and create the cells, identifying the coordinates for
         # each corner
@@ -46,6 +57,8 @@ class MultiGrid(distribution.Distribution):
                 gc = GridCell(self, bl, br, tl, tr)
                 # define this as the first tier
                 gc.tier = 0
+                # define the bottom left CorrWindow index
+                gc.ix, gc.iy = cc, rr
                 self.cells.append(gc)
 
         # loop over and set the neighbours of each of the cells,
@@ -80,6 +93,29 @@ class MultiGrid(distribution.Distribution):
     def n_cells(self):
         return len(self.cells)
 
+    def new_tier(self):
+        """
+        Adds a new tier to the multigrid. 
+
+        This method first checks that a new tier can be added - the spacing 
+        must be halved and must still result in integer locations
+
+        The method then creates a new grid for the required level
+
+        """
+
+        # determine what the current spacing is
+        h_curr = int(self.spacing / (2**self.max_tier))
+        h_new = h_curr / 2
+        # check if we can split the tier anymore
+        if int(h_new) == h_new:
+            # update the max tier setting
+            self.max_tier += 1
+            # create a new grid
+            self.grids.append(Grid(self.img_dim, int(h_new)))
+        else:
+            raise ValueError("Grid refinement not possible")
+
     def split_all_cells(self):
         """Split all cells, each into 4 new cells
         """
@@ -89,10 +125,57 @@ class MultiGrid(distribution.Distribution):
             self.cells[i].split()
 
     def validation_NMT_8NN(self):
-        raise ValueError("Not defined for MultiGrid")
+        raise ValueError("Not defined for MultiGrid validation")
 
     def interp_to_densepred(self):
-        raise ValueError("Not defined for MultiGrid")
+        """
+        Interpolate the multigrid onto a pixelwise densepredictor using 
+        multi-level interpolation
+        """
+
+        # get the displacement values for the coarsest level
+        u0, v0 = self.grids[0].get_values()
+
+        # get the coarse interpolant
+        f0_u = interp.interp2d(self.grids[0].x_vec,
+                               self.grids[0].y_vec,
+                               u0, kind='cubic')
+        f0_v = interp.interp2d(self.grids[0].x_vec,
+                               self.grids[0].y_vec,
+                               v0, kind='cubic')
+
+        # evaluate the coase interpolant over the domain
+        xe = np.arange(self.img_dim[1])
+        ye = np.arange(self.img_dim[0])
+
+        u0_eval = f0_u(xe, ye)
+        v0_eval = f0_v(xe, ye)
+
+        # get the coarsely interpolated values at the finer grid points
+        h = self.grids[1].spacing
+        u0_inter = u0_eval[::h, ::h]
+        v0_inter = v0_eval[::h, ::h]
+
+        # calculate delta to the coarse interpolation at the fine grid points
+        u1, v1 = self.grids[1].get_values()
+        u1_delta = u1 - u0_inter
+        u1_delta[np.isnan(u1_delta)] = 0
+        v1_delta = v1 - v0_inter
+        v1_delta[np.isnan(v1_delta)] = 0
+
+        # interpolate the delta
+        f1_u = interp.interp2d(self.grids[1].x_vec,
+                               self.grids[1].y_vec,
+                               u1_delta, kind='cubic')
+        f1_v = interp.interp2d(self.grids[1].x_vec,
+                               self.grids[1].y_vec,
+                               v1_delta, kind='cubic')
+
+        # evaluate the delta over the domain
+        u1_eval = f1_u(xe, ye)
+        v1_eval = f1_v(xe, ye)
+
+        return u0_eval + u1_eval, v0_eval + v1_eval
 
 
 class GridCell():
@@ -231,9 +314,24 @@ class GridCell():
                                                       self,
                                                       self)
 
-        # update the multigrid max tier setting if required
+        # set the bottom left index for each of the new cells
+        bl.ix, bl.iy = self.ix*2, self.iy*2
+        br.ix, br.iy = self.ix*2+1, self.iy*2
+        tl.ix, tl.iy = self.ix*2, self.iy*2+1
+        tr.ix, tr.iy = self.ix*2+1, self.iy*2+1
+
+        # Create a new tier if it is needed
         if bl.tier > self.multigrid.max_tier:
-            self.multigrid.max_tier = bl.tier
+            self.multigrid.new_tier()
+
+        # Add the references of the newly created windows to the grids
+        ix_bl, iy_bl = self.ix*2, self.iy*2
+        tmp_grid = self.multigrid.grids[bl.tier]
+        tmp_grid._array[iy_bl + 1][ix_bl] = self.cw_list[lm]
+        tmp_grid._array[iy_bl + 0][ix_bl+1] = self.cw_list[cb]
+        tmp_grid._array[iy_bl + 1][ix_bl+1] = self.cw_list[cm]
+        tmp_grid._array[iy_bl + 2][ix_bl+1] = self.cw_list[ct]
+        tmp_grid._array[iy_bl + 1][ix_bl+2] = self.cw_list[rm]
 
         # set known neigbours
         # -----------
@@ -249,6 +347,7 @@ class GridCell():
         # look for neighbours of the newly created cells
         self.update_child_neighbours()
 
+        # finally, add the cells into the multigrid object
         self.multigrid.cells.append(bl)
         self.multigrid.cells.append(br)
         self.multigrid.cells.append(tl)
@@ -334,20 +433,17 @@ class Grid():
             spacing {int} -- Spacing between windows
         """
 
+        self.img_dim = img_dim
+        self.spacing = spacing
+        self.x_vec = np.arange(0, self.img_dim[1], self.spacing)
+        self.y_vec = np.arange(0, self.img_dim[0], self.spacing)
+
         # determine how many 'entries' we need to be able to accomodate
-        self.ny = (img_dim[0]//spacing) + 1
-        self.nx = (img_dim[1]//spacing) + 1
+        self.ny = len(self.y_vec)
+        self.nx = len(self.x_vec)
 
         self._array = [[None for j in range(self.nx)]
                        for i in range(self.ny)]
-
-    @property
-    def x_vec(self):
-        return [cw.x for cw in self._array[0]]
-
-    @property
-    def y_vec(self):
-        return [row[0].y for row in self._array]
 
     def get_meshgrid(self):
         """Returns the x and y coordinates in meshgrid form
@@ -371,7 +467,8 @@ class Grid():
                     u_out[yy][xx] = self._array[yy][xx].u
                     v_out[yy][xx] = self._array[yy][xx].v
                 except AttributeError:
-                    pass
+                    u_out[yy][xx] = None
+                    v_out[yy][xx] = None
 
         return u_out, v_out
 

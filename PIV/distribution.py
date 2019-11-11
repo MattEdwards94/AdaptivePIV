@@ -173,7 +173,6 @@ class Distribution:
         # calculate evaluation range
         xe = np.arange(eval_dim[1])
         ye = np.arange(eval_dim[0])
-        xx, yy = np.meshgrid(xe, ye)
 
         if method == "struc_lin":
             # interpolate using scipy
