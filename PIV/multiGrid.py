@@ -349,6 +349,32 @@ class Grid():
     def y_vec(self):
         return [row[0].y for row in self._array]
 
+    def get_meshgrid(self):
+        """Returns the x and y coordinates in meshgrid form
+        """
+        return np.meshgrid(self.x_vec, self.y_vec)
+
+    def get_values(self):
+        """Returns the u and v displacement values for all the windows in the 
+        domain. 
+        Returns 0 if there is no CorrWindow available
+
+        Returns:
+            nd_array, nd_array: array of u and v values, respectively
+        """
+        # allocate space for 2 arrays of values
+        u_out, v_out = (np.zeros((self.ny, self.nx)),
+                        np.zeros((self.ny, self.nx)))
+        for yy in range(self.ny):
+            for xx in range(self.nx):
+                try:
+                    u_out[yy][xx] = self._array[yy][xx].u
+                    v_out[yy][xx] = self._array[yy][xx].v
+                except AttributeError:
+                    pass
+
+        return u_out, v_out
+
 
 if __name__ == "__main__":
     pass

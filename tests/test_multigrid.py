@@ -550,3 +550,60 @@ def test_Grid_get_y_vec(mock_grid):
 
     exp = [0, 64, 128, 192]
     assert exp == mock_grid.y_vec
+
+
+def test_get_meshgrid(mock_grid):
+    """Check that the correct meshgrid is returned
+
+    x_vec should be [0, 64, 128]
+    y_vec should be [0, 64, 128, 193]    
+    """
+
+    windows = [corr_window.CorrWindow(j, 0, WS=127) for j in range(0, 129, 64)]
+    mock_grid._array[0] = windows
+    windows = [corr_window.CorrWindow(0, i, WS=127) for i in range(0, 193, 64)]
+    for ii in range(1, 4):
+        mock_grid._array[ii][0] = windows[ii]
+
+    expx, expy = np.meshgrid([0, 64, 128], [0, 64, 128, 192])
+    actx, acty = mock_grid.get_meshgrid()
+
+    assert np.all(actx == expx)
+    assert np.all(acty == expy)
+
+
+def test_get_values_returns_zeros_with_no_windows(mock_grid):
+    """Since this is to be used in a multilevel interpolation, we want the 
+    default value to be 0, since if there is no window we want the error 
+    function to be 0
+    """
+
+    exp = np.zeros((mock_grid.ny, mock_grid.nx))
+    u, v = mock_grid.get_values()
+
+    assert np.allclose(u, exp)
+    assert np.allclose(v, exp)
+
+
+def test_get_values_with_sample_window_values(mock_grid):
+    """Given CorrWindows with non-zero displacement, we want get_values() to 
+    return the u and v displacements as part of a grid
+    """
+
+    # create an array of random displacements
+    randu = np.random.rand(4, 3)
+    randv = np.random.rand(4, 3)
+
+    # create the right amount of CorrWindows
+    x_vec, y_vec = [0, 64, 128], [0, 64, 128, 192]
+    for i in range(mock_grid.ny):
+        for j in range(mock_grid.nx):
+            tmp = corr_window.CorrWindow(x_vec[j], y_vec[i], WS=127)
+            mock_grid._array[i][j] = tmp
+            mock_grid._array[i][j].u = randu[i][j]
+            mock_grid._array[i][j].v = randv[i][j]
+
+    u, v = mock_grid.get_values()
+
+    assert np.allclose(u, randu)
+    assert np.allclose(v, randv)
