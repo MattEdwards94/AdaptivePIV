@@ -197,109 +197,62 @@ class GridCell():
         """Split a cell into 4 child cells. At the same time, update the
         neighbour list of surrounding cells
         """
+
         # if the cell is tier 0 then we definitely don't need to split neighbs
         if self.tier > 0:
             self.split_neighbs_if_needed()
 
-        (left_mid, ctr_btm,
-            ctr_mid, ctr_top, right_mid) = self.create_new_corrWindows()
-        self.cw_list.extend([left_mid, ctr_btm, ctr_mid, ctr_top, right_mid])
+        # create the 5 new correlation windows and add them to the list
+        self.cw_list.extend(self.create_new_corrWindows())
 
         # get the ids of the new cw's for adding in the new cells
         lm = self.multigrid.n_windows - 5
-        cb = lm + 1
-        cm = lm + 2
-        ct = lm + 3
-        rm = lm + 4
+        cb, cm, ct, rm = (lm + 1,
+                          lm + 2,
+                          lm + 3,
+                          lm + 4)
 
-        # now create the cells and add them into the multigrid object
+        # now create the cells
         bl = GridCell(self.multigrid, self.id_bl, cb, lm, cm)
-        bl.tier = self.tier + 1
+        br = GridCell(self.multigrid, cb, self.id_br, cm, rm)
+        tl = GridCell(self.multigrid, lm, cm, self.id_tl, ct)
+        tr = GridCell(self.multigrid, cm, rm, ct, self.id_tr)
+        self.children = {'bl': bl, 'br': br, 'tl': tl, 'tr': tr}
+
+        # define the new cells tiers
+        bl.tier, br.tier, tl.tier, tr.tier = (self.tier + 1,
+                                              self.tier + 1,
+                                              self.tier + 1,
+                                              self.tier + 1)
+
+        # set the parents
+        bl.parent, br.parent, tl.parent, tr.parent = (self,
+                                                      self,
+                                                      self,
+                                                      self)
+
         # update the multigrid max tier setting if required
         if bl.tier > self.multigrid.max_tier:
             self.multigrid.max_tier = bl.tier
-        bl.parent = self
-        br = GridCell(self.multigrid, cb, self.id_br, cm, rm)
-        br.tier = self.tier + 1
-        br.parent = self
-        tl = GridCell(self.multigrid, lm, cm, self.id_tl, ct)
-        tl.tier = self.tier + 1
-        tl.parent = self
-        tr = GridCell(self.multigrid, cm, rm, ct, self.id_tr)
-        tr.tier = self.tier + 1
-        tr.parent = self
 
         # set known neigbours
-        bl.north = tl
-        bl.east = br
-        br.north = tr
-        br.west = bl
-        tl.south = bl
-        tl.east = tr
-        tr.south = br
-        tr.west = tl
+        # -----------
+        # | tl | tr |
+        # -----------
+        # | bl | br |
+        # -----------
+        bl.north, bl.east = tl, br
+        br.north, br.west = tr, bl
+        tl.south, tl.east = bl, tr
+        tr.south, tr.west = br, tl
 
-        # check for neighbours at the same tier level as the current cell
-        # check north
-        if self.north is not None:
-            ney_child = self.north.children
-            if ney_child is not None:
-                # There are neighbouring cells at the current tier to the north
-                # set these cells as the northerly neighbours of the new child
-                # cells.
-                # also set the southerly neighbours of the northerly cells
-                tl.north = ney_child['bl']
-                ney_child['bl'].south = tl
-                tr.north = ney_child['br']
-                ney_child['br'].south = tr
-
-        # check east
-        if self.east is not None:
-            ney_child = self.east.children
-            if ney_child is not None:
-                # There are neighbouring cells at the current tier to the east
-                # set these cells as the easterly neighbours of the new child
-                # cells.
-                # also set the westerly neighbours of the easterly cells
-                br.east = ney_child['bl']
-                ney_child['bl'].west = br
-                tr.east = ney_child['tl']
-                ney_child['tl'].west = tr
-
-        # check south
-        if self.south is not None:
-            ney_child = self.south.children
-            if ney_child is not None:
-                # There are neighbouring cells at the current tier to the south
-                # set these cells as the southerly neighbours of the new child
-                # cells.
-                # also set the northerly neighbours of the southerly cells
-                bl.south = ney_child['tl']
-                ney_child['tl'].north = bl
-                br.south = ney_child['tr']
-                ney_child['tr'].north = br
-
-        # check west
-        if self.west is not None:
-            ney_child = self.west.children
-            if ney_child is not None:
-                # There are neighbouring cells at the current tier to the west
-                # set these cells as the westerly neighbours of the new child
-                # cells.
-                # also set the easterly neighbours of the westerly cells
-                bl.west = ney_child['br']
-                ney_child['br'].east = bl
-                tl.west = ney_child['tr']
-                ney_child['tr'].east = tl
+        # look for neighbours of the newly created cells
+        self.update_child_neighbours()
 
         self.multigrid.cells.append(bl)
         self.multigrid.cells.append(br)
         self.multigrid.cells.append(tl)
         self.multigrid.cells.append(tr)
-
-        self.children = {'bl': bl, 'br': br, 'tl': tl, 'tr': tr}
-
-        # TODO: Check that neighbours are split accordingly
 
     @property
     def coordinates(self):
@@ -310,6 +263,59 @@ class GridCell():
                 (self.br_win.x, self.br_win.y),
                 (self.tl_win.x, self.tl_win.y),
                 (self.tr_win.x, self.tr_win.y), ]
+
+    def update_child_neighbours(self):
+        """
+        Updates the neighbours of the children of the current cell
+
+        This method searches the neighbours of the current (i.e. parent) cell
+        It then updates the childrens neighbours along the shared edge. 
+
+        For example, 
+        1. Check cell to north exists, and has children
+        3.    set north.children['bl'].south =  self.children['tl']
+
+        """
+
+        bl, br, tl, tr = (self.children['bl'],
+                          self.children['br'],
+                          self.children['tl'],
+                          self.children['tr'],)
+
+        if self.north is not None:
+            ney_child = self.north.children
+            if ney_child is not None:
+                tl.north = ney_child['bl']
+                tr.north = ney_child['br']
+                ney_child['bl'].south = tl
+                ney_child['br'].south = tr
+
+        # check east
+        if self.east is not None:
+            ney_child = self.east.children
+            if ney_child is not None:
+                br.east = ney_child['bl']
+                tr.east = ney_child['tl']
+                ney_child['bl'].west = br
+                ney_child['tl'].west = tr
+
+        # check south
+        if self.south is not None:
+            ney_child = self.south.children
+            if ney_child is not None:
+                bl.south = ney_child['tl']
+                br.south = ney_child['tr']
+                ney_child['tl'].north = bl
+                ney_child['tr'].north = br
+
+        # check west
+        if self.west is not None:
+            ney_child = self.west.children
+            if ney_child is not None:
+                bl.west = ney_child['br']
+                tl.west = ney_child['tr']
+                ney_child['br'].east = bl
+                ney_child['tr'].east = tl
 
     def print_locations(self):
         print("bl", self.bl_win)

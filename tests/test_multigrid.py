@@ -412,6 +412,74 @@ def test_split_cell_splits_neighbours(mock_amg):
     assert mock_amg.cells[1].has_children
 
 
+def test_split_cell_north_sets_neighbours(mock_amg):
+    """ If we split a cell, and then split the cell to the north, check that we
+    have the correct neighbour information
+    """
+
+    mock_amg.cells[4].split()  # middle cell
+    mock_amg.cells[7].split()  # north cell
+
+    north = mock_amg.cells[7]
+    south = mock_amg.cells[4]
+
+    assert south.children['tl'].north == north.children['bl']
+    assert south.children['tr'].north == north.children['br']
+    assert north.children['bl'].south == south.children['tl']
+    assert north.children['br'].south == south.children['tr']
+
+
+def test_split_cell_east_sets_neighbours(mock_amg):
+    """If we split a cell, and then split the cell to the east, check that we
+    have the correct neighbour information
+    """
+
+    mock_amg.cells[4].split()  # middle cell
+    mock_amg.cells[5].split()  # east cell
+
+    east = mock_amg.cells[5]
+    west = mock_amg.cells[4]
+
+    assert west.children['tr'].east == east.children['tl']
+    assert west.children['br'].east == east.children['bl']
+    assert east.children['tl'].west == west.children['tr']
+    assert east.children['bl'].west == west.children['br']
+
+
+def test_split_cell_south_sets_neighbours(mock_amg):
+    """If we split a cell, and then split the cell to the south, check that we
+    have the correct neighbour information
+    """
+
+    mock_amg.cells[4].split()  # middle cell
+    mock_amg.cells[1].split()  # south cell
+
+    south = mock_amg.cells[1]
+    north = mock_amg.cells[4]
+
+    assert south.children['tl'].north == north.children['bl']
+    assert south.children['tr'].north == north.children['br']
+    assert north.children['bl'].south == south.children['tl']
+    assert north.children['br'].south == south.children['tr']
+
+
+def test_split_cell_west_sets_neighbours(mock_amg):
+    """If we split a cell, and then split the cell to the west, check that we
+    have the correct neighbour information
+    """
+
+    mock_amg.cells[4].split()  # middle cell
+    mock_amg.cells[3].split()  # west cell
+
+    west = mock_amg.cells[3]
+    east = mock_amg.cells[4]
+
+    assert west.children['tr'].east == east.children['tl']
+    assert west.children['br'].east == east.children['bl']
+    assert east.children['tl'].west == west.children['tr']
+    assert east.children['bl'].west == west.children['br']
+
+
 def test_n_tiers_setting(mock_amg):
     """Checks that the current tier setting is stored in the multigrid
     """
