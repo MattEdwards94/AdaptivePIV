@@ -1,8 +1,11 @@
 import numpy as np
 import PIV.distribution as distribution
-import PIV.corr_window as corr_window
-import scipy.interpolate as interp
 import matplotlib.pyplot as plt
+import scipy.interpolate as interp
+import PIV.corr_window as corr_window
+import PIV.distribution as distribution
+import numpy as np
+import PIV
 
 
 class MultiGrid(distribution.Distribution):
@@ -215,7 +218,6 @@ class GridCell():
         self.south = None
         self.west = None
 
-    @property
     def has_children(self):
         return False if self.children is None else True
 
@@ -257,22 +259,58 @@ class GridCell():
         """This method creates 5 new correlation windows at the midpoints and
         centre of the 4 existing windows.
 
+        Checks for existing cells in neighbours
+
         Returns:
             CorrWindow: All 5 CorrWindows
                         left_mid, ctr_btm, ctr_mid, ctr_top, right_mid
         """
 
-        # create the new windows at mid-points.
-        # CorrWindow will throw error is non-int is passed
+        # create the new windows at mid-points
         ctr_x = (self.bl_win.x + self.br_win.x) / 2
         ctr_y = (self.bl_win.y + self.tl_win.y) / 2
 
-        left_mid = corr_window.CorrWindow(self.bl_win.x, ctr_y, self.bl_win.WS)
-        ctr_btm = corr_window.CorrWindow(ctr_x, self.bl_win.y, self.bl_win.WS)
-        ctr_mid = corr_window.CorrWindow(ctr_x, ctr_y, self.bl_win.WS)
-        ctr_top = corr_window.CorrWindow(ctr_x, self.tl_win.y, self.bl_win.WS)
-        right_mid = corr_window.CorrWindow(
-            self.br_win.x, ctr_y, self.bl_win.WS)
+        # check left
+        if self.west is not None and self.west.has_children():
+            left_mid = self.west.children['br'].id_tr
+        else:
+            win = corr_window.CorrWindow(self.bl_win.x, ctr_y,
+                                         self.bl_win.WS)
+            self.cw_list.append(win)
+            left_mid = self.multigrid.n_windows - 1
+
+        # check down
+        if self.south is not None and self.south.has_children():
+            ctr_btm = self.south.children['tl'].id_tr
+        else:
+            win = corr_window.CorrWindow(ctr_x, self.bl_win.y,
+                                         self.bl_win.WS)
+            self.cw_list.append(win)
+            ctr_btm = self.multigrid.n_windows - 1
+
+        # ctr_mid is the only window which is the only window guaranteed
+        # to not already exist
+        win = corr_window.CorrWindow(ctr_x, ctr_y, self.bl_win.WS)
+        self.cw_list.append(win)
+        ctr_mid = self.multigrid.n_windows - 1
+
+        # check up
+        if self.north is not None and self.north.has_children():
+            ctr_top = self.north.children['br'].id_bl
+        else:
+            win = corr_window.CorrWindow(ctr_x, self.tl_win.y,
+                                         self.bl_win.WS)
+            self.cw_list.append(win)
+            ctr_top = self.multigrid.n_windows - 1
+
+        # check right
+        if self.east is not None and self.east.has_children():
+            right_mid = self.east.children['bl'].id_tl
+        else:
+            win = corr_window.CorrWindow(self.br_win.x, ctr_y,
+                                         self.bl_win.WS)
+            self.cw_list.append(win)
+            right_mid = self.multigrid.n_windows - 1
 
         return left_mid, ctr_btm, ctr_mid, ctr_top, right_mid
 
@@ -281,19 +319,18 @@ class GridCell():
         neighbour list of surrounding cells
         """
 
+        # check the cell has not already been split
+        if self.has_children():
+            raise ValueError("This cell has already been split")
+
         # if the cell is tier 0 then we definitely don't need to split neighbs
         if self.tier > 0:
             self.split_neighbs_if_needed()
 
-        # create the 5 new correlation windows and add them to the list
-        self.cw_list.extend(self.create_new_corrWindows())
-
-        # get the ids of the new cw's for adding in the new cells
-        lm = self.multigrid.n_windows - 5
-        cb, cm, ct, rm = (lm + 1,
-                          lm + 2,
-                          lm + 3,
-                          lm + 4)
+        # create the 5 new correlation windows, if needed, and add
+        # new ones to the list
+        # return the ids of the new cw's for adding in the new cells
+        lm, cb, cm, ct, rm = self.create_new_corrWindows()
 
         # now create the cells
         bl = GridCell(self.multigrid, self.id_bl, cb, lm, cm)

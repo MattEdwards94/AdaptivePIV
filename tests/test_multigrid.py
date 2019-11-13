@@ -320,6 +320,81 @@ def test_split_cell_adds_new_windows_correctly(mock_amg):
     assert new_tr.cw_list is mock_amg.windows
     assert new_tr.coordinates == [(32, 32), (64, 32), (32, 64), (64, 64)]
 
+def test_re_split_cell_raises_error(mock_amg):
+    """We don't want to be able to re-split a cell as this might cause 
+    all sorts of weird behaviour
+    """
+    
+    # splitting once should work as normal
+    mock_amg.cells[4].split()
+
+    with pytest.raises(ValueError):
+        mock_amg.cells[4].split()
+    
+
+
+def test_split_north_shares_CorrWindow(mock_amg):
+    """When splitting a cell to the north of an already split cell, check that 
+    the window in the middle is shared
+    """
+
+    # split the central cell
+    mock_amg.cells[4].split()
+    # split the northerly cell
+    mock_amg.cells[7].split()
+
+    cw_old = mock_amg.cells[4].children['tr'].tl_win
+    cw_new = mock_amg.cells[7].children['br'].bl_win
+
+    assert cw_old is cw_new
+
+def test_split_east_shares_CorrWindow(mock_amg):
+    """When splitting a cell to the east of an already split cell, check that 
+    the window in the middle is shared
+    """
+
+    # split the central cell
+    mock_amg.cells[4].split()
+    # split the easterly cell
+    mock_amg.cells[5].split()
+
+    cw_old = mock_amg.cells[4].children['br'].tr_win
+    cw_new = mock_amg.cells[5].children['bl'].tl_win
+
+    assert cw_old is cw_new
+
+def test_split_south_shares_CorrWindow(mock_amg):
+    """When splitting a cell to the south of an already split cell, check that 
+    the window in the middle is shared
+    """
+
+    # split the central cell
+    mock_amg.cells[4].split()
+    # split the southerly cell
+    mock_amg.cells[1].split()
+
+    cw_old = mock_amg.cells[4].children['br'].bl_win
+    cw_new = mock_amg.cells[1].children['tr'].tl_win
+
+    assert cw_old is cw_new
+
+def test_split_west_shares_CorrWindow(mock_amg):
+    """When splitting a cell to the west of an already split cell, check that 
+    the window in the middle is shared
+    """
+
+    # split the central cell
+    mock_amg.cells[4].split()
+    # split the westerly cell
+    mock_amg.cells[3].split()
+
+    cw_old = mock_amg.cells[4].children['bl'].tl_win
+    cw_new = mock_amg.cells[3].children['br'].tr_win
+
+    assert cw_old is cw_new
+
+
+
 
 def test_split_cell_sets_new_tier_level(mock_amg):
     """Check that the tier level of the new cells is 1 more than the cell
@@ -394,9 +469,9 @@ def test_has_children_property(mock_amg):
     # split a cell so we can be sure it should have children
     mock_amg.cells[4].split()
 
-    assert mock_amg.cells[4].has_children
-    assert not mock_amg.cells[1].has_children
-    assert not mock_amg.cells[4].children['bl'].has_children
+    assert mock_amg.cells[4].has_children()
+    assert not mock_amg.cells[1].has_children()
+    assert not mock_amg.cells[4].children['bl'].has_children()
 
 
 def test_split_cell_splits_neighbours(mock_amg):

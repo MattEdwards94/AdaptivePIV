@@ -180,7 +180,6 @@ class WidimSettings():
                                     Default: 'struc_cub'
         """
 
-        self._init_ws = None
         self.init_WS = init_WS
         self.final_WS = final_WS
         self.WOR = WOR
