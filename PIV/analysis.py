@@ -6,6 +6,7 @@ import PIV.corr_window as corr_window
 import PIV.dense_predictor as dense_predictor
 import PIV.piv_image as piv_image
 import PIV.ensemble_solution as es
+import PIV.multiGrid as mg
 
 
 def ensemble_widim(flowtype, im_start, im_stop, settings):
@@ -30,6 +31,55 @@ def ensemble_widim(flowtype, im_start, im_stop, settings):
         ensR.add_displacement_field(dp)
 
     return ensR
+
+
+def multi_grid_analysis(img):
+    """Analyses an image using the multi_grid approach
+    """
+
+    init_WS = 129
+    final_WS = 65
+
+    dp = dense_predictor.DensePredictor(
+        np.zeros(img.dim), np.zeros(img.dim), img.mask)
+
+    amg = mg.MultiGrid(img.dim, spacing=64, WS=init_WS)
+    print("Grid created")
+
+    # correlate all windows
+    print("Correlating windows")
+    amg.correlate_all_windows(img, dp)
+
+    print("Validate vectors")
+    amg.validation_NMT_8NN()
+
+    print("Interpolating")
+    u, v = amg.interp_to_densepred()
+    dp = dense_predictor.DensePredictor(u, v, img.mask)
+
+    print("Deforming image")
+    img_def = img.deform_image(dp)
+
+    print("Spitting all cells")
+    amg.split_all_cells()
+    print(amg.grids[1].x_vec)
+    print(amg.grids[1].y_vec)
+    print("Setting all windows to 65 pixel windows")
+    for window in amg.windows:
+        window.WS = final_WS
+
+    # correlate all windows
+    print("Correlating windows")
+    amg.correlate_all_windows(img_def, dp)
+
+    print("Validate vectors")
+    amg.validation_NMT_8NN()
+
+    print("Interpolating")
+    u, v = amg.interp_to_densepred()
+    dp = dense_predictor.DensePredictor(u, v, img.mask)
+
+    return dp
 
 
 def widim(img, settings):
@@ -392,22 +442,26 @@ def run_script():
 
 
 if __name__ == '__main__':
-    # load the image
-    flowtype, im_number = 1, 1
-    img = piv_image.load_PIVImage(flowtype, im_number)
-    # img.plot_images()
-    settings = WidimSettings(init_WS=129,
-                             final_WS=65,
-                             n_iter_main=2)
+    # # load the image
+    # flowtype, im_number = 1, 1
+    # img = piv_image.load_PIVImage(flowtype, im_number)
+    # # img.plot_images()
+    # settings = WidimSettings(init_WS=129,
+    #                          final_WS=65,
+    #                          n_iter_main=2)
 
-    # analyse the image
-    dp = widim(img, settings)
+    # # analyse the image
+    # dp = widim(img, settings)
 
-    # print(dp.u[200, 100])
-    # dp.plot_displacement_field(width=0.001,
-    #                            headlength=2.5,
-    #                            headwidth=2,
-    #                            headaxislength=6)
+    # # print(dp.u[200, 100])
+    # # dp.plot_displacement_field(width=0.001,
+    # #                            headlength=2.5,
+    # #                            headwidth=2,
+    # #                            headaxislength=6)
 
-    # ensR = ensemble_widim(22, 1, 2, settings)
-    # ensR.save_to_file('test_file.mat')
+    # # ensR = ensemble_widim(22, 1, 2, settings)
+    # # ensR.save_to_file('test_file.mat')
+
+    img = piv_image.load_PIVImage(22, 1)
+
+    multi_grid_analysis(img)
