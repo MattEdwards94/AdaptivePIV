@@ -210,6 +210,16 @@ class WidimSettings():
 
         return True
 
+    def __repr__(self):
+        output = f" init_WS: {self.init_WS}\n"
+        output += f" final_WS: {self.final_WS}\n"
+        output += f" WOR: {self.WOR}\n"
+        output += f" n_iter_main: {self.n_iter_main}\n"
+        output += f" n_iter_ref: {self.n_iter_ref}\n"
+        output += f" vec_val: {self.vec_val}\n"
+        output += f" interp: {self.interp}\n"
+        return output
+
     @property
     def init_WS(self):
         return self._init_ws
