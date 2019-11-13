@@ -133,49 +133,49 @@ class MultiGrid(distribution.Distribution):
         multi-level interpolation
         """
 
-        # get the displacement values for the coarsest level
-        u0, v0 = self.grids[0].get_values()
+        # define evaluation domain
+        xe, ye = np.arange(self.img_dim[1]), np.arange(self.img_dim[0])
 
-        # get the coarse interpolant
+        # get coarse interpolation
+        u0, v0 = self.grids[0].get_values()
         f0_u = interp.interp2d(self.grids[0].x_vec,
                                self.grids[0].y_vec,
                                u0, kind='cubic')
         f0_v = interp.interp2d(self.grids[0].x_vec,
                                self.grids[0].y_vec,
                                v0, kind='cubic')
+        u0_eval, v0_eval = f0_u(xe, ye), f0_v(xe, ye)
+        u_soln, v_soln = u0_eval, v0_eval
 
-        # evaluate the coase interpolant over the domain
-        xe = np.arange(self.img_dim[1])
-        ye = np.arange(self.img_dim[0])
+        # loop over number of tiers
+        for tn in range(1, self.max_tier+1):
 
-        u0_eval = f0_u(xe, ye)
-        v0_eval = f0_v(xe, ye)
+            # get the interpolated values at each of the finer grid points
+            h = self.grids[tn].spacing
+            u_int = u_soln[::h, ::h]
+            v_int = v_soln[::h, ::h]
 
-        # get the coarsely interpolated values at the finer grid points
-        h = self.grids[1].spacing
-        u0_inter = u0_eval[::h, ::h]
-        v0_inter = v0_eval[::h, ::h]
+            # get the delta to the assumed solution
+            u1, v1 = self.grids[tn].get_values()
+            u_delta = u1 - u_int
+            v_delta = v1 - v_int
+            u_delta[np.isnan(u_delta)] = 0
+            v_delta[np.isnan(v_delta)] = 0
 
-        # calculate delta to the coarse interpolation at the fine grid points
-        u1, v1 = self.grids[1].get_values()
-        u1_delta = u1 - u0_inter
-        u1_delta[np.isnan(u1_delta)] = 0
-        v1_delta = v1 - v0_inter
-        v1_delta[np.isnan(v1_delta)] = 0
+            # interpolate the delta
+            f_u = interp.interp2d(self.grids[tn].x_vec,
+                                  self.grids[tn].y_vec,
+                                  u_delta, kind='cubic')
+            f_v = interp.interp2d(self.grids[tn].x_vec,
+                                  self.grids[tn].y_vec,
+                                  v_delta, kind='cubic')
 
-        # interpolate the delta
-        f1_u = interp.interp2d(self.grids[1].x_vec,
-                               self.grids[1].y_vec,
-                               u1_delta, kind='cubic')
-        f1_v = interp.interp2d(self.grids[1].x_vec,
-                               self.grids[1].y_vec,
-                               v1_delta, kind='cubic')
+            # evaluate the interpolant over the domain and update solution
+            u_eval, v_eval = f_u(xe, ye), f_v(xe, ye)
+            u_soln += u_eval
+            v_soln += v_eval
 
-        # evaluate the delta over the domain
-        u1_eval = f1_u(xe, ye)
-        v1_eval = f1_v(xe, ye)
-
-        return u0_eval + u1_eval, v0_eval + v1_eval
+        return u_soln, v_soln
 
 
 class GridCell():
@@ -459,16 +459,16 @@ class Grid():
             nd_array, nd_array: array of u and v values, respectively
         """
         # allocate space for 2 arrays of values
-        u_out, v_out = (np.zeros((self.ny, self.nx)),
-                        np.zeros((self.ny, self.nx)))
+        u_out, v_out = (np.empty((self.ny, self.nx)),
+                        np.empty((self.ny, self.nx)))
+        u_out[:], v_out[:] = np.nan, np.nan
         for yy in range(self.ny):
             for xx in range(self.nx):
                 try:
                     u_out[yy][xx] = self._array[yy][xx].u
                     v_out[yy][xx] = self._array[yy][xx].v
                 except AttributeError:
-                    u_out[yy][xx] = None
-                    v_out[yy][xx] = None
+                    pass
 
         return u_out, v_out
 
