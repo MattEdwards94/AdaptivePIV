@@ -413,6 +413,7 @@ def test_validation_NMT_8NN_stores_old_value():
     for xi, yi, ui, vi in zip(x, y, u, v):
         cw = corr_window.CorrWindow(xi, yi, WS=31)
         cw.u, cw.v = ui, vi
+        cw.is_masked = False
         dist.windows.append(cw)
 
     # now run the vector validation
@@ -483,6 +484,31 @@ def test_outlier_replacement_is_median_of_valid_neighbours():
     u, v = distribution.outlier_replacement(flag, u, v, nb_ind)
     assert u[10] == u_exp
     assert v[10] == v_exp
+
+
+def test_validation_NMT_8NN_ignores_masked_values():
+
+    # creates a random displacement field
+    x, y = np.arange(49) * 1, np.arange(49) * 1
+    u, v = np.random.rand(49), np.random.rand(49)
+
+    # create distribution object, by creating all the corrWindow objects
+    dist = distribution.Distribution()
+    for ii, (xi, yi, ui, vi) in enumerate(zip(x, y, u, v)):
+        cw = corr_window.CorrWindow(xi, yi, WS=31)
+        cw.u, cw.v = ui, vi
+        if not (ii % 7):
+            cw.is_masked = True
+        else:
+            cw.is_masked = False
+        dist.windows.append(cw)
+
+    # now run the vector validation
+    flag = dist.validation_NMT_8NN()
+
+    # check the flag compared to the expected validation
+    # a very simple test is just to make sure the flag length is the right size
+    assert len(flag) == 42
 
 
 def test_interpolate_checks_method(mock_dist):

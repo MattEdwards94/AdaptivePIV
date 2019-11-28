@@ -168,7 +168,7 @@ class Distribution:
 
         # detection
         # find neighbours
-        xy, uv = self.get_all_xy(), self.get_all_uv()
+        xy, uv = self.get_unmasked_xy(), self.get_unmasked_uv()
         u, v = uv[:, 0], uv[:, 1]
         nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
         nb_dist, nb_ind = nbrs.kneighbors(xy)
@@ -186,10 +186,14 @@ class Distribution:
 
         # update values in CorrWindow objects
         for (cw, outlier, u_i, v_i) in zip(self.windows, flag, u, v):
+            if cw.is_masked is True:
+                continue
             if outlier == 1:
                 cw.u_pre_validation, cw.v_pre_validation = cw.u, cw.v
                 cw.u, cw.v = u_i, v_i
                 cw.flag = outlier
+
+        return flag
 
     def interp_to_densepred(self, method, eval_dim):
         """
