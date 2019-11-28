@@ -287,6 +287,36 @@ def test_correlate_checks_if_location_is_masked():
     assert snr == 0
 
 
+def test_correlate_corr_window_stores_mask_status():
+    """
+    We want the mask status to be stored such that we can quickly select only
+    the non masked windows later
+    """
+
+    # create image object with a masked region
+    IA, IB = np.random.rand(100, 100), np.random.rand(100, 100)
+    # mask on the right
+    left, right = np.ones((100, 50)), np.zeros((100, 50))
+    mask = np.hstack((left, right))
+    img = piv_image.PIVImage(IA, IB, mask)
+    u, v = np.zeros((100, 100)), np.zeros((100, 100))
+    dp = dense_predictor.DensePredictor(u, v, mask)
+
+    # create corr window in masked region and check that is_masked is true
+    x, y, WS = 75, 25, 31
+    cw = corr_window.CorrWindow(x, y, WS)
+    cw.correlate(img, dp)
+
+    assert cw.is_masked is True
+
+    # create corr window in non masked region and check that is_masked is false
+    x, y, WS = 25, 25, 31
+    cw = corr_window.CorrWindow(x, y, WS)
+    cw.correlate(img, dp)
+
+    assert cw.is_masked is False
+
+
 def test_correlate_combines_with_densepredictor():
     """
     Need to make sure that the average of the local densepredictor is
