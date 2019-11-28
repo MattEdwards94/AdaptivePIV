@@ -183,6 +183,45 @@ def test_get_all_xy_returns_array_of_xy_locations(mock_cwList):
                        np.array([[20, 30], [30, 45], [40, 60]]))
 
 
+def test_get_unmasked_xy_raise_error(mock_cwList):
+    """
+    When we want to perform vector validation, we don't want to be using the
+    masked vectors for the comparison, as this will significantly bias the
+    results
+
+    If, however, we have not correlated then the information will not be
+    stored in the corr_window and should therefore raise and error
+    """
+
+    # create distribution
+    dist = distribution.Distribution(mock_cwList)
+
+    # attempt to call method without mask data stored, raise error
+    with pytest.raises(ValueError):
+        dist.get_unmasked_xy()
+
+
+def test_get_unmasked_xy_returns_only_unmasked(mock_cwList):
+    """
+    Check that the returned corr_windows don't include the ones that we
+    define as being masked
+    """
+
+    # create distribution
+    dist = distribution.Distribution(mock_cwList)
+
+    # go through the distribution and set one to be masked, set the rest to
+    # be unmasked - set the second one to be masked
+    for ii, window in enumerate(dist.windows):
+        if ii == 1:
+            window.is_masked = True
+        else:
+            window.is_masked = False
+
+    exp = np.array([[20, 30], [40, 60]])
+    assert np.allclose(dist.get_unmasked_xy(), exp)
+
+
 def test_get_all_uv_returns_array_of_uv_locations(mock_cwList):
     """
     test that an array of all uv values are returned
@@ -212,6 +251,96 @@ def test_get_all_uv_returns_array_of_uv_locations(mock_cwList):
                      np.array([[10, 20],
                                [10, 20],
                                [10, 20]]))
+
+
+def test_get_unmasked_uv_raise_error(mock_cwList):
+    """
+    When we want to perform vector validation, we don't want to be using the
+    masked vectors for the comparison, as this will significantly bias the
+    results
+
+    If, however, we have not correlated then the information will not be
+    stored in the corr_window and should therefore raise and error
+    """
+
+    dist = distribution.Distribution(mock_cwList)
+
+    # attempt to call method without mask data stored, raise error
+    with pytest.raises(ValueError):
+        dist.get_unmasked_uv()
+
+
+def test_get_unmasked_uv_returns_only_unmasked(mock_cwList):
+    """
+    Check that the returned corr_windows don't include the ones that we
+    define as being masked
+    """
+
+    # create distribution
+    dist = distribution.Distribution(mock_cwList)
+
+    # go through the distribution and set one to be masked, set the rest to
+    # be unmasked - set the second one to be masked
+    for ii, window in enumerate(dist.windows):
+        if ii == 1:
+            window.is_masked = True
+            window.u, window.v = 15, 25
+        else:
+            window.is_masked = False
+            window.u, window.v = 10, 20
+
+    exp = np.array([[10, 20], [10, 20]])
+    assert np.allclose(dist.get_unmasked_uv(), exp)
+
+
+def test_get_all_WS_returns_array_of_WS(mock_cwList):
+    """
+    test that an array of all WS values are returned
+    """
+
+    dist = distribution.Distribution(mock_cwList)
+    act = dist.get_all_WS()
+    exp = np.array([41, 51, 31])
+
+    assert np.allclose(exp, dist.get_all_WS())
+
+
+def test_get_unmasked_WS_raise_error(mock_cwList):
+    """
+    When we want to perform vector validation, we don't want to be using the
+    masked vectors for the comparison, as this will significantly bias the
+    results
+
+    If, however, we have not correlated then the information will not be
+    stored in the corr_window and should therefore raise and error
+    """
+
+    dist = distribution.Distribution(mock_cwList)
+
+    # attempt to call method without mask data stored, raise error
+    with pytest.raises(ValueError):
+        dist.get_unmasked_WS()
+
+
+def test_get_unmasked_WS_returns_only_unmasked(mock_cwList):
+    """
+    Check that the returned corr_windows don't include the ones that we
+    define as being masked
+    """
+
+    # create distribution
+    dist = distribution.Distribution(mock_cwList)
+
+    # go through the distribution and set one to be masked, set the rest to
+    # be unmasked - set the second one to be masked
+    for ii, window in enumerate(dist.windows):
+        if ii == 1:
+            window.is_masked = True
+        else:
+            window.is_masked = False
+
+    exp = np.array([41, 31])
+    assert np.allclose(dist.get_unmasked_WS(), exp)
 
 
 def test_NMT_detection_selects_correct_neighbour_values():

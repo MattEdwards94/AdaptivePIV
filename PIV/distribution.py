@@ -54,13 +54,32 @@ class Distribution:
 
     def get_all_xy(self):
         """
-        Returns a (N, 2) array of all the stored locations
+        Returns a (N, 2) array of all the stored locations where N is the 
+        total number of corr windows
 
         Returns:
             ndarray: (N, 2) array of all locations [x, y]
         """
-
         return np.array([[cw.x, cw.y] for cw in self.windows])
+
+    def get_unmasked_xy(self):
+        """
+        Returns a (N, 2) array of all unmasked stored locations where N is the 
+        number of unmasked CorrWindows
+
+        If "is_masked" is not set then an error is raised.
+
+        Returns:
+            ndarray: (N, 2) array of all unmasked locations [x, y]
+        """
+        if self.windows[0].is_masked is None:
+            raise ValueError("Mask status not known")
+        out_list = []
+        for cw in self.windows:
+            if cw.is_masked is False:
+                out_list.append([cw.x, cw.y])
+
+        return np.array(out_list)
 
     def get_all_uv(self):
         """
@@ -69,8 +88,26 @@ class Distribution:
         Returns:
             ndarray: (N, 2) array of all vectors [u, v]
         """
-
         return np.array([[cw.u, cw.v] for cw in self.windows])
+
+    def get_unmasked_uv(self):
+        """
+        Returns a (N, 2) array of all unmasked stored vectors where N is the 
+        number of unmasked CorrWindows
+
+        If "is_masked" is not set then an error is raised.
+
+        Returns:
+            ndarray: (N, 2) array of all unmasked vectors [x, y]
+        """
+        if self.windows[0].is_masked is None:
+            raise ValueError("Mask status not known")
+        out_list = []
+        for cw in self.windows:
+            if cw.is_masked is False:
+                out_list.append([cw.u, cw.v])
+
+        return np.array(out_list)
 
     def get_all_WS(self):
         """
@@ -80,6 +117,25 @@ class Distribution:
             ndarray: (N, 1) array of all window sizes
         """
         return np.array([cw.WS for cw in self.windows])
+
+    def get_unmasked_WS(self):
+        """
+        Returns a (N, 2) array of all unmasked stored WS's where N is the 
+        number of unmasked CorrWindows
+
+        If "is_masked" is not set then an error is raised.
+
+        Returns:
+            ndarray: (N, 2) array of all unmasked window sizes [x, y]
+        """
+        if self.windows[0].is_masked is None:
+            raise ValueError("Mask status not known")
+        out_list = []
+        for cw in self.windows:
+            if cw.is_masked is False:
+                out_list.append(cw.WS)
+
+        return np.array(out_list)
 
     def get_flag_values(self):
         """
