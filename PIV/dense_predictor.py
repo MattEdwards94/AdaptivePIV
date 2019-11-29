@@ -346,6 +346,12 @@ class DensePredictor:
         self.u[inter] = 0
         self.v[inter] = 0
 
+    def magnitude(self):
+        """
+        Returns the magnitude of the densepredictor
+        """
+        return np.sqrt(self.u * self.u + self.v * self.v)
+
     def plot_displacement_field(self, **kwargs):
         """
         Plots the displacement field
@@ -356,4 +362,10 @@ class DensePredictor:
 
         fig, ax = plt.subplots()
         ax.quiver(xv, yv, u, v, **kwargs)
+        plt.show()
+
+    def plot_contour_magnitude(self, **kwargs):
+        fig, ax = plt.subplots()
+        im = ax.imshow(self.magnitude())
+        ax.figure.colorbar(im)
         plt.show()

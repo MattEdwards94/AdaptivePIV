@@ -447,3 +447,17 @@ def test_apply_mask_sets_mask_regions_to_zero():
     assert np.allclose(dp.u, uExp)
     assert np.allclose(dp.v, vExp)
     assert np.allclose(dp.mask, mask)
+
+
+def test_magnitude():
+    """
+    Check that the magnitude returns the euclidean norm of the velocity
+    """
+
+    u1 = np.arange(1, 82).reshape((9, 9))
+    u2 = np.arange(101, 182).reshape((9, 9))
+
+    dp1 = dense_predictor.DensePredictor(u1, u2)
+    exp = np.sqrt(u1*u1 + u2*u2)
+
+    assert np.allclose(dp1.magnitude(), exp)
