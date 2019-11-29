@@ -320,17 +320,17 @@ def test_split_cell_adds_new_windows_correctly(mock_amg):
     assert new_tr.cw_list is mock_amg.windows
     assert new_tr.coordinates == [(32, 32), (64, 32), (32, 64), (64, 64)]
 
+
 def test_re_split_cell_raises_error(mock_amg):
     """We don't want to be able to re-split a cell as this might cause 
     all sorts of weird behaviour
     """
-    
+
     # splitting once should work as normal
     mock_amg.cells[4].split()
 
     with pytest.raises(ValueError):
         mock_amg.cells[4].split()
-    
 
 
 def test_split_north_shares_CorrWindow(mock_amg):
@@ -348,6 +348,7 @@ def test_split_north_shares_CorrWindow(mock_amg):
 
     assert cw_old is cw_new
 
+
 def test_split_east_shares_CorrWindow(mock_amg):
     """When splitting a cell to the east of an already split cell, check that 
     the window in the middle is shared
@@ -362,6 +363,7 @@ def test_split_east_shares_CorrWindow(mock_amg):
     cw_new = mock_amg.cells[5].children['bl'].tl_win
 
     assert cw_old is cw_new
+
 
 def test_split_south_shares_CorrWindow(mock_amg):
     """When splitting a cell to the south of an already split cell, check that 
@@ -378,6 +380,7 @@ def test_split_south_shares_CorrWindow(mock_amg):
 
     assert cw_old is cw_new
 
+
 def test_split_west_shares_CorrWindow(mock_amg):
     """When splitting a cell to the west of an already split cell, check that 
     the window in the middle is shared
@@ -392,8 +395,6 @@ def test_split_west_shares_CorrWindow(mock_amg):
     cw_new = mock_amg.cells[3].children['br'].tr_win
 
     assert cw_old is cw_new
-
-
 
 
 def test_split_cell_sets_new_tier_level(mock_amg):
@@ -787,7 +788,7 @@ def test_get_values_from_new_grid(mock_amg):
     assert np.allclose(vv, expv)
 
 
-def test_interp_to_densepred_is_same_for_one_gridlevel(mock_amg):
+def test_cubic_interp_to_densepred_is_same_for_one_gridlevel(mock_amg):
     """
     Check that if there is only one grid tier present, then the interpolation
     should be identical to a regular grid
@@ -818,7 +819,38 @@ def test_interp_to_densepred_is_same_for_one_gridlevel(mock_amg):
     assert np.allclose(v_exp, v_act)
 
 
-def test_interp_to_densepred_is_similar_for_two_levels(mock_amg):
+def test_linear_interp_to_densepred_is_same_for_one_gridlevel(mock_amg):
+    """
+    Check that if there is only one grid tier present, then the interpolation
+    should be identical to a regular grid
+    """
+
+    # obtain the reference solution
+    coarse_grid = mock_amg.grids[0]
+    ny, nx = coarse_grid.ny, coarse_grid.nx
+    u_ref, v_ref = np.random.rand(ny, nx), np.random.rand(ny, nx)
+
+    # set the values of the windows to these values
+    for ii in range(ny):
+        for jj in range(nx):
+            mock_amg.grids[0]._array[ii][jj].u = u_ref[ii][jj]
+            mock_amg.grids[0]._array[ii][jj].v = v_ref[ii][jj]
+
+    # get the expected interpolations
+    xe, ye = np.arange(mock_amg.img_dim[1]), np.arange(mock_amg.img_dim[0])
+    f_u = interp.interp2d(coarse_grid.x_vec, coarse_grid.y_vec,
+                          u_ref, kind='linear')
+    u_exp = f_u(xe, ye)
+    f_v = interp.interp2d(coarse_grid.x_vec, coarse_grid.y_vec,
+                          v_ref, kind='linear')
+    v_exp = f_v(xe, ye)
+    u_act, v_act = mock_amg.interp_to_densepred(method='linear')
+
+    assert np.allclose(u_exp, u_act)
+    assert np.allclose(v_exp, v_act)
+
+
+def test_cubic_interp_to_densepred_is_similar_for_two_levels(mock_amg):
     """
     If we split every cell, then the interpolant should be very similar to 
     the interpolation if we interpolated every point at just one level. 
@@ -860,6 +892,53 @@ def test_interp_to_densepred_is_similar_for_two_levels(mock_amg):
     v_exp = f_v(xe, ye)
 
     u_act, v_act = mock_amg.interp_to_densepred()
+
+    assert np.allclose(u_exp, u_act)
+    assert np.allclose(v_exp, v_act)
+
+
+def test_linear_interp_to_densepred_is_similar_for_two_levels(mock_amg):
+    """
+    If we split every cell, then the interpolant should be very similar to 
+    the interpolation if we interpolated every point at just one level. 
+    """
+
+    # split all the cells so that we have two tiers
+    mock_amg.split_all_cells()
+    coarse_grid, fine_grid = mock_amg.grids[0], mock_amg.grids[1]
+
+    # obtain the reference solution for the whole domain
+    nyf, nxf = fine_grid.ny, fine_grid.nx
+    u_ref, v_ref = np.random.rand(nyf, nxf), np.random.rand(nyf, nxf)
+
+    # set all the window values
+    for ii in range(nyf):
+        # determine if the value should go onto the coarse or fine tier
+        # coarse tiers are 0, 2, 4, etc and so will return 0 (False) when
+        # modded with 2
+        coarse_i = False if ii % 2 else True
+        for jj in range(nxf):
+            # determine if the value should go onto the coarse or fine tier
+            coarse_j = False if jj % 2 else True
+            # if both coarse_i, coarse_j are True, then we are on the coarse
+            # grid, else we are on the fine grid
+            if coarse_i and coarse_j:
+                mock_amg.grids[0]._array[ii//2][jj//2].u = u_ref[ii][jj]
+                mock_amg.grids[0]._array[ii//2][jj//2].v = v_ref[ii][jj]
+            else:
+                mock_amg.grids[1]._array[ii][jj].u = u_ref[ii][jj]
+                mock_amg.grids[1]._array[ii][jj].v = v_ref[ii][jj]
+
+    # get the expected interpolations
+    xe, ye = np.arange(mock_amg.img_dim[1]), np.arange(mock_amg.img_dim[0])
+    f_u = interp.interp2d(fine_grid.x_vec, fine_grid.y_vec,
+                          u_ref, kind='linear')
+    u_exp = f_u(xe, ye)
+    f_v = interp.interp2d(fine_grid.x_vec, fine_grid.y_vec,
+                          v_ref, kind='linear')
+    v_exp = f_v(xe, ye)
+
+    u_act, v_act = mock_amg.interp_to_densepred(method='linear')
 
     assert np.allclose(u_exp, u_act)
     assert np.allclose(v_exp, v_act)

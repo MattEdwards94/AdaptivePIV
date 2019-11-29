@@ -127,13 +127,18 @@ class MultiGrid(distribution.Distribution):
         for i in range(n):
             self.cells[i].split()
 
-    def validation_NMT_8NN(self):
-        raise ValueError("Not defined for MultiGrid validation")
-
-    def interp_to_densepred(self):
+    def interp_to_densepred(self, method='cubic'):
         """
         Interpolate the multigrid onto a pixelwise densepredictor using 
         multi-level interpolation
+
+        Works by interpolating the coarse mesh to obtain the baseline. 
+        Refinements are then treated as a delta to the coarse interpolant.        
+
+        Args:
+             method (string): Either linear or cubic
+                              Cubic represents a cubic spline which is 
+                              c2 continuous
         """
 
         # define evaluation domain
@@ -143,10 +148,10 @@ class MultiGrid(distribution.Distribution):
         u0, v0 = self.grids[0].get_values()
         f0_u = interp.interp2d(self.grids[0].x_vec,
                                self.grids[0].y_vec,
-                               u0, kind='cubic')
+                               u0, kind=method)
         f0_v = interp.interp2d(self.grids[0].x_vec,
                                self.grids[0].y_vec,
-                               v0, kind='cubic')
+                               v0, kind=method)
         u0_eval, v0_eval = f0_u(xe, ye), f0_v(xe, ye)
         u_soln, v_soln = u0_eval, v0_eval
 
@@ -168,10 +173,10 @@ class MultiGrid(distribution.Distribution):
             # interpolate the delta
             f_u = interp.interp2d(self.grids[tn].x_vec,
                                   self.grids[tn].y_vec,
-                                  u_delta, kind='cubic')
+                                  u_delta, kind=method)
             f_v = interp.interp2d(self.grids[tn].x_vec,
                                   self.grids[tn].y_vec,
-                                  v_delta, kind='cubic')
+                                  v_delta, kind=method)
 
             # evaluate the interpolant over the domain and update solution
             u_eval, v_eval = f_u(xe, ye), f_v(xe, ye)

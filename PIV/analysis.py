@@ -79,7 +79,7 @@ def multi_grid_analysis(img):
     u, v = amg.interp_to_densepred()
     dp = dense_predictor.DensePredictor(u, v, img.mask)
 
-    return dp
+    return dp, amg
 
 
 def widim(img, settings):
