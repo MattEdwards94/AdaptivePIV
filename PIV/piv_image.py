@@ -265,6 +265,15 @@ class PIVImage:
         plt.title("IB")
         plt.show()
 
+    def plot_mask(self):
+        """
+        Plots the mask as a black and white image, where the mask it black
+        """
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        im = ax.imshow(self.mask)
+
 
 def load_images(flowtype, im_number):
     """

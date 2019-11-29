@@ -282,7 +282,7 @@ def test_split_cell_sets_new_ws_to_bl(mock_amg):
 def test_cell_coordinates(mock_amg):
     """Check that calling coordinates returns a list of tuples of coordinates
     """
-    expected = [(0, 0), (64, 0), (0, 64), (64, 64)]
+    expected = [(0, 0), (64, 0), (64, 64), (0, 64)]
     assert mock_amg.cells[0].coordinates == expected
 
 
@@ -944,13 +944,13 @@ def test_linear_interp_to_densepred_is_similar_for_two_levels(mock_amg):
     assert np.allclose(v_exp, dp_soln.v)
 
 
-def test_get_bottom_level_cells(mock_amg):
+def test_get_leaf_cells(mock_amg):
     """
     Check that the method returns a list of all the bottom level cells
     """
 
     # for no splitting, this should be the same as the cell list
-    assert mock_amg.bottom_level_cells() == mock_amg.cells
+    assert mock_amg.get_all_leaf_cells() == mock_amg.cells
 
     # split the middle cell
     mock_amg.cells[4].split()
@@ -961,4 +961,4 @@ def test_get_bottom_level_cells(mock_amg):
     exp_list.extend(mock_amg.cells[-4:])
     exp_list.extend(mock_amg.cells[5:-4])
 
-    assert exp_list == mock_amg.bottom_level_cells()
+    assert exp_list == mock_amg.get_all_leaf_cells()

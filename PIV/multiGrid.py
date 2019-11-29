@@ -2,6 +2,7 @@ import numpy as np
 import PIV.distribution as distribution
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.collections as collections
 import scipy.interpolate as interp
 import PIV.corr_window as corr_window
 import PIV.distribution as distribution
@@ -204,8 +205,42 @@ class MultiGrid(distribution.Distribution):
 
         return dp_splint.magnitude()
 
-    def bottom_level_cells(self):
-        """Returns a list of the bottom level cells in the domain, 
+    def adaptive_split_peak_value_cells(self, obj_func):
+        """Split cells according to the input objective function.
+
+        Considers the peak value of the objective function within a cell
+        """
+
+        # get the leaf cells
+        leaf_cells = np.array(self.get_all_leaf_cells())
+
+        peak_values = []
+        # get peak value within cells
+        for cell in leaf_cells:
+            bl, tr = cell.coordinates[0], cell.coordinates[2]
+            # get view into splint
+            sub_region = obj_func[bl[1]:tr[1], bl[0]:tr[0]]
+            peak_values.append(np.max(sub_region))
+
+        I = np.argsort(peak_values)
+        # pv = peak_values[I[::-1]]
+        lc = leaf_cells[I[::-1]]
+
+        split_counter = 0
+        max_splits = len(I)//2
+
+        for cell in lc:
+            try:
+                cell.split()
+                # assume that is split, otherwise an error would be thrown
+                split_counter += 1
+                if split_counter == max_splits:
+                    break
+            except:
+                continue
+
+    def get_all_leaf_cells(self):
+        """Returns a list of leaf cells in the domain, 
             i.e cells without any children
 
             loop over top cells, if the cell has no children then add to 
@@ -229,20 +264,24 @@ class MultiGrid(distribution.Distribution):
 
         return out_list
 
-    def plot_grid(self):
+    def plot_grid(self, ax=None):
         """Plots the grid in the conventional manner
         """
 
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
 
-        for cell in self.bottom_level_cells():
+        rects = []
+        for cell in self.get_all_leaf_cells():
             # rectangle for the bottom level cell
             bl, tr = cell.coordinates[0], cell.coordinates[2]
             height, width = tr[1] - bl[1], tr[0] - bl[0]
-            rect = patches.Rectangle(bl, width, height, fill=False)
-            ax.add_patch(rect)
+            rects.append(patches.Rectangle(bl, width, height, fill=False))
 
+        rect_collection = collections.PatchCollection(
+            rects, match_original=True)
+        ax.add_collection(rect_collection)
         ax.set_xlim([0, self.img_dim[1]])
         ax.set_ylim([0, self.img_dim[0]])
         fig.show()
