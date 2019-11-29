@@ -192,6 +192,16 @@ class MultiGrid(distribution.Distribution):
 
         return PIV.dense_predictor.DensePredictor(u_soln, v_soln)
 
+    def splint(self):
+        """Calculates the objective function by subtracting the linear 
+        interpolant from the cubic interpolant
+        """
+
+        dp_cub = self.interp_to_densepred(method='cubic')
+        dp_lin = self.interp_to_densepred(method='linear')
+        dp_splint = dp_cub - dp_lin
+
+        return dp_splint.magnitude()
 
     def bottom_level_cells(self):
         """Returns a list of the bottom level cells in the domain, 
