@@ -88,6 +88,8 @@ class MultiGrid(distribution.Distribution):
                 if cc != 0:
                     self.cells[cn].west = self.cells[cn - 1]
 
+        self.cells_in_top_tier = len(self.cells)
+
     @property
     def n_windows(self):
         return len(self.windows)
@@ -190,6 +192,31 @@ class MultiGrid(distribution.Distribution):
 
         return PIV.dense_predictor.DensePredictor(u_soln, v_soln)
 
+
+    def bottom_level_cells(self):
+        """Returns a list of the bottom level cells in the domain, 
+            i.e cells without any children
+
+            loop over top cells, if the cell has no children then add to 
+            the list. if it has children then recursively progress down the 
+            cells adding those which have no children
+        """
+
+        out_list = []
+
+        def add_children(cell, out_list):
+            """Allow for recursion
+            """
+            if not cell.has_children():
+                out_list.append(cell)
+            else:
+                for child_cell in cell.children.values():
+                    add_children(child_cell, out_list)
+
+        for cell in self.cells[0:self.cells_in_top_tier]:
+            add_children(cell, out_list)
+
+        return out_list
 
 class GridCell():
     def __init__(self, multigrid, id_bl, id_br, id_tl, id_tr):
@@ -407,8 +434,8 @@ class GridCell():
         """
         return [(self.bl_win.x, self.bl_win.y),
                 (self.br_win.x, self.br_win.y),
-                (self.tl_win.x, self.tl_win.y),
-                (self.tr_win.x, self.tr_win.y), ]
+                (self.tr_win.x, self.tr_win.y),
+                (self.tl_win.x, self.tl_win.y), ]
 
     def update_child_neighbours(self):
         """
