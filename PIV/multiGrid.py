@@ -1,6 +1,7 @@
 import numpy as np
 import PIV.distribution as distribution
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import scipy.interpolate as interp
 import PIV.corr_window as corr_window
 import PIV.distribution as distribution
@@ -227,6 +228,25 @@ class MultiGrid(distribution.Distribution):
             add_children(cell, out_list)
 
         return out_list
+
+    def plot_grid(self):
+        """Plots the grid in the conventional manner
+        """
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+
+        for cell in self.bottom_level_cells():
+            # rectangle for the bottom level cell
+            bl, tr = cell.coordinates[0], cell.coordinates[2]
+            height, width = tr[1] - bl[1], tr[0] - bl[0]
+            rect = patches.Rectangle(bl, width, height, fill=False)
+            ax.add_patch(rect)
+
+        ax.set_xlim([0, self.img_dim[1]])
+        ax.set_ylim([0, self.img_dim[0]])
+        fig.show()
+
 
 class GridCell():
     def __init__(self, multigrid, id_bl, id_br, id_tl, id_tr):
