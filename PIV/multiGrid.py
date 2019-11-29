@@ -139,6 +139,11 @@ class MultiGrid(distribution.Distribution):
              method (string): Either linear or cubic
                               Cubic represents a cubic spline which is 
                               c2 continuous
+
+        Returns:
+            interpolation (DensePredictor): solution interpolated onto a 
+                                            densepredictor
+
         """
 
         # define evaluation domain
@@ -183,7 +188,7 @@ class MultiGrid(distribution.Distribution):
             u_soln += u_eval
             v_soln += v_eval
 
-        return u_soln, v_soln
+        return PIV.dense_predictor.DensePredictor(u_soln, v_soln)
 
 
 class GridCell():

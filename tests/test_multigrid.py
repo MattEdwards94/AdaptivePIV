@@ -813,10 +813,10 @@ def test_cubic_interp_to_densepred_is_same_for_one_gridlevel(mock_amg):
     f_v = interp.interp2d(coarse_grid.x_vec, coarse_grid.y_vec,
                           v_ref, kind='cubic')
     v_exp = f_v(xe, ye)
-    u_act, v_act = mock_amg.interp_to_densepred()
+    dp_soln = mock_amg.interp_to_densepred()
 
-    assert np.allclose(u_exp, u_act)
-    assert np.allclose(v_exp, v_act)
+    assert np.allclose(u_exp, dp_soln.u)
+    assert np.allclose(v_exp, dp_soln.v)
 
 
 def test_linear_interp_to_densepred_is_same_for_one_gridlevel(mock_amg):
@@ -844,10 +844,10 @@ def test_linear_interp_to_densepred_is_same_for_one_gridlevel(mock_amg):
     f_v = interp.interp2d(coarse_grid.x_vec, coarse_grid.y_vec,
                           v_ref, kind='linear')
     v_exp = f_v(xe, ye)
-    u_act, v_act = mock_amg.interp_to_densepred(method='linear')
+    dp_soln = mock_amg.interp_to_densepred(method='linear')
 
-    assert np.allclose(u_exp, u_act)
-    assert np.allclose(v_exp, v_act)
+    assert np.allclose(u_exp, dp_soln.u)
+    assert np.allclose(v_exp, dp_soln.v)
 
 
 def test_cubic_interp_to_densepred_is_similar_for_two_levels(mock_amg):
@@ -891,10 +891,10 @@ def test_cubic_interp_to_densepred_is_similar_for_two_levels(mock_amg):
                           v_ref, kind='cubic')
     v_exp = f_v(xe, ye)
 
-    u_act, v_act = mock_amg.interp_to_densepred()
+    dp_soln = mock_amg.interp_to_densepred()
 
-    assert np.allclose(u_exp, u_act)
-    assert np.allclose(v_exp, v_act)
+    assert np.allclose(u_exp, dp_soln.u)
+    assert np.allclose(v_exp, dp_soln.v)
 
 
 def test_linear_interp_to_densepred_is_similar_for_two_levels(mock_amg):
@@ -938,7 +938,7 @@ def test_linear_interp_to_densepred_is_similar_for_two_levels(mock_amg):
                           v_ref, kind='linear')
     v_exp = f_v(xe, ye)
 
-    u_act, v_act = mock_amg.interp_to_densepred(method='linear')
+    dp_soln = mock_amg.interp_to_densepred(method='linear')
 
-    assert np.allclose(u_exp, u_act)
-    assert np.allclose(v_exp, v_act)
+    assert np.allclose(u_exp, dp_soln.u)
+    assert np.allclose(v_exp, dp_soln.v)

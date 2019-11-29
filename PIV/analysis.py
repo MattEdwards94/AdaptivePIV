@@ -54,8 +54,9 @@ def multi_grid_analysis(img):
     amg.validation_NMT_8NN()
 
     print("Interpolating")
-    u, v = amg.interp_to_densepred()
-    dp = dense_predictor.DensePredictor(u, v, img.mask)
+    dp = amg.interp_to_densepred()
+    dp.mask = img.mask
+    dp.apply_mask()
 
     print("Deforming image")
     img_def = img.deform_image(dp)
@@ -76,8 +77,9 @@ def multi_grid_analysis(img):
     amg.validation_NMT_8NN()
 
     print("Interpolating")
-    u, v = amg.interp_to_densepred()
-    dp = dense_predictor.DensePredictor(u, v, img.mask)
+    dp = amg.interp_to_densepred()
+    dp.mask = img.mask
+    dp.apply_mask()
 
     return dp, amg
 
