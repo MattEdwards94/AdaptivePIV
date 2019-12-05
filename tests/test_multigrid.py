@@ -290,10 +290,10 @@ def test_split_cell_adds_new_windows_correctly(mock_amg):
     """Check that 4 new cells are added and that the locations are as expected
 
     for mock_amg the spacing is 64, so we expect
-    bl cell [(0, 0), (32, 0), (0, 32), (32, 32)]
-    br cell [(32, 0), (64, 0), (32, 32), (64, 32)]
-    tl cell [(0, 32), (32, 32), (0, 64), (32, 64)]
-    tr cell [(32, 32), (64, 32), (32, 64), (64, 64)]
+    bl cell [(0, 0), (32, 0), (32, 32), (0, 32)]
+    br cell [(32, 0), (64, 0), (64, 32), (32, 32)]
+    tl cell [(0, 32), (32, 32), (32, 64), (0, 64)]
+    tr cell [(32, 32), (64, 32), (64, 64), (32, 64)]
     """
 
     # check the last 4 cells after splitting the bottom left and compare the
@@ -303,22 +303,22 @@ def test_split_cell_adds_new_windows_correctly(mock_amg):
     new_bl = mock_amg.cells[-4]
     assert new_bl.multigrid is mock_amg
     assert new_bl.cw_list is mock_amg.windows
-    assert new_bl.coordinates == [(0, 0), (32, 0), (0, 32), (32, 32)]
+    assert new_bl.coordinates == [(0, 0), (32, 0), (32, 32), (0, 32)]
 
     new_br = mock_amg.cells[-3]
     assert new_br.multigrid is mock_amg
     assert new_br.cw_list is mock_amg.windows
-    assert new_br.coordinates == [(32, 0), (64, 0), (32, 32), (64, 32)]
+    assert new_br.coordinates == [(32, 0), (64, 0),  (64, 32), (32, 32)]
 
     new_tl = mock_amg.cells[-2]
     assert new_tl.multigrid is mock_amg
     assert new_tl.cw_list is mock_amg.windows
-    assert new_tl.coordinates == [(0, 32), (32, 32), (0, 64), (32, 64)]
+    assert new_tl.coordinates == [(0, 32), (32, 32), (32, 64), (0, 64)]
 
     new_tr = mock_amg.cells[-1]
     assert new_tr.multigrid is mock_amg
     assert new_tr.cw_list is mock_amg.windows
-    assert new_tr.coordinates == [(32, 32), (64, 32), (32, 64), (64, 64)]
+    assert new_tr.coordinates == [(32, 32), (64, 32),  (64, 64), (32, 64)]
 
 
 def test_re_split_cell_raises_error(mock_amg):
