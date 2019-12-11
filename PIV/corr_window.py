@@ -58,6 +58,7 @@ class CorrWindow:
         self.u_pre_validation = np.NaN
         self.v_pre_validation = np.NaN
         self.flag = np.NaN
+        self.is_masked = None
 
     def __eq__(self, other):
         """
@@ -241,8 +242,11 @@ class CorrWindow:
 
         # check if the central window location is masked
         if not img.mask[self.y, self.x]:
+            self.is_masked = True
             self.u, self.v, self.SNR = 0, 0, 0
             return self.u, self.v, self.SNR
+
+        self.is_masked = False
 
         # load the image and mask values and perform the cross correlation
         wsa, wsb, mask = self.prepare_correlation_windows(img)

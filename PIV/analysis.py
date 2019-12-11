@@ -6,6 +6,7 @@ import PIV.corr_window as corr_window
 import PIV.dense_predictor as dense_predictor
 import PIV.piv_image as piv_image
 import PIV.ensemble_solution as es
+import PIV.multiGrid as mg
 
 
 def ensemble_widim(flowtype, im_start, im_stop, settings):
@@ -32,6 +33,57 @@ def ensemble_widim(flowtype, im_start, im_stop, settings):
     return ensR
 
 
+def multi_grid_analysis(img):
+    """Analyses an image using the multi_grid approach
+    """
+
+    init_WS = 129
+    final_WS = 65
+
+    dp = dense_predictor.DensePredictor(
+        np.zeros(img.dim), np.zeros(img.dim), img.mask)
+
+    amg = mg.MultiGrid(img.dim, spacing=64, WS=init_WS)
+    print("Grid created")
+
+    # correlate all windows
+    print("Correlating windows")
+    amg.correlate_all_windows(img, dp)
+
+    print("Validate vectors")
+    amg.validation_NMT_8NN()
+
+    print("Interpolating")
+    dp = amg.interp_to_densepred()
+    dp.mask = img.mask
+    dp.apply_mask()
+
+    print("Deforming image")
+    img_def = img.deform_image(dp)
+
+    print("Spitting all cells")
+    amg.split_all_cells()
+    print(amg.grids[1].x_vec)
+    print(amg.grids[1].y_vec)
+    print("Setting all windows to 65 pixel windows")
+    for window in amg.windows:
+        window.WS = final_WS
+
+    # correlate all windows
+    print("Correlating windows")
+    amg.correlate_all_windows(img_def, dp)
+
+    print("Validate vectors")
+    amg.validation_NMT_8NN()
+
+    print("Interpolating")
+    dp = amg.interp_to_densepred()
+    dp.mask = img.mask
+    dp.apply_mask()
+
+    return dp, amg
+
+
 def widim(img, settings):
     """
     Performs a widim analysis on the PIVImage object, img, with the settings
@@ -55,7 +107,8 @@ def widim(img, settings):
         print("Calculating WS and spacing")
         WS = WS_for_iter(iter_, settings)
         print("WS: {}".format(WS))
-        h = max(1, math.ceil((1 - settings.WOR) * WS))
+        h = max(1, math.floor((1 - settings.WOR) * WS))
+        print(h)
 
         print("Creating grid and windows")
         xv, yv = (np.arange(0, img.n_cols, h),
@@ -179,7 +232,6 @@ class WidimSettings():
                                     Default: 'struc_cub'
         """
 
-        self._init_ws = None
         self.init_WS = init_WS
         self.final_WS = final_WS
         self.WOR = WOR
@@ -208,6 +260,16 @@ class WidimSettings():
                     return False
 
         return True
+
+    def __repr__(self):
+        output = f" init_WS: {self.init_WS}\n"
+        output += f" final_WS: {self.final_WS}\n"
+        output += f" WOR: {self.WOR}\n"
+        output += f" n_iter_main: {self.n_iter_main}\n"
+        output += f" n_iter_ref: {self.n_iter_ref}\n"
+        output += f" vec_val: {self.vec_val}\n"
+        output += f" interp: {self.interp}\n"
+        return output
 
     @property
     def init_WS(self):
@@ -382,21 +444,26 @@ def run_script():
 
 
 if __name__ == '__main__':
-    # load the image
+    # # load the image
     # flowtype, im_number = 1, 1
     # img = piv_image.load_PIVImage(flowtype, im_number)
-    # img.plot_images()
-    settings = WidimSettings(init_WS=97,
-                             final_WS=33)
+    # # img.plot_images()
+    # settings = WidimSettings(init_WS=129,
+    #                          final_WS=65,
+    #                          n_iter_main=2)
 
-    # analyse the image
+    # # analyse the image
     # dp = widim(img, settings)
 
-    # print(dp.u[200, 100])
-    # dp.plot_displacement_field(width=0.001,
-    #                            headlength=2.5,
-    #                            headwidth=2,
-    #                            headaxislength=6)
+    # # print(dp.u[200, 100])
+    # # dp.plot_displacement_field(width=0.001,
+    # #                            headlength=2.5,
+    # #                            headwidth=2,
+    # #                            headaxislength=6)
 
-    ensR = ensemble_widim(22, 1, 2, settings)
-    ensR.save_to_file('test_file.mat')
+    # # ensR = ensemble_widim(22, 1, 2, settings)
+    # # ensR.save_to_file('test_file.mat')
+
+    img = piv_image.load_PIVImage(22, 1)
+
+    multi_grid_analysis(img)

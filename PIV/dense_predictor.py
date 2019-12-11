@@ -346,14 +346,69 @@ class DensePredictor:
         self.u[inter] = 0
         self.v[inter] = 0
 
-    def plot_displacement_field(self, **kwargs):
+    def magnitude(self):
+        """
+        Returns the magnitude of the densepredictor
+        """
+        return np.sqrt(self.u * self.u + self.v * self.v)
+
+    def plot_displacement_field(self, ax=None, spacing=16, **kwargs):
         """
         Plots the displacement field
+
+        Args:
+            axes (None, optional): Handle to the axes to plot in.
+                                   If none given a new set of axes
+                                   shall be drawn
+            spacing (int, optional): The spacing over vectors in the quiver.
         """
 
-        xv, yv = np.arange(0, self.n_cols, 16), np.arange(0, self.n_rows, 16)
-        u, v = (self.u[0::16, 0::16], self.v[0::16, 0::16])
+        xv, yv = (np.arange(0, self.n_cols, spacing),
+                  np.arange(0, self.n_rows, spacing))
+        u, v = (self.u[0::spacing, 0::spacing], self.v[0::spacing, 0::spacing])
 
-        fig, ax = plt.subplots()
+        if ax is None:
+            fig, ax = plt.subplots()
+
         ax.quiver(xv, yv, u, v, **kwargs)
-        plt.show()
+        ax.set_title("displacement")
+
+    def plot_u_magnitude(self, ax=None, **kwargs):
+        """Plot the horizontal component of the velocity field as a contour
+
+        Args:
+            ax (None, optional): Optional axes handle to plot to
+                                 If none given a new set of axes
+                                 shall be drawn
+        """
+
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+
+        im = ax.imshow(self.u, **kwargs)
+        ax.figure.colorbar(im, ax=ax)
+        ax.set_title("horizontal component")
+
+    def plot_v_magnitude(self, ax=None, **kwargs):
+        """Plot the vertical component of the velocity field as a contour
+
+        Args:
+            ax (None, optional): Optional axes handle to plot to
+                                 If none given a new set of axes
+                                 shall be drawn
+        """
+
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+
+        im = ax.imshow(self.v, **kwargs)
+        ax.figure.colorbar(im, ax=ax)
+        ax.set_title("vertical component")
+
+    def plot_contour_magnitude(self, **kwargs):
+        fig, ax = plt.subplots()
+        im = ax.imshow(self.magnitude(), **kwargs)
+        ax.figure.colorbar(im)
+

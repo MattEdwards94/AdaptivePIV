@@ -265,26 +265,16 @@ def root_path():
     # get current path
     cwd = os.getcwd()
 
-    if "C:" in cwd:
-        return "C:/Users/me12288/Documents/"
+    if "c:" in cwd.lower():
+        if "me12288" in cwd:
+            return "C:/Users/me12288/Documents/"
+        else:
+            return "C:/Users/Matt/MyDocuments/General/PhD/"
     else:
         return "/newhome/me12288/"
 
 
 
 if __name__ == '__main__':
-    strt, fin, step = 1, 41, 10
-    x = np.arange(strt, fin, step)
-    y = np.arange(strt, fin + 6, step / 2)
-    X, Y = np.meshgrid(x, y)
-    print(X)
-    print(Y)
-    X_1d = X.flatten()
-    Y_1d = Y.flatten()
-    print(X_1d)
-    print(Y_1d)
+    pass
 
-    # for now the function is just returning the spacing it has calculated
-    # so that we can test this is correct
-    x_2d, y_2d = auto_reshape(X_1d, Y_1d, X_1d)
-    print(x_2d, y_2d)

@@ -304,7 +304,7 @@ def test_load_mat_image_from_flowtype():
 
     # we just want to check that it loads without issue
     flowtype = 22  # vortex array v7
-    IA_act, IB_act, mask = piv_image.load_images(flowtype, 1)
+    IA_act, IB_act, _ = piv_image.load_images(flowtype, 1)
     # now check that it is transposed correctly by loading it manually and
     # checking the result
     im_info = image_info.ImageInfo(flowtype)
@@ -336,7 +336,7 @@ def test_load_image_file():
 
     # just checking it loads without issue
     flowtype = 1  # bfs
-    IA, IB, mask = piv_image.load_images(flowtype, 1)
+    _, _, _ = piv_image.load_images(flowtype, 1)
 
 
 def test_load_image_loads_mask_file_if_no_file():

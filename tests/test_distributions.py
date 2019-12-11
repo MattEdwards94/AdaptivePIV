@@ -111,6 +111,68 @@ def test_n_windows_returns_number_of_windows(mock_cw, mock_cwList):
     assert dist.n_windows() == 3
 
 
+def test_get_all_x(mock_cwList):
+    """Check that calling obj.x returns a numpy array of the correlation window
+    horizontal locations
+    """
+
+    # create the distribution with known locations
+    dist = distribution.Distribution(mock_cwList)
+    x_exp = np.array([20, 30, 40])
+    assert np.allclose(x_exp, dist.x)
+
+
+def test_get_all_y(mock_cwList):
+    """Check that calling obj.y returns a numpy array of the correlation window
+    vertical locations
+    """
+
+    # create the distribution with known locations
+    dist = distribution.Distribution(mock_cwList)
+    y_exp = np.array([30, 45, 60])
+    assert np.allclose(y_exp, dist.y)
+
+
+def test_get_all_u(mock_cwList):
+    """Check that calling obj.u returns a numpy array of the correlation window
+    horizontal displacements
+    """
+
+    # create the distribution with known locations
+    dist = distribution.Distribution(mock_cwList)
+
+    # check that to begin with the u values are all set to NaN
+    u_exp = np.array([np.NaN, np.NaN, np.NaN])
+    assert np.allclose(u_exp, dist.u, equal_nan=True)
+
+    # now set the displacements to something and check just for good measure
+    for ii, cw in enumerate(dist.windows):
+        cw.u = 10 * ii
+
+    u_exp = np.array([0, 10, 20])
+    assert np.allclose(u_exp, dist.u)
+
+
+def test_get_all_v(mock_cwList):
+    """Check that calling obj.v returns a numpy array of the correlation window
+    vertical displacements
+    """
+
+    # create the distribution with known locations
+    dist = distribution.Distribution(mock_cwList)
+
+    # check that to begin with the u values are all set to NaN
+    v_exp = np.array([np.NaN, np.NaN, np.NaN])
+    assert np.allclose(v_exp, dist.v, equal_nan=True)
+
+    # now set the displacements to something and check just for good measure
+    for ii, cw in enumerate(dist.windows):
+        cw.v = 15 * ii
+
+    v_exp = np.array([0, 15, 30])
+    assert np.allclose(v_exp, dist.v)
+
+
 def test_get_all_xy_returns_array_of_xy_locations(mock_cwList):
     """
     Test that an array of all xy locations are returned
@@ -119,6 +181,45 @@ def test_get_all_xy_returns_array_of_xy_locations(mock_cwList):
     dist = distribution.Distribution(mock_cwList)
     assert np.allclose(dist.get_all_xy(),
                        np.array([[20, 30], [30, 45], [40, 60]]))
+
+
+def test_get_unmasked_xy_raise_error(mock_cwList):
+    """
+    When we want to perform vector validation, we don't want to be using the
+    masked vectors for the comparison, as this will significantly bias the
+    results
+
+    If, however, we have not correlated then the information will not be
+    stored in the corr_window and should therefore raise and error
+    """
+
+    # create distribution
+    dist = distribution.Distribution(mock_cwList)
+
+    # attempt to call method without mask data stored, raise error
+    with pytest.raises(ValueError):
+        dist.get_unmasked_xy()
+
+
+def test_get_unmasked_xy_returns_only_unmasked(mock_cwList):
+    """
+    Check that the returned corr_windows don't include the ones that we
+    define as being masked
+    """
+
+    # create distribution
+    dist = distribution.Distribution(mock_cwList)
+
+    # go through the distribution and set one to be masked, set the rest to
+    # be unmasked - set the second one to be masked
+    for ii, window in enumerate(dist.windows):
+        if ii == 1:
+            window.is_masked = True
+        else:
+            window.is_masked = False
+
+    exp = np.array([[20, 30], [40, 60]])
+    assert np.allclose(dist.get_unmasked_xy(), exp)
 
 
 def test_get_all_uv_returns_array_of_uv_locations(mock_cwList):
@@ -150,6 +251,96 @@ def test_get_all_uv_returns_array_of_uv_locations(mock_cwList):
                      np.array([[10, 20],
                                [10, 20],
                                [10, 20]]))
+
+
+def test_get_unmasked_uv_raise_error(mock_cwList):
+    """
+    When we want to perform vector validation, we don't want to be using the
+    masked vectors for the comparison, as this will significantly bias the
+    results
+
+    If, however, we have not correlated then the information will not be
+    stored in the corr_window and should therefore raise and error
+    """
+
+    dist = distribution.Distribution(mock_cwList)
+
+    # attempt to call method without mask data stored, raise error
+    with pytest.raises(ValueError):
+        dist.get_unmasked_uv()
+
+
+def test_get_unmasked_uv_returns_only_unmasked(mock_cwList):
+    """
+    Check that the returned corr_windows don't include the ones that we
+    define as being masked
+    """
+
+    # create distribution
+    dist = distribution.Distribution(mock_cwList)
+
+    # go through the distribution and set one to be masked, set the rest to
+    # be unmasked - set the second one to be masked
+    for ii, window in enumerate(dist.windows):
+        if ii == 1:
+            window.is_masked = True
+            window.u, window.v = 15, 25
+        else:
+            window.is_masked = False
+            window.u, window.v = 10, 20
+
+    exp = np.array([[10, 20], [10, 20]])
+    assert np.allclose(dist.get_unmasked_uv(), exp)
+
+
+def test_get_all_WS_returns_array_of_WS(mock_cwList):
+    """
+    test that an array of all WS values are returned
+    """
+
+    dist = distribution.Distribution(mock_cwList)
+    act = dist.get_all_WS()
+    exp = np.array([41, 51, 31])
+
+    assert np.allclose(exp, dist.get_all_WS())
+
+
+def test_get_unmasked_WS_raise_error(mock_cwList):
+    """
+    When we want to perform vector validation, we don't want to be using the
+    masked vectors for the comparison, as this will significantly bias the
+    results
+
+    If, however, we have not correlated then the information will not be
+    stored in the corr_window and should therefore raise and error
+    """
+
+    dist = distribution.Distribution(mock_cwList)
+
+    # attempt to call method without mask data stored, raise error
+    with pytest.raises(ValueError):
+        dist.get_unmasked_WS()
+
+
+def test_get_unmasked_WS_returns_only_unmasked(mock_cwList):
+    """
+    Check that the returned corr_windows don't include the ones that we
+    define as being masked
+    """
+
+    # create distribution
+    dist = distribution.Distribution(mock_cwList)
+
+    # go through the distribution and set one to be masked, set the rest to
+    # be unmasked - set the second one to be masked
+    for ii, window in enumerate(dist.windows):
+        if ii == 1:
+            window.is_masked = True
+        else:
+            window.is_masked = False
+
+    exp = np.array([41, 31])
+    assert np.allclose(dist.get_unmasked_WS(), exp)
 
 
 def test_NMT_detection_selects_correct_neighbour_values():
@@ -222,6 +413,7 @@ def test_validation_NMT_8NN_stores_old_value():
     for xi, yi, ui, vi in zip(x, y, u, v):
         cw = corr_window.CorrWindow(xi, yi, WS=31)
         cw.u, cw.v = ui, vi
+        cw.is_masked = False
         dist.windows.append(cw)
 
     # now run the vector validation
@@ -292,6 +484,31 @@ def test_outlier_replacement_is_median_of_valid_neighbours():
     u, v = distribution.outlier_replacement(flag, u, v, nb_ind)
     assert u[10] == u_exp
     assert v[10] == v_exp
+
+
+def test_validation_NMT_8NN_ignores_masked_values():
+
+    # creates a random displacement field
+    x, y = np.arange(49) * 1, np.arange(49) * 1
+    u, v = np.random.rand(49), np.random.rand(49)
+
+    # create distribution object, by creating all the corrWindow objects
+    dist = distribution.Distribution()
+    for ii, (xi, yi, ui, vi) in enumerate(zip(x, y, u, v)):
+        cw = corr_window.CorrWindow(xi, yi, WS=31)
+        cw.u, cw.v = ui, vi
+        if not (ii % 7):
+            cw.is_masked = True
+        else:
+            cw.is_masked = False
+        dist.windows.append(cw)
+
+    # now run the vector validation
+    flag = dist.validation_NMT_8NN()
+
+    # check the flag compared to the expected validation
+    # a very simple test is just to make sure the flag length is the right size
+    assert len(flag) == 42
 
 
 def test_interpolate_checks_method(mock_dist):

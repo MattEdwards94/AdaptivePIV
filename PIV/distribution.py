@@ -17,7 +17,6 @@ class Distribution:
                                                           windows to initialise
                                                           the distribution with
         """
-
         # if there is nothing passed, then initialise empty list
         if init_locations is None:
             self.windows = []
@@ -33,15 +32,54 @@ class Distribution:
         """
         return len(self.windows)
 
+    @property
+    def x(self):
+        return np.array([cw.x for cw in self.windows])
+
+    @property
+    def y(self):
+        return np.array([cw.y for cw in self.windows])
+
+    @property
+    def u(self):
+        return np.array([cw.u for cw in self.windows])
+
+    @property
+    def v(self):
+        return np.array([cw.v for cw in self.windows])
+
+    @property
+    def WS(self):
+        return np.array([cw.WS for cw in self.windows])
+
     def get_all_xy(self):
         """
-        Returns a (N, 2) array of all the stored locations
+        Returns a (N, 2) array of all the stored locations where N is the 
+        total number of corr windows
 
         Returns:
             ndarray: (N, 2) array of all locations [x, y]
         """
-
         return np.array([[cw.x, cw.y] for cw in self.windows])
+
+    def get_unmasked_xy(self):
+        """
+        Returns a (N, 2) array of all unmasked stored locations where N is the 
+        number of unmasked CorrWindows
+
+        If "is_masked" is not set then an error is raised.
+
+        Returns:
+            ndarray: (N, 2) array of all unmasked locations [x, y]
+        """
+        if self.windows[0].is_masked is None:
+            raise ValueError("Mask status not known")
+        out_list = []
+        for cw in self.windows:
+            if cw.is_masked is False:
+                out_list.append([cw.x, cw.y])
+
+        return np.array(out_list)
 
     def get_all_uv(self):
         """
@@ -50,8 +88,26 @@ class Distribution:
         Returns:
             ndarray: (N, 2) array of all vectors [u, v]
         """
-
         return np.array([[cw.u, cw.v] for cw in self.windows])
+
+    def get_unmasked_uv(self):
+        """
+        Returns a (N, 2) array of all unmasked stored vectors where N is the 
+        number of unmasked CorrWindows
+
+        If "is_masked" is not set then an error is raised.
+
+        Returns:
+            ndarray: (N, 2) array of all unmasked vectors [x, y]
+        """
+        if self.windows[0].is_masked is None:
+            raise ValueError("Mask status not known")
+        out_list = []
+        for cw in self.windows:
+            if cw.is_masked is False:
+                out_list.append([cw.u, cw.v])
+
+        return np.array(out_list)
 
     def get_all_WS(self):
         """
@@ -61,6 +117,25 @@ class Distribution:
             ndarray: (N, 1) array of all window sizes
         """
         return np.array([cw.WS for cw in self.windows])
+
+    def get_unmasked_WS(self):
+        """
+        Returns a (N, 2) array of all unmasked stored WS's where N is the 
+        number of unmasked CorrWindows
+
+        If "is_masked" is not set then an error is raised.
+
+        Returns:
+            ndarray: (N, 2) array of all unmasked window sizes [x, y]
+        """
+        if self.windows[0].is_masked is None:
+            raise ValueError("Mask status not known")
+        out_list = []
+        for cw in self.windows:
+            if cw.is_masked is False:
+                out_list.append(cw.WS)
+
+        return np.array(out_list)
 
     def get_flag_values(self):
         """
@@ -93,7 +168,7 @@ class Distribution:
 
         # detection
         # find neighbours
-        xy, uv = self.get_all_xy(), self.get_all_uv()
+        xy, uv = self.get_unmasked_xy(), self.get_unmasked_uv()
         u, v = uv[:, 0], uv[:, 1]
         nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
         nb_dist, nb_ind = nbrs.kneighbors(xy)
@@ -101,17 +176,24 @@ class Distribution:
         norm = NMT_detection(u, v, nb_ind, eps)
         flag = norm > threshold
         invalid = np.sum(flag)
-        print(f"  {invalid}/{self.n_windows()} vectors replaced")
+        try:
+            print(f"  {invalid}/{self.n_windows()} vectors replaced")
+        except:
+            print(f"  {invalid}/{self.n_windows} vectors replaced")
 
         # replacement
         u, v = outlier_replacement(flag, u, v, nb_ind)
 
         # update values in CorrWindow objects
         for (cw, outlier, u_i, v_i) in zip(self.windows, flag, u, v):
+            if cw.is_masked is True:
+                continue
             if outlier == 1:
                 cw.u_pre_validation, cw.v_pre_validation = cw.u, cw.v
                 cw.u, cw.v = u_i, v_i
                 cw.flag = outlier
+
+        return flag
 
     def interp_to_densepred(self, method, eval_dim):
         """
@@ -154,7 +236,6 @@ class Distribution:
         # calculate evaluation range
         xe = np.arange(eval_dim[1])
         ye = np.arange(eval_dim[0])
-        xx, yy = np.meshgrid(xe, ye)
 
         if method == "struc_lin":
             # interpolate using scipy
@@ -186,6 +267,13 @@ class Distribution:
 
         for cw in self.windows:
             cw.correlate(img, dp)
+
+    def plot_locations(self, *args, **kwargs):
+        """Plots the locations of all the windows within the distribution
+        """
+        fig = plt.figure()
+        plt.plot(self.x, self.y, *args, **kwargs)
+        fig.show()
 
     def plot_distribution(self):
         fig, ax = plt.subplots()
