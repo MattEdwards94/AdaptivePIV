@@ -1,5 +1,7 @@
 import PIV.image_info as image_info
 import scipy.io as sio
+from scipy import interpolate as interp
+from scipy.special import erf
 import h5py
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -455,20 +457,159 @@ def quintic_spline_image_filter(IA):
     return C
 
 
-if __name__ == "__main__":
-    img = load_PIVImage(1, 1)
-    u, v = 5 * np.ones((640, 1280)), 5 * np.ones((640, 1280))
-    dp = dense_predictor.DensePredictor(u, v)
-    img_def = img.deform_image(dp)
+def generate_particle_locations(img_dim, seed_density,
+                                u, v,
+                                d_tau_mean=2.5, d_tau_std=0.25,
+                                int_mean=0.9, int_std=0.05):
+    """Generates particles for synthetic generation
 
-    # save into mat file
-    IA, IB = img.IA, img.IB
-    IAf, IBf = img_def.IA, img_def.IB
-    mdict = {"IA": IA,
-             "IB": IB,
-             "IAf": IAf,
-             "IBf": IBf,
-             "u": u,
-             "v": v,
-             }
-    sio.savemat("test_file.mat", mdict)
+        Arguments:
+            img_dim {int, tuple} -- The height and width of the image in pixels
+            seed_density {float} -- Approximate number of particles per pixel
+            u {float, ndarray} -- Horizontal displacement field 
+                                  defined pixelwise
+            v {float, ndarray} -- Vertical displacement field, defined pixelwise
+            d_tau_mean {float} -- The average particle image diameter px
+            d_tau_std {float} -- The standard deviation of particle 
+                                 image diameters
+            int_mean {float} -- The mean intensity of particle images, 0-1
+            int_std {float} -- The standard deviation of intensities 
+                               about the mean
+
+        Returns:
+            xp1, yp1, xp2, yp2 (float, list) -- The locations of particles in
+                                                the first and second timestep 
+            d_tau, Ip (float, list) -- Properties of the particle images
+    """
+
+    # create a random distribution of particles over the domain
+    n_part = int(np.prod(img_dim) * seed_density)
+    # extend the particle seed beyond the edge of the domain, equal to the
+    # maximum displacement and the particle diameter, such that particles
+    # can enter the domain in the second iteration as they would in reality
+    max_disp = 10
+    xp1 = np.random.uniform(-d_tau_mean-max_disp,
+                            img_dim[1]+d_tau_mean+max_disp,
+                            n_part)
+    yp1 = np.random.uniform(-d_tau_mean-max_disp,
+                            img_dim[0]+d_tau_mean+max_disp,
+                            n_part)
+    d_tau = np.random.normal(d_tau_mean, d_tau_std, n_part)
+    Ip = np.random.normal(int_mean, int_std, n_part)
+
+    # interpolate the displacement field to obtain a function
+    # this allows us to calculate the sub-pixel displacement
+    f_u = interp.interp2d(np.arange(img_dim[1]),
+                          np.arange(img_dim[0]), u)
+    f_v = interp.interp2d(np.arange(img_dim[1]),
+                          np.arange(img_dim[0]), v)
+    up1 = [f_u(x, y)[0] for x, y in zip(xp1, yp1)]
+    vp1 = [f_v(x, y)[0] for x, y in zip(xp1, yp1)]
+
+    # diplace the particle images
+    xp2 = xp1 + up1
+    yp2 = yp1 + vp1
+
+    return xp1, yp1, d_tau, Ip, xp2, yp2
+
+
+def render_synthetic_PIV_image(height, width,
+                               x_part, y_part,
+                               d_tau, part_intens,
+                               bit_depth=8, fill_factor=0.85,
+                               noise_mean=0.05, noise_std=0.025):
+    """Renders a single PIV image based on the specified 
+    particle locations and intensities
+
+    Arguments:
+        height (Int) -- The size of the image
+        width (Int) -- The size of the image
+        x_part (ndarray) -- The x location of the particles
+        y_part (ndarray) -- The y location of the particles
+        d_tau (ndarray) -- The diameters of the particle images, pixels
+        part_intens (ndarray) -- The intensities of the particles, 0-1
+        bit_depth (Int) -- The bit depth of the output image. 
+
+    Returns:
+        Image: numpy array
+            The desired synthetic image.
+
+    """
+
+    # prepare output
+    im_out = np.zeros([height, width])
+
+    # calculate some constant terms outside of the loop for efficiency
+    sqrt8 = np.sqrt(8)
+    ccd_fill = fill_factor * 0.5
+    one32 = 1/32
+
+    for i in range(x_part.size):
+        par_diam = d_tau[i]
+        x = x_part[i]
+        y = y_part[i]
+
+        bl = int(max(x - par_diam, 0))
+        br = int(min(x + par_diam, width))
+        bd = int(max(y - par_diam, 0))
+        bu = int(min(y + par_diam, height))
+
+        # Equation 6 from europiv SIG documentation has:
+        # d_particle^2 * r_tau ^ 2 * pi/8
+        # the dp^2 is to reflect the fact that bigger particles
+        # scatter more light proportional to dp^2
+        # this is implicitly governed by part_intens[ind]
+        # the r_tau^2 is actually r_tau_x * r_tau_y
+        # this appears to come from the integration of the continuous
+        # equation
+        scale_term = par_diam * par_diam * np.pi * part_intens[i] * one32
+
+        for c in range(bl, br):
+            for r in range(bd, bu):
+                im_out[r, c] = im_out[r, c] + scale_term * (
+                    # assumes a fill factor of 1 -> the 0.5 comes
+                    # from fill_factor * 0.5
+                    # sqrt8 comes from the erf( ... / (sqrt2 * par_radius))
+                    # hence 2 * ... / sqrt2 * par_diam
+                    # hence sqrt8 * ... / par_diam
+                    erf(sqrt8 * (c - x - ccd_fill) / par_diam) -
+                    erf(sqrt8 * (c - x + ccd_fill) / par_diam)
+                ) * (
+                    erf(sqrt8 * (r - y - ccd_fill) / par_diam) -
+                    erf(sqrt8 * (r - y + ccd_fill) / par_diam)
+                )
+
+    # calculate the noise to apply to the image
+    noise = np.random.normal(noise_mean, noise_std, (height, width))
+
+    # cap at 0 - 1
+    im_out = np.maximum(np.minimum(im_out + noise, 1), 0)
+
+    # return the quantized image
+    return (im_out*(2**bit_depth - 1)).astype(int)
+
+
+if __name__ == "__main__":
+    # img = load_PIVImage(1, 1)
+    # u, v = 5 * np.ones((640, 1280)), 5 * np.ones((640, 1280))
+    # dp = dense_predictor.DensePredictor(u, v)
+    # img_def = img.deform_image(dp)
+
+    # # save into mat file
+    # IA, IB = img.IA, img.IB
+    # IAf, IBf = img_def.IA, img_def.IB
+    # mdict = {"IA": IA,
+    #          "IB": IB,
+    #          "IAf": IAf,
+    #          "IBf": IBf,
+    #          "u": u,
+    #          "v": v,
+    #          }
+    # sio.savemat("test_file.mat", mdict)
+
+    (x_part, y_part,
+     d_tau, part_intens,
+     x_part2, y_part2) = generate_particle_locations((50, 50), 0.01,
+                                                     5*np.ones((50, 50)), np.zeros((50, 50)))
+
+    render_synthetic_PIV_image(50, 50, x_part, y_part, d_tau, part_intens)
