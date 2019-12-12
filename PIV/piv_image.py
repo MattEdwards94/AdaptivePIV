@@ -5,6 +5,7 @@ from scipy.special import erf
 import h5py
 from PIL import Image
 import matplotlib.pyplot as plt
+import mpl_toolkits.axes_grid1 as axgrid1
 import numpy as np
 import math
 import sym_filt
@@ -460,7 +461,8 @@ def quintic_spline_image_filter(IA):
 def generate_particle_locations(img_dim, seed_density,
                                 u, v,
                                 d_tau_mean=2.5, d_tau_std=0.25,
-                                int_mean=0.9, int_std=0.05):
+                                int_mean=0.9, int_std=0.05,
+                                **kwargs):
     """Generates particles for synthetic generation
 
         Arguments:
@@ -517,7 +519,8 @@ def render_synthetic_PIV_image(height, width,
                                x_part, y_part,
                                d_tau, part_intens,
                                bit_depth=8, fill_factor=0.85,
-                               noise_mean=0.05, noise_std=0.025):
+                               noise_mean=0.05, noise_std=0.025,
+                               **kwargs):
     """Renders a single PIV image based on the specified 
     particle locations and intensities
 
@@ -587,6 +590,85 @@ def render_synthetic_PIV_image(height, width,
 
     # return the quantized image
     return (im_out*(2**bit_depth - 1)).astype(int)
+
+
+def create_synthetic_image_pair(img_dim, seed_dens, u, v, **kwargs):
+    """Helper function to generate synthetic PIV images
+
+    For additional arguments, refer to:
+        generate_particle_locations
+        render_synthetic_PIV_image
+
+    Arguments:
+        img_dim {int, tuple} -- The height and width of the images, pixels
+        seed_dens {float} -- The density of particle images in particles per px
+        u {float, ndarray} -- Pixelwise horizontal displacement field
+        v {float, ndarray} -- Pixelwise vertical displacement field
+    """
+
+    # get particle image locations
+    (xp1, yp1,
+     d_tau, Ip,
+     xp2, yp2) = generate_particle_locations(img_dim, seed_dens,
+                                             u, v,
+                                             **kwargs)
+
+    img_a = render_synthetic_PIV_image(img_dim[0], img_dim[1],
+                                       xp1, yp1,
+                                       d_tau, Ip, **kwargs)
+    img_b = render_synthetic_PIV_image(img_dim[0], img_dim[1],
+                                       xp2, yp2,
+                                       d_tau, Ip, **kwargs)
+
+    return img_a, img_b
+
+
+def plot_pair_images(ia, ib, fig_size=(20, 10), n_bits=None):
+    """Plot PIV images side by side
+
+    Note that the fig_size parameter does not seem to be very precise
+
+    Arguments:
+        ia {ndarray} -- The first image in the snapshot
+        ib {ndarray} -- The second image in the snapshot
+
+    Keyword Arguments:
+        fig_size {float, tuple} -- Size of the figure, supposedly in inches
+                                   (default: {(20, 10)})
+        n_bits {int} -- The number of bits in the image. If nothing
+                        is passed then the number of
+                        bits will be estimated from the 
+                        peak intensity within ia and ib (default: {None})
+
+    Returns:
+        fig, ax1, ax2 -- figure and axes handles
+    """
+
+    # create the figure
+    fig = plt.figure(figsize=fig_size)
+    # create a 1 by 2 grid for the images to go side by side
+    grid = axgrid1.ImageGrid(fig, 121,
+                             nrows_ncols=(1, 2), axes_pad=0.1,
+                             share_all=True,  # means that the axes are shared
+                             cbar_location="right",
+                             cbar_mode="single")
+
+    # determine how many bits are being used to scale the colormap
+    n_bits = math.ceil(math.log2(np.max(np.maximum(ia, ib))))
+
+    a = grid[0]
+    ima = a.imshow(ia, vmin=0, vmax=2**n_bits-1, cmap='gray')
+    a.set_title('Frame A')
+    a.invert_yaxis()
+
+    b = grid[1]
+    imb = b.imshow(ib, vmin=0, vmax=2**n_bits-1, cmap='gray')
+    b.set_title('Frame B')
+    b.invert_yaxis()
+
+    grid.cbar_axes[0].colorbar(ima)
+
+    return fig, a, b
 
 
 if __name__ == "__main__":
