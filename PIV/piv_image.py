@@ -628,6 +628,37 @@ def create_synthetic_image_pair(img_dim, seed_dens, u, v, **kwargs):
     return img_a, img_b
 
 
+def get_binary_image_particle_locations(xp, yp, img_dim):
+    """For a given list of particle locations, return a binary image with 
+    the locations of the particles set to 1
+
+    Arguments:
+        xp {float, list} -- List or ndarray of the x locations of particles
+        yp {float, list} -- List or ndarray of the y locations of particles
+        img_dim {int, tuple} -- Dimensions of the image to be returned.
+
+    Returns:
+        ndarray -- binary array of the particle locations
+    """
+
+    # round the particle location, the closest integer value should have the
+    # brightest pixel
+    x, y = np.round(xp).astype(int), np.round(yp).astype(int)
+
+    # identify those particle locations which are outside the domain
+    # this is possible because we allow particles just outside the domain
+    bool_ind = np.logical_or(
+        np.logical_or(x >= img_dim[1], x < 0),
+        np.logical_or(y >= img_dim[0], y < 0)
+    )
+    ind = np.ones(len(xp))
+    ind[bool_ind] = 0
+
+    im_out = np.zeros(img_dim)
+    im_out[y[ind == 1], x[ind == 1]] = 1
+    return im_out
+
+
 def plot_pair_images(ia, ib, fig_size=(20, 10), n_bits=None):
     """Plot PIV images side by side
 

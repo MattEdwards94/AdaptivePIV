@@ -428,3 +428,20 @@ def test_quintic_spline_image_filt_all_ones():
     b = piv_image.quintic_spline_image_filter(a)
 
     assert np.allclose(a, b)
+
+
+def test_get_binary_img_part_locations():
+    """Check the output for an expected input
+    """
+
+    img_dim, npart = (75, 50), 25
+    xp = np.random.uniform(0, img_dim[1]-1, npart)
+    yp = np.random.uniform(0, img_dim[0]-1, npart)
+
+    exp = np.zeros(img_dim)
+    x_ind, y_ind = np.round(xp).astype(int), np.round(yp).astype(int)
+    exp[y_ind, x_ind] = 1
+
+    act = piv_image.get_binary_image_particle_locations(xp, yp, img_dim)
+
+    assert np.allclose(act, exp)
