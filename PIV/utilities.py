@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import math
+import matplotlib.pyplot as plt
+import mpl_toolkits.axes_grid1 as axgrid1
 
 
 class MeanAndVarCalculator():
@@ -274,7 +276,44 @@ def root_path():
         return "/newhome/me12288/"
 
 
+def plot_adjacent_images(ia, ib,
+                         title_a, title_b,
+                         vminmax_a=[None, None],
+                         vminmax_b=[None, None],
+                         cmap_a="gray",
+                         cmap_b="gray",
+                         fig=None, figsize=(20, 10),
+                         share_all=True,
+                         axes_pad=0.1, share_all_axes=True,
+                         cbar_location="right", cbar_mode="single",
+                         **kwargs):
+    """Plots two figures nicely side by side, 
+    and returns the figure and axes handles
+    """
+
+    # create the figure is one is not given
+    if fig is None:
+        fig = plt.figure(figsize=figsize)
+
+    grid = axgrid1.ImageGrid(fig, 121, nrows_ncols=(1, 2),
+                             axes_pad=axes_pad, share_all=share_all,
+                             cbar_location=cbar_location,
+                             cbar_mode=cbar_mode)
+
+    ax1 = grid[0]
+    im_a = ax1.imshow(ia, vmin=vminmax_a[0], vmax=vminmax_a[1], cmap=cmap_a)
+    ax1.set_title(title_a)
+    ax1.invert_yaxis()
+
+    ax2 = grid[1]
+    ax2.imshow(ib, vmin=vminmax_b[0], vmax=vminmax_b[1], cmap=cmap_b)
+    ax2.set_title(title_b)
+    ax2.invert_yaxis()
+
+    grid.cbar_axes[0].colorbar(im_a)
+
+    return fig, ax1, ax2
+
 
 if __name__ == '__main__':
     pass
-
