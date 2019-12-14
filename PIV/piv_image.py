@@ -483,13 +483,16 @@ def generate_particle_locations(img_dim, seed_density,
                                                 the first and second timestep 
             d_tau, Ip (float, list) -- Properties of the particle images
     """
-
-    # create a random distribution of particles over the domain
-    n_part = int(np.prod(img_dim) * seed_density)
     # extend the particle seed beyond the edge of the domain, equal to the
     # maximum displacement and the particle diameter, such that particles
     # can enter the domain in the second iteration as they would in reality
     max_disp = 10
+
+    # create a random distribution of particles over the domain
+    n_part = int((img_dim[0]+d_tau_mean+max_disp) *
+                 (img_dim[1]+d_tau_mean+max_disp) *
+                 seed_density)
+
     xp1 = np.random.uniform(-d_tau_mean-max_disp,
                             img_dim[1]+d_tau_mean+max_disp,
                             n_part)
