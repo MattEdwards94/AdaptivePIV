@@ -690,7 +690,8 @@ def plot_pair_images(ia, ib, fig_size=(20, 10), n_bits=None):
                              cbar_mode="single")
 
     # determine how many bits are being used to scale the colormap
-    n_bits = math.ceil(math.log2(np.max(np.maximum(ia, ib))))
+    if n_bits is None:
+        n_bits = math.ceil(math.log2(np.max(np.maximum(ia, ib))))
 
     a = grid[0]
     ima = a.imshow(ia, vmin=0, vmax=2**n_bits-1, cmap='gray')
