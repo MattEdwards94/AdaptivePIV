@@ -515,7 +515,7 @@ def generate_particle_locations(img_dim, seed_density,
     xp2 = xp1 + up1
     yp2 = yp1 + vp1
 
-    return xp1, yp1, d_tau, Ip, xp2, yp2
+    return xp1, yp1, xp2, yp2, d_tau, Ip
 
 
 def render_synthetic_PIV_image(height, width,
@@ -611,10 +611,10 @@ def create_synthetic_image_pair(img_dim, seed_dens, u, v, **kwargs):
 
     # get particle image locations
     (xp1, yp1,
-     d_tau, Ip,
-     xp2, yp2) = generate_particle_locations(img_dim, seed_dens,
-                                             u, v,
-                                             **kwargs)
+     xp2, yp2,
+     d_tau, Ip) = generate_particle_locations(img_dim, seed_dens,
+                                              u, v,
+                                              **kwargs)
 
     img_a = render_synthetic_PIV_image(img_dim[0], img_dim[1],
                                        xp1, yp1,
