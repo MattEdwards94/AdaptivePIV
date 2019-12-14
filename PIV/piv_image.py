@@ -518,18 +518,17 @@ def generate_particle_locations(img_dim, seed_density,
     return xp1, yp1, xp2, yp2, d_tau, Ip
 
 
-def render_synthetic_PIV_image(height, width,
+def render_synthetic_PIV_image(img_dim,
                                x_part, y_part,
                                d_tau, part_intens,
-                               bit_depth=8, fill_factor=0.85,
+                               bit_depth=8, fill_factor=1,
                                noise_mean=0.05, noise_std=0.025,
                                **kwargs):
     """Renders a single PIV image based on the specified 
     particle locations and intensities
 
     Arguments:
-        height (Int) -- The size of the image
-        width (Int) -- The size of the image
+        img_dim (int, tuple) -- The dimensions of the image
         x_part (ndarray) -- The x location of the particles
         y_part (ndarray) -- The y location of the particles
         d_tau (ndarray) -- The diameters of the particle images, pixels
@@ -541,6 +540,9 @@ def render_synthetic_PIV_image(height, width,
             The desired synthetic image.
 
     """
+
+    height = img_dim[0]
+    width = img_dim[1]
 
     # prepare output
     im_out = np.zeros([height, width])
@@ -616,10 +618,10 @@ def create_synthetic_image_pair(img_dim, seed_dens, u, v, **kwargs):
                                               u, v,
                                               **kwargs)
 
-    img_a = render_synthetic_PIV_image(img_dim[0], img_dim[1],
+    img_a = render_synthetic_PIV_image(img_dim,
                                        xp1, yp1,
                                        d_tau, Ip, **kwargs)
-    img_b = render_synthetic_PIV_image(img_dim[0], img_dim[1],
+    img_b = render_synthetic_PIV_image(img_dim,
                                        xp2, yp2,
                                        d_tau, Ip, **kwargs)
 
