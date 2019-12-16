@@ -445,3 +445,114 @@ def test_get_binary_img_part_locations():
     act = piv_image.get_binary_image_particle_locations(xp, yp, img_dim)
 
     assert np.allclose(act, exp)
+
+
+def test_particle_detection_perf_n_particles():
+    """
+    Tests that the true number of particles is correctly identified
+    """
+
+    img_dim = (50, 50)
+
+    for n_particles_in in range(1, 101, 10):
+        img_in = np.zeros(img_dim)
+        x = np.random.randint(0, img_dim[1], n_particles_in)
+        y = np.random.randint(0, img_dim[0], n_particles_in)
+
+        # it's possible that the coordinates are duplicated, and we can only
+        # handle one particle per pixel
+        xy = np.unique(np.vstack((x, y)).T, axis=0)
+
+        img_in[xy[:, 1], xy[:, 0]] = 1
+        (n_particles, _, 
+        _, _) = piv_image.particle_detection_perf(img_in,
+                                                           np.zeros_like(img_in))
+        assert n_particles == np.shape(xy)[0]
+
+
+def test_particle_detection_perf_n_valid_is_correct():
+    """
+    Tests that the number of correctly identified particles is correct. 
+
+    For this we will pass in a binary image which is similar to the img_in with
+    a known number of correctly detected particle locations
+    """
+
+    img_dim = (50, 50)
+
+    for n_particles_in in range(1, 101, 10):
+        img_true, img_test = np.zeros(img_dim), np.zeros(img_dim)
+
+        x = np.random.randint(0, img_dim[1], n_particles_in)
+        y = np.random.randint(0, img_dim[0], n_particles_in)
+
+        # it's possible that the coordinates are duplicated, and we can only
+        # handle one particle per pixel
+        xy = np.unique(np.vstack((x, y)).T, axis=0)
+
+        img_true[xy[:, 1], xy[:, 0]] = 1
+
+        for i in range(0, np.shape(xy)[0]):
+            img_test[xy[:i, 1], xy[:i, 0]] = 1
+            (_, 
+            n_detect_valid, 
+            _, _) = piv_image.particle_detection_perf(img_true,
+                                                                    img_test)
+            assert n_detect_valid == i
+
+
+def test_particle_detection_perf_n_invalid_correct():
+    """
+    Tests that the number of number of 'detected' particle images which 
+    don't line up with a true particle image is correct
+    """
+
+    img_dim = (50, 50)
+
+    img_true, img_test = np.zeros(img_dim), np.zeros(img_dim)
+
+    # manually create a list of coordinates for the true particle locations
+    xy_true = np.array([[1, 7],
+               [2, 5],
+               [3, 9],
+               [3, 4],
+               [4, 6],
+               [5, 8],
+               [6, 6]])
+    xy_add = xy_true + 1
+
+    img_true[xy_true[:, 1], xy_true[:, 0]] = 1
+    img_test[xy_add[:, 1], xy_add[:, 0]] = 1
+    
+    (_, _, n_detect_invalid, _) = piv_image.particle_detection_perf(img_true,
+                                                                img_test)
+
+    assert n_detect_invalid == 7
+
+def test_particle_detection_perf_n_undetected():
+    """
+    Tests the number of particles which were not detected by the 
+    detection routine
+    """
+
+    img_dim = (50, 50)
+
+    img_true, img_test = np.zeros(img_dim), np.zeros(img_dim)
+
+    # manually create a list of coordinates for the true particle locations
+    xy_true = np.array([[1, 7],
+               [2, 5],
+               [3, 9],
+               [3, 4],
+               [4, 6],
+               [5, 8],
+               [6, 6]])
+    xy_add = xy_true[:4, :]
+
+    img_true[xy_true[:, 1], xy_true[:, 0]] = 1
+    img_test[xy_add[:, 1], xy_add[:, 0]] = 1
+    
+    (_, _, _, n_undetected) = piv_image.particle_detection_perf(img_true,
+                                                                img_test)
+
+    assert n_undetected == np.shape(xy_true)[0] - 4

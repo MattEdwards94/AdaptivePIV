@@ -659,6 +659,53 @@ def get_binary_image_particle_locations(xp, yp, img_dim):
     return im_out
 
 
+def particle_detection_perf(actual, detected):
+    """ Determines the performance of particle detection by comparing the 
+    number of detected particles with the number of seed particles. 
+
+    Detects the three cases: 
+        Actual particle detected
+        Invalid particle detected
+        Actual particle undetected
+
+    Args:
+        actual (binary, ndarray): ndarray with ones/true 
+                                  where particles exist
+        detected (binary, ndarray): ndarray with ones/true 
+                                    where particles are
+                                    detected
+
+    Returns:
+        n_particles (int): Number of actual particles in the image
+        n_detect_valid (int): Number of actual particles, correctly
+                              detected
+        n_detect_invalid (int): Number of 'detected' particle images
+                                which don't correspond to an actual
+                                particle image
+        n_undetected (int): Number of particle images which were not 
+                            detected by the routine
+    """
+
+    # calculate the number of particles in the 'truth' image
+    n_particles = np.sum(actual)
+
+    # calculate the number of valid particles that have been detected
+    # there are ones at each particle location and zeros elsewhere,
+    # so the product will only be 1 where an actual particle is detected,
+    # and will be 0 elsewhere
+    n_detect_valid = np.sum(detected * actual)
+
+    # calculate the number of particles which are 'detected' but are not
+    # actually particles
+    n_detect_invalid = np.sum(detected - actual == 1)
+
+    # calculate the number of particles which are 'detected' but are not
+    # actually particles
+    n_undetected = np.sum(detected - actual == -1)
+
+    return n_particles, n_detect_valid, n_detect_invalid, n_undetected
+
+
 def plot_pair_images(ia, ib, fig_size=(20, 10), n_bits=None):
     """Plot PIV images side by side
 
