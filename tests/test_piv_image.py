@@ -529,6 +529,7 @@ def test_particle_detection_perf_n_invalid_correct():
 
     assert n_detect_invalid == 7
 
+
 def test_particle_detection_perf_n_undetected():
     """
     Tests the number of particles which were not detected by the 
@@ -555,4 +556,30 @@ def test_particle_detection_perf_n_undetected():
     (_, _, _, n_undetected) = piv_image.particle_detection_perf(img_true,
                                                                 img_test)
 
+    # minus 4 since we haven't added have added 4 particles to the image
     assert n_undetected == np.shape(xy_true)[0] - 4
+
+
+def test_detect_particles_max_filter():
+    """
+    Tests the particle detection for a couple of simple cases
+    """
+
+    # create mock image
+    img_dim = (50, 50)
+    xp, yp = [4, 15, 25, 35, 42], [5, 12, 4, 45, 15]
+    d_tau, Ip = [3]*5, [0.9]*5
+    img = piv_image.render_synthetic_PIV_image(img_dim, xp, yp, 
+                                               d_tau, Ip, 
+                                               noise_mean=0, noise_std=0)
+
+    exp = np.zeros(img_dim)
+    exp[yp, xp] = 1
+    
+    act = piv_image.detect_particles_max_filter(img)
+
+
+    assert np.allclose(exp, act)
+
+
+

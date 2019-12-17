@@ -10,6 +10,8 @@ import numpy as np
 import math
 import sym_filt
 import PIV.dense_predictor as dense_predictor
+import scipy.ndimage.filters as im_filter
+import skimage
 
 
 class PIVImage:
@@ -749,6 +751,29 @@ def plot_pair_images(ia, ib, fig_size=(20, 10), n_bits=None):
     grid.cbar_axes[0].colorbar(ima)
 
     return fig, a, b
+
+
+def detect_particles_max_filter(img):
+    """
+    Detect particles in the input image, by applying a maximum filter followed
+    by a automatic thresholding based on the Otsu threshold
+
+    Args:
+        img (ndarray): The input image containing particle images
+
+    Returns:
+        particle locations (ndarray): binary image with ones where particles 
+                                      have been detected
+    """
+
+    # apply the maximum filter
+    mf = im_filter.maximum_filter(img, size=3)
+
+    # obtain the threshold
+    thr = skimage.filters.threshold_otsu(img)
+
+    # select the maximum locations above the threshold
+    return (img == mf) & (img >= thr)
 
 
 if __name__ == "__main__":
