@@ -791,6 +791,8 @@ def calc_seeding_density(binary_part_img_locations, filter_size=33):
         seed_dens (ndarray): seeding density over the domain in particles
                             per pixel
     """
+    
+    pass
 
 
 if __name__ == "__main__":
