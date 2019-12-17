@@ -302,6 +302,14 @@ def test_load_mat_image_from_flowtype():
     The Gaussian images are in v7.3
     """
 
+    # overwrite utilities.root_path() such that we look in the data folder
+    # instead of the main folder
+    import PIV.utilities
+    def replace_func():
+        return "./PIV/data/"
+    old = PIV.utilities.root_path
+    PIV.utilities.root_path = replace_func
+
     # we just want to check that it loads without issue
     flowtype = 22  # vortex array v7
     IA_act, IB_act, _ = piv_image.load_images(flowtype, 1)
@@ -327,6 +335,7 @@ def test_load_mat_image_from_flowtype():
     assert np.allclose(IA_exp, IA_act)
     assert np.allclose(IB_exp, IB_act)
 
+    PIV.utilities.root_path = old
 
 def test_load_image_file():
     """
@@ -334,9 +343,18 @@ def test_load_image_file():
     regular image file
     """
 
+    # overwrite utilities.root_path() such that we look in the data folder
+    # instead of the main folder
+    import PIV.utilities
+    def replace_func():
+        return "./PIV/data/"
+    old = PIV.utilities.root_path
+    PIV.utilities.root_path = replace_func
+    
     # just checking it loads without issue
     flowtype = 1  # bfs
     _, _, _ = piv_image.load_images(flowtype, 1)
+    PIV.utilities.root_path = old
 
 
 def test_load_image_loads_mask_file_if_no_file():
@@ -346,10 +364,19 @@ def test_load_image_loads_mask_file_if_no_file():
     vortex array (22) doesn't load a mask
     """
 
+    # overwrite utilities.root_path() such that we look in the data folder
+    # instead of the main folder
+    import PIV.utilities
+    def replace_func():
+        return "./PIV/data/"
+    old = PIV.utilities.root_path
+    PIV.utilities.root_path = replace_func
+
     flowtype = 22  # vortex array
     IA, IB, mask = piv_image.load_images(flowtype, 1)
     assert np.allclose(mask, np.ones(np.shape(IA)))
 
+    PIV.utilities.root_path = old
 
 def test_load_image_builds_object():
     """
@@ -358,17 +385,27 @@ def test_load_image_builds_object():
     When loading images, we are getting a multi layered array for the mask
     This seems to be because of trying to load a colour image.
 
-    Test loading a single image from every flow type and ensuring that
+    Test loading a single image from several flow types and ensuring that
     it can create a PIVImage object without raising an error
     """
 
+    # overwrite utilities.root_path() such that we look in the data folder
+    # instead of the main folder
+    import PIV.utilities
+    def replace_func():
+        return "./PIV/data/"
+    old = PIV.utilities.root_path
+    PIV.utilities.root_path = replace_func
+
     # get flowtypes
-    flowtypes = image_info.all_flow_types()
+    flowtypes = [1, 2, 22, 23]
     for item in flowtypes:
         im_number = 1
         IA, IB, mask = piv_image.load_images(item, im_number)
         # test that the object creates just fine
         piv_image.PIVImage(IA, IB, mask)
+
+    PIV.utilities.root_path = old
 
 
 def test_deformation_is_done_on_filtered_images(mock_IA,
@@ -410,6 +447,14 @@ def test_load_PIVImage():
     manual way
     """
 
+    # overwrite utilities.root_path() such that we look in the data folder
+    # instead of the main folder
+    import PIV.utilities
+    def replace_func():
+        return "./PIV/data/"
+    old = PIV.utilities.root_path
+    PIV.utilities.root_path = replace_func
+
     # 'manual' way
     flowtype, im_number = 1, 20
     IA, IB, mask = piv_image.load_images(flowtype, im_number)
@@ -418,6 +463,7 @@ def test_load_PIVImage():
     # test method
     act = piv_image.load_PIVImage(flowtype, im_number)
     assert exp, act
+    PIV.utilities.root_path = old
 
 
 def test_quintic_spline_image_filt_all_ones():

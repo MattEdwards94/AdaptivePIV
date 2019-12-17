@@ -244,7 +244,7 @@ def test_calculate_WS_middle_input():
     assert analysis.WS_for_iter(2, settings) == exp
 
 
-def test__quick_widim():
+def test_quick_widim():
     """
     Analyses a single image for a selection of images:
         Test BFS - experimental with mask - 1
@@ -252,6 +252,15 @@ def test__quick_widim():
         Test vortex array - synthetic without mask (matlab v7) - 22
         Test gaussian smoothed - synthetic without mask (matlab 7.3) - 24
     """
+
+    # overwrite utilities.root_path() such that we look in the data folder
+    # instead of the main folder
+    import PIV.utilities
+
+    def replace_func():
+        return "./PIV/data/"
+    old = PIV.utilities.root_path
+    PIV.utilities.root_path = replace_func
 
     flowtypes = [1, 20, 22, 24]
 
@@ -268,3 +277,5 @@ def test__quick_widim():
 
         # analyse the image
         analysis.widim(img, settings)
+
+    PIV.utilities.root_path = old

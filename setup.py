@@ -14,14 +14,16 @@ extensions = [Extension("cyth_corr_window", ["PIV/cyth_corr_window" + ext],
 if USE_CYTHON:
     from Cython.Build import cythonize
     directives = {'linetrace': False, 'language_level': 3}
-    extensions = cythonize(extensions, annotate=True)
+    extensions = cythonize(extensions, annotate=True,
+                           compiler_directives=directives)
+
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="PIV",
-    version="1.2",
+    version="1.3",
     author="Matt Edwards",
     author_email="m.edwards@bristol.ac.uk",
     description="A framework for analysis PIV images",
@@ -34,6 +36,7 @@ setuptools.setup(
         'h5py',
         'pillow',
         'sklearn',
+        'scikit-image',
         'matplotlib',
         'bottleneck',
     ],

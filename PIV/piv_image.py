@@ -11,7 +11,7 @@ import math
 import sym_filt
 import PIV.dense_predictor as dense_predictor
 import scipy.ndimage.filters as im_filter
-import skimage
+import skimage.filters
 
 
 class PIVImage:
@@ -791,7 +791,7 @@ def calc_seeding_density(binary_part_img_locations, filter_size=33):
         seed_dens (ndarray): seeding density over the domain in particles
                             per pixel
     """
-    
+
     pass
 
 
