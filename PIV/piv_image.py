@@ -776,6 +776,25 @@ def detect_particles_max_filter(img):
     return (img == mf) & (img >= thr)
 
 
+def calc_seeding_density(binary_part_img_locations, filter_size=33):
+    """
+    Calculates the approximate seeding density for each pixel over the
+    domain using a convolution filter
+
+    Args:
+        binary_part_img_locations (ndarray): Binary image showing the locations
+                                            of particles using true/1
+        filter_size (int): The filter size used to compute the seeding density
+                        (default: 33)
+
+    Returns:
+        seed_dens (ndarray): seeding density over the domain in particles
+                            per pixel
+    """
+    
+    pass
+
+
 if __name__ == "__main__":
     # img = load_PIVImage(1, 1)
     # u, v = 5 * np.ones((640, 1280)), 5 * np.ones((640, 1280))
