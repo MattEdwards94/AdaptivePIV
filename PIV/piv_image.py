@@ -552,25 +552,21 @@ def render_synthetic_PIV_image(img_dim,
     ccd_fill = fill_factor * 0.5
     one32 = 1/32
 
-    for i in range(x_part.size):
-        par_diam = d_tau[i]
-        x = x_part[i]
-        y = y_part[i]
-
-        bl = int(max(x - par_diam, 0))
-        br = int(min(x + par_diam, width))
-        bd = int(max(y - par_diam, 0))
-        bu = int(min(y + par_diam, height))
+    for x, y, dt, Ip in zip(x_part, y_part, d_tau, part_intens):
+        bl = int(max(x - dt, 0))
+        br = int(min(x + dt, width))
+        bd = int(max(y - dt, 0))
+        bu = int(min(y + dt, height))
 
         # Equation 6 from europiv SIG documentation has:
         # d_particle^2 * r_tau ^ 2 * pi/8
         # the dp^2 is to reflect the fact that bigger particles
         # scatter more light proportional to dp^2
-        # this is implicitly governed by part_intens[ind]
+        # this is implicitly governed by Ip
         # the r_tau^2 is actually r_tau_x * r_tau_y
         # this appears to come from the integration of the continuous
         # equation
-        scale_term = par_diam * par_diam * np.pi * part_intens[i] * one32
+        scale_term = dt * dt * np.pi * Ip * one32
 
         for c in range(bl, br):
             for r in range(bd, bu):
@@ -578,13 +574,13 @@ def render_synthetic_PIV_image(img_dim,
                     # assumes a fill factor of 1 -> the 0.5 comes
                     # from fill_factor * 0.5
                     # sqrt8 comes from the erf( ... / (sqrt2 * par_radius))
-                    # hence 2 * ... / sqrt2 * par_diam
-                    # hence sqrt8 * ... / par_diam
-                    erf(sqrt8 * (c - x - ccd_fill) / par_diam) -
-                    erf(sqrt8 * (c - x + ccd_fill) / par_diam)
+                    # hence 2 * ... / sqrt2 * dt
+                    # hence sqrt8 * ... / dt
+                    erf(sqrt8 * (c - x - ccd_fill) / dt) -
+                    erf(sqrt8 * (c - x + ccd_fill) / dt)
                 ) * (
-                    erf(sqrt8 * (r - y - ccd_fill) / par_diam) -
-                    erf(sqrt8 * (r - y + ccd_fill) / par_diam)
+                    erf(sqrt8 * (r - y - ccd_fill) / dt) -
+                    erf(sqrt8 * (r - y + ccd_fill) / dt)
                 )
 
     # calculate the noise to apply to the image
