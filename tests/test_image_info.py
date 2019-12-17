@@ -130,14 +130,3 @@ def test_formatted_filenames_returns_none_for_no_mask():
     im = image_info.ImageInfo(23)
     fnames = im.formatted_filenames(1)
     assert fnames[2] is None
-
-
-def test_all_flow_types():
-    """
-    Tests that all the flow types are valid
-    """
-
-    flow_types = image_info.all_flow_types()
-    for item in flow_types:
-        print(item)
-        _, _, _ = piv_image.load_images(item, im_number=1)
