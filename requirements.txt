@@ -27,7 +27,6 @@ lazy-object-proxy==1.4.2
 line-profiler==2.1.2
 matplotlib==3.0.3
 mccabe==0.6.1
-mkl-fft
 mkl-random==1.0.1
 more-itertools==7.0.0
 networkx==2.4
