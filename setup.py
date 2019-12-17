@@ -21,7 +21,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="PIV",
-    version="1.2",
+    version="1.3",
     author="Matt Edwards",
     author_email="m.edwards@bristol.ac.uk",
     description="A framework for analysis PIV images",
@@ -34,6 +34,8 @@ setuptools.setup(
         'h5py',
         'pillow',
         'sklearn',
+        'skimage',
+        'mpl_toolkits',
         'matplotlib',
         'bottleneck',
     ],
