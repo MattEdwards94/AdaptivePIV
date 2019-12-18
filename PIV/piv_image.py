@@ -461,6 +461,54 @@ def quintic_spline_image_filter(IA):
     return C
 
 
+def generate_uniform_particle_locations(img_dim, seed_dens,
+                                        d_tau_mean=2.5, d_tau_std=0.25,
+                                        int_mean=0.9, int_std=0.05,
+                                        **kwargs):
+    """Generates a uniform distribution of particle images, with 
+    diameter and intensity drawn from a normal distribution
+
+    Particles are generated a small distance beyond the image dimensions to
+    be more representative of the true situation, and allow new particles
+    to enter the domain in the second image, once the particles are displaced
+
+    Arguments:
+        img_dim {int, tuple}: The height and width, respectively, of the 
+                              image to be populated
+        seed_dens {float}: The target seeding density in particles per
+                           pixel
+        d_tau_mean {float}: The mean particle image diameter, in pixels 
+                            (default: {2.5})
+        d_tau_std {float}: Standard deviation of particle image
+                           diameter, in pixels (default: {0.25})
+        int_mean {float}: The mean intensity of particle images
+                          values between 0 - 1 (default: {0.9})
+        int_std {float}: The standard deviation of intensities of 
+                         particles about the mean (default: {0.05})
+    """
+
+    # extend the particle seed beyond the edge of the domain, equal to the
+    # maximum displacement and the particle diameter, such that particles
+    # can enter the domain in the second iteration as they would in reality
+    max_disp = 10
+
+    # create a random distribution of particles over the domain
+    n_part = int((img_dim[0]+d_tau_mean+max_disp) *
+                 (img_dim[1]+d_tau_mean+max_disp) *
+                 seed_density)
+
+    xp1 = np.random.uniform(-d_tau_mean-max_disp,
+                            img_dim[1]+d_tau_mean+max_disp,
+                            n_part)
+    yp1 = np.random.uniform(-d_tau_mean-max_disp,
+                            img_dim[0]+d_tau_mean+max_disp,
+                            n_part)
+    d_tau = np.random.normal(d_tau_mean, d_tau_std, n_part)
+    Ip = np.random.normal(int_mean, int_std, n_part)
+
+    return xp1, yp1, xp2, yp2, d_tau, Ip
+
+
 def generate_particle_locations(img_dim, seed_density,
                                 u, v,
                                 d_tau_mean=2.5, d_tau_std=0.25,
