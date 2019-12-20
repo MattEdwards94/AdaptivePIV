@@ -461,10 +461,9 @@ def quintic_spline_image_filter(IA):
     return C
 
 
-def generate_uniform_particle_locations(img_dim, seed_dens,
-                                        d_tau_mean=2.5, d_tau_std=0.25,
-                                        int_mean=0.9, int_std=0.05,
-                                        **kwargs):
+def gen_uniform_part_locations(img_dim, seed_dens,
+                               d_tau_mean=2.5, d_tau_std=0.25,
+                               int_mean=0.9, int_std=0.05):
     """Generates a uniform distribution of particle images, with 
     diameter and intensity drawn from a normal distribution
 
@@ -490,71 +489,45 @@ def generate_uniform_particle_locations(img_dim, seed_dens,
     # extend the particle seed beyond the edge of the domain, equal to the
     # maximum displacement and the particle diameter, such that particles
     # can enter the domain in the second iteration as they would in reality
-    max_disp = 10
+    extend_generation = 5 + d_tau_mean
 
-    # create a random distribution of particles over the domain
-    n_part = int((img_dim[0]+d_tau_mean+max_disp) *
-                 (img_dim[1]+d_tau_mean+max_disp) *
-                 seed_density)
+    n_part = int((img_dim[0]+2*extend_generation) *
+                 (img_dim[1]+2*extend_generation) *
+                 seed_dens)
 
-    xp1 = np.random.uniform(-d_tau_mean-max_disp,
-                            img_dim[1]+d_tau_mean+max_disp,
+    xp1 = np.random.uniform(-extend_generation,
+                            img_dim[1]+extend_generation,
                             n_part)
-    yp1 = np.random.uniform(-d_tau_mean-max_disp,
-                            img_dim[0]+d_tau_mean+max_disp,
+    yp1 = np.random.uniform(-extend_generation,
+                            img_dim[0]+extend_generation,
                             n_part)
     d_tau = np.random.normal(d_tau_mean, d_tau_std, n_part)
     Ip = np.random.normal(int_mean, int_std, n_part)
 
-    return xp1, yp1, xp2, yp2, d_tau, Ip
+    return xp1, yp1, d_tau, Ip
 
 
-def generate_particle_locations(img_dim, seed_density,
-                                u, v,
-                                d_tau_mean=2.5, d_tau_std=0.25,
-                                int_mean=0.9, int_std=0.05,
-                                **kwargs):
-    """Generates particles for synthetic generation
+def displace_particles(xp1, yp1, u, v):
+    """Displaces particles accurding to the displacement field defined
+    by u and v
 
-        Arguments:
-            img_dim {int, tuple} -- The height and width of the image in pixels
-            seed_density {float} -- Approximate number of particles per pixel
-            u {float, ndarray} -- Horizontal displacement field 
-                                  defined pixelwise
-            v {float, ndarray} -- Vertical displacement field, defined pixelwise
-            d_tau_mean {float} -- The average particle image diameter px
-            d_tau_std {float} -- The standard deviation of particle 
-                                 image diameters
-            int_mean {float} -- The mean intensity of particle images, 0-1
-            int_std {float} -- The standard deviation of intensities 
-                               about the mean
+    Arguments:
+        xp1 {float, list like} -- The horizontal location of particle images in 
+                                  the first timestep
+        yp1 {float, list like} -- The vertical location of particle images in 
+                                  the first timestep
+        u {float, ndarray} -- Horizontal displacement field 
+                              defined pixelwise
+        v {float, ndarray} -- Vertical displacement field, defined pixelwise
 
-        Returns:
-            xp1, yp1, xp2, yp2 (float, list) -- The locations of particles in
-                                                the first and second timestep 
-            d_tau, Ip (float, list) -- Properties of the particle images
+    Returns:
+        xp2, yp2 (float, list) -- The locations of particles in
+                                  the second timestep 
     """
-    # extend the particle seed beyond the edge of the domain, equal to the
-    # maximum displacement and the particle diameter, such that particles
-    # can enter the domain in the second iteration as they would in reality
-    max_disp = 10
-
-    # create a random distribution of particles over the domain
-    n_part = int((img_dim[0]+d_tau_mean+max_disp) *
-                 (img_dim[1]+d_tau_mean+max_disp) *
-                 seed_density)
-
-    xp1 = np.random.uniform(-d_tau_mean-max_disp,
-                            img_dim[1]+d_tau_mean+max_disp,
-                            n_part)
-    yp1 = np.random.uniform(-d_tau_mean-max_disp,
-                            img_dim[0]+d_tau_mean+max_disp,
-                            n_part)
-    d_tau = np.random.normal(d_tau_mean, d_tau_std, n_part)
-    Ip = np.random.normal(int_mean, int_std, n_part)
 
     # interpolate the displacement field to obtain a function
     # this allows us to calculate the sub-pixel displacement
+    img_dim = np.shape(u)
     f_u = interp.interp2d(np.arange(img_dim[1]),
                           np.arange(img_dim[0]), u)
     f_v = interp.interp2d(np.arange(img_dim[1]),
@@ -566,7 +539,7 @@ def generate_particle_locations(img_dim, seed_density,
     xp2 = xp1 + up1
     yp2 = yp1 + vp1
 
-    return xp1, yp1, xp2, yp2, d_tau, Ip
+    return xp2, yp2
 
 
 def render_synthetic_PIV_image(img_dim,
@@ -645,10 +618,11 @@ def render_synthetic_PIV_image(img_dim,
 
 
 def create_synthetic_image_pair(img_dim, seed_dens, u, v, **kwargs):
-    """Helper function to generate synthetic PIV images
+    """Helper function to generate synthetic PIV images, assumes uniform 
+    distribution of particle images
 
     For additional arguments, refer to:
-        generate_particle_locations
+        gen_uniform_part_locations
         render_synthetic_PIV_image
 
     Arguments:
@@ -659,11 +633,9 @@ def create_synthetic_image_pair(img_dim, seed_dens, u, v, **kwargs):
     """
 
     # get particle image locations
-    (xp1, yp1,
-     xp2, yp2,
-     d_tau, Ip) = generate_particle_locations(img_dim, seed_dens,
-                                              u, v,
-                                              **kwargs)
+    xp1, yp1, d_tau, Ip = gen_uniform_part_locations(img_dim, seed_dens,
+                                                     **kwargs)
+    xp2, yp2 = displace_particles(xp1, yp1, u, v)
 
     img_a = render_synthetic_PIV_image(img_dim,
                                        xp1, yp1,
@@ -898,10 +870,3 @@ if __name__ == "__main__":
     #          "v": v,
     #          }
     # sio.savemat("test_file.mat", mdict)
-
-    (x_part, y_part,
-     d_tau, part_intens,
-     x_part2, y_part2) = generate_particle_locations((50, 50), 0.01,
-                                                     5*np.ones((50, 50)), np.zeros((50, 50)))
-
-    render_synthetic_PIV_image(50, 50, x_part, y_part, d_tau, part_intens)
