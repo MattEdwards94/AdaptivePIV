@@ -315,5 +315,68 @@ def plot_adjacent_images(ia, ib,
     return fig, ax1, ax2
 
 
+class SummedAreaTable():
+    """Creates a summed area table to allow for rapid extraction of the
+    summation of a submatrix of an array
+    """
+
+    def __init__(self, IA):
+        """Initialises the summed area table for an input array IA
+
+        Arguments:
+            IA {ndarray} -- Input array to create the SAT from
+        """
+        # sum the rows and then the columns
+        self.SAT = IA.cumsum(axis=1).cumsum(axis=0)
+
+    def get_area_sum(self, left, right, bottom, top):
+        """Gets the sum of the region defined by left/right/bottom/top
+
+        The sum is inclusive of all pixels defined by l:r:b:t
+        This is DIFFERENT to the standard behaviour of numpy indexing. 
+        For example:
+            The following is the sum of rows 1-9, inclusive, and 
+            columns 4-7 inclusive.
+            a = np.sum(A[1:10, 4:8])
+
+            For equivalent behaviour using a summed area table
+            st = SummedAreaTable(A)
+            a = st.get_area_sum(4, 7, 1, 9)
+
+
+        Arguments:
+            left {int} -- The left most coordinate of the region to search
+            right {int} -- The rightmost coordinate of the region to search.
+                        This must be greater than the left side
+            bottom {int} -- The bottom of the region to search
+            top {int} -- The top of the region to search. This must be greater
+                        than the bottom of the region
+        """
+        if right < left:
+            raise ValueError("The right must be >= left")
+        if top < bottom:
+            raise ValueError("The top must be >= bottom")
+
+        # define the square as
+        # A -- B
+        # |    |
+        # |    |
+        # C -- D
+        # The sum of the region is thus:
+        # B - A - D + C
+        # note that C is added due to it being doubly subtracted by A and D
+        # refer to https://en.wikipedia.org/wiki/Summed-area_table for more
+        # information
+        #
+        # also note that if A or C are on the first column, then they should
+        # be 0 in the SAT, likewise if C or D are below the first row
+        A = self.SAT[top, left-1] if left > 0 else 0
+        B = self.SAT[top, right]
+        C = self.SAT[bottom-1, left-1] if left > 0 and bottom > 0 else 0
+        D = self.SAT[bottom-1, right] if bottom > 0 else 0
+
+        return (B - A - D + C)
+
+
 if __name__ == '__main__':
     pass
