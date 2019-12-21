@@ -377,6 +377,71 @@ class SummedAreaTable():
 
         return (B - A - D + C)
 
+    def get_total_sum(self):
+        """Returns the sum of values over the whole domain
+
+        i.e. the top right value
+        """
+        return self.SAT[-1, -1]
+
+    def fixed_filter_convolution(self, filt_size):
+        """Gets the effective unity weighted fixed convolution of a filter over
+        the whole domain. 
+
+        Is equivalent to looping over every pixel and working out the sum within
+        a region equal to filter, centered on each pixel. 
+        Values outside of the domain are assumed to be 0
+
+        Must be an odd filter size
+
+        Arguments:
+            filt_size {int, odd} -- The size of the filter to apply over 
+                                    the domain
+        """
+
+        if not filt_size % 2:
+            raise ValueError("The filter size must be odd")
+
+        rad = int((filt_size - 1) / 2)
+
+        # using pad in this way shifts the elements of the array, and fills in
+        # to the correct size, using the edge value as the fill.
+        # this makes it such that the window will effectively sum 0 values
+        # outside of the image
+
+        # note that the comments define the direction that we want to move
+        # the desired reference pixel in. This is the opposite to the direction
+        # that the actual array is moving in.
+
+        # MODIFY THIS CODE WITH CAUTION
+
+        # shift the top right down and to the left, keeping the values
+        # at the edges
+        tr = np.pad(self.SAT, ((0, rad), (0, rad)),
+                    mode='edge')[rad:, rad:]
+
+        # shift the top left down and to the right. Keep the values along the
+        # top edge, set new values to 0 along the left edge
+        tl = np.pad(self.SAT, ((0, rad), (0, 0)),
+                    mode='edge')[rad:, :]
+        tl = np.pad(tl, ((0, 0), (rad+1, 0)),
+                    mode='constant')[:, :-(rad+1)]
+
+
+        # shift the bottom right up and to the left. Keep the values along the
+        # right hand edge, set new values to 0 along the bottom
+        br = np.pad(self.SAT, ((0, 0), (0, rad)),
+                    mode='edge')[:, rad:]
+        br = np.pad(br, ((rad+1, 0), (0, 0)),
+                    mode='constant')[:-(rad+1), :]
+
+        # shift the bottom left up and to the right.
+        # Set all new values to 0
+        bl = np.pad(self.SAT, ((rad+1, 0), (rad+1, 0)),
+                    mode='constant')[:-(rad+1), :-(rad+1)]
+
+        return tr - tl - br + bl
+
 
 if __name__ == '__main__':
     pass

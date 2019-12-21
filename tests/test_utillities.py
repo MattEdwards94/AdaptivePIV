@@ -378,3 +378,32 @@ def test_summed_area_table_get_sum_near_boundary():
     act = st.get_area_sum(0, 4, 1, 3)
 
     assert exp == act
+
+
+def test_get_total_sum():
+    """Check that the value is indeed the total sum of the array
+    """
+    IA = np.arange(49).reshape(7, 7)
+    exp = np.sum(IA)
+    st = utilities.SummedAreaTable(IA)
+    assert exp == st.get_total_sum()
+
+def test_SAT_convolution():
+    """Test the fixed_filter_convolution of the SAT
+    """
+
+    IA = np.arange(49).reshape(7, 7)
+    st = utilities.SummedAreaTable(IA)
+    filt_sz = 3
+    rad = int((filt_sz - 1) / 2)
+    IB = st.fixed_filter_convolution(filt_sz)
+
+    for ii in range(7):
+        bottom = np.maximum(ii-rad, 0)
+        top = np.minimum(ii + rad, 6)
+        for jj in range(7):
+            left = np.maximum(jj-rad, 0)
+            right = np.minimum(jj+rad, 6)
+            exp = st.get_area_sum(left, right, bottom, top)
+            act = IB[ii, jj]
+            assert exp == act
