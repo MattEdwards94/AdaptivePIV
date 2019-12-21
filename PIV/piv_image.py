@@ -479,11 +479,19 @@ def gen_uniform_part_locations(img_dim, seed_dens,
         d_tau_mean {float}: The mean particle image diameter, in pixels 
                             (default: {2.5})
         d_tau_std {float}: Standard deviation of particle image
-                           diameter, in pixels (default: {0.25})
+                           diameter, in pixels 
+                           (default: {0.25})
         int_mean {float}: The mean intensity of particle images
-                          values between 0 - 1 (default: {0.9})
+                          values between 0 - 1 
+                          (default: {0.9})
         int_std {float}: The standard deviation of intensities of 
-                         particles about the mean (default: {0.05})
+                         particles about the mean 
+                         (default: {0.05})
+
+    Returns:
+            xp1, yp1 (float, list) -- The locations of particles in
+                                      the first timestep 
+            d_tau, Ip (float, list) -- Properties of the particle images
     """
 
     # extend the particle seed beyond the edge of the domain, equal to the
@@ -853,20 +861,3 @@ def calc_seeding_density(binary_part_img_locations, mask=None,
             st_mask.fixed_filter_convolution(filt_sz))
 
 
-if __name__ == "__main__":
-    # img = load_PIVImage(1, 1)
-    # u, v = 5 * np.ones((640, 1280)), 5 * np.ones((640, 1280))
-    # dp = dense_predictor.DensePredictor(u, v)
-    # img_def = img.deform_image(dp)
-
-    # # save into mat file
-    # IA, IB = img.IA, img.IB
-    # IAf, IBf = img_def.IA, img_def.IB
-    # mdict = {"IA": IA,
-    #          "IB": IB,
-    #          "IAf": IAf,
-    #          "IBf": IBf,
-    #          "u": u,
-    #          "v": v,
-    #          }
-    # sio.savemat("test_file.mat", mdict)
