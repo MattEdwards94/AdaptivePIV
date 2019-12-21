@@ -10,6 +10,7 @@ import numpy as np
 import math
 import sym_filt
 import PIV.dense_predictor as dense_predictor
+import PIV.utilities as utils
 import scipy.ndimage.filters as im_filter
 import skimage.filters
 
@@ -776,23 +777,60 @@ def detect_particles_max_filter(img):
     return (img == mf) & (img >= thr)
 
 
-def calc_seeding_density(binary_part_img_locations, filter_size=33):
+def calc_seeding_density(binary_part_img_locations, mask=None,
+                         target_filt_part=20):
     """
     Calculates the approximate seeding density for each pixel over the
-    domain using a convolution filter
+    domain
+
+    The method uses a summed area table to accelerate the process
 
     Args:
         binary_part_img_locations (ndarray): Binary image showing the locations
                                             of particles using true/1
-        filter_size (int): The filter size used to compute the seeding density
-                        (default: 33)
+        mask (binary ndarray): Indicates with 0/false the locations with a mask
+        target_filt_part (int): The target number of particles to be contained
+                                in the convolution filter, such that we have
+                                good reliability of the seeding density 
+                                calculation
+                                The default is 20 for the following reasons:
+                                    There is ~5% chance of the seeding dens
+                                    estimate being more than ~35% more than
+                                    it truly is. When constructing a window
+                                    based on this, with a target NI of 8, this 
+                                    maintains a ~70% chance of containing at 
+                                    least 5 particles within a window sized
+                                    off of the incorrect sd. Of course, if the 
+                                    seeding density has been locally over-
+                                    estimated then the chance of having at least
+                                    5 particles is higher. 
+                                    Furthermore, and perhaps more importantly, 
+                                    if the minimum seeding density is approx
+                                    1/7th that of the mean, then the chance of 
+                                    a search window containing at least 1 
+                                    particle is about 95%. 
 
     Returns:
         seed_dens (ndarray): seeding density over the domain in particles
                             per pixel
     """
 
-    pass
+    st = utils.SummedAreaTable(binary_part_img_locations)
+    if mask is None:
+        mask = np.ones_like(binary_part_img_locations)
+    
+    st_mask = utils.SummedAreaTable(mask)
+
+    # calculate the global mean seeding density, n_part / n_px
+    mean_sd = st.get_total_sum() / st_mask.get_total_sum()
+
+    # use this to obtain the correctly sized filter.
+    # make sure the filter is odd to make interacting with the SAT easier
+    filt_sz = utils.round_to_odd(np.ceil(np.sqrt(target_filt_part
+                                                 / mean_sd)))
+    
+    return (st.fixed_filter_convolution(filt_sz) / 
+            st_mask.fixed_filter_convolution(filt_sz))
 
 
 if __name__ == "__main__":
