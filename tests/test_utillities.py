@@ -306,3 +306,104 @@ def test_round_to_odd_round_up():
 
     exp = [15, 45, 101]
     assert output == exp
+
+
+def test_summed_area_table_initialisation():
+    """Check that the summed area table is the sum of all elements below and
+    to the left
+    """
+
+    IA = np.arange(144).reshape(12, 12)
+
+    exp = IA.cumsum(axis=1).cumsum(axis=0)
+
+    sat = utilities.SummedAreaTable(IA)
+
+    assert np.allclose(sat.SAT, exp)
+
+
+def test_summed_area_table_get_area_sum():
+    """Check that the sum within a region is correct as expected
+    """
+    IA = np.arange(144).reshape(12, 12)
+
+    # calculate the sub region in the typical manner
+    exp = np.sum(IA[1:4, 2:5])
+
+    st = utilities.SummedAreaTable(IA)
+
+    act = st.get_area_sum(2, 4, 1, 3)
+
+    assert exp == act
+
+
+def test_summed_area_table_checks_right_top_greater_than_left_bottom():
+    """Checks that right >= left and that top >= bottom
+    """
+    IA = np.arange(144).reshape(12, 12)
+    st = utilities.SummedAreaTable(IA)
+    with pytest.raises(ValueError):
+        st.get_area_sum(5, 4, 4, 7)
+
+    with pytest.raises(ValueError):
+        st.get_area_sum(4, 5, 10, 5)
+
+    # check that the same value is allowed - this would get the sum along
+    # a line
+    st.get_area_sum(4, 4, 5, 6)
+    st.get_area_sum(4, 5, 6, 6)
+
+
+def test_summed_area_table_get_sum_near_boundary():
+    """If we want to get the sum of a region which includes the leftmost or
+    bottom row of the array, then we would inevitably try to access an 
+    element which is out of bounds. 
+    Test that this is accounted for.
+    """
+
+    IA = np.arange(144).reshape(12, 12)
+
+    # calculate the sub region in the typical manner, with bottom row selected
+    exp = np.sum(IA[0:4, 2:5])
+    st = utilities.SummedAreaTable(IA)
+    act = st.get_area_sum(2, 4, 0, 3)
+
+    assert exp == act
+
+    IA = np.arange(144).reshape(12, 12)
+
+    # calculate the sub region in the typical manner, with bottom row selected
+    exp = np.sum(IA[1:4, 0:5])
+    st = utilities.SummedAreaTable(IA)
+    act = st.get_area_sum(0, 4, 1, 3)
+
+    assert exp == act
+
+
+def test_get_total_sum():
+    """Check that the value is indeed the total sum of the array
+    """
+    IA = np.arange(49).reshape(7, 7)
+    exp = np.sum(IA)
+    st = utilities.SummedAreaTable(IA)
+    assert exp == st.get_total_sum()
+
+def test_SAT_convolution():
+    """Test the fixed_filter_convolution of the SAT
+    """
+
+    IA = np.arange(49).reshape(7, 7)
+    st = utilities.SummedAreaTable(IA)
+    filt_sz = 3
+    rad = int((filt_sz - 1) / 2)
+    IB = st.fixed_filter_convolution(filt_sz)
+
+    for ii in range(7):
+        bottom = np.maximum(ii-rad, 0)
+        top = np.minimum(ii + rad, 6)
+        for jj in range(7):
+            left = np.maximum(jj-rad, 0)
+            right = np.minimum(jj+rad, 6)
+            exp = st.get_area_sum(left, right, bottom, top)
+            act = IB[ii, jj]
+            assert exp == act

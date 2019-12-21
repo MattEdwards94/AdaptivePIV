@@ -315,5 +315,133 @@ def plot_adjacent_images(ia, ib,
     return fig, ax1, ax2
 
 
+class SummedAreaTable():
+    """Creates a summed area table to allow for rapid extraction of the
+    summation of a submatrix of an array
+    """
+
+    def __init__(self, IA):
+        """Initialises the summed area table for an input array IA
+
+        Arguments:
+            IA {ndarray} -- Input array to create the SAT from
+        """
+        # sum the rows and then the columns
+        self.SAT = IA.cumsum(axis=1).cumsum(axis=0)
+
+    def get_area_sum(self, left, right, bottom, top):
+        """Gets the sum of the region defined by left/right/bottom/top
+
+        The sum is inclusive of all pixels defined by l:r:b:t
+        This is DIFFERENT to the standard behaviour of numpy indexing. 
+        For example:
+            The following is the sum of rows 1-9, inclusive, and 
+            columns 4-7 inclusive.
+            a = np.sum(A[1:10, 4:8])
+
+            For equivalent behaviour using a summed area table
+            st = SummedAreaTable(A)
+            a = st.get_area_sum(4, 7, 1, 9)
+
+
+        Arguments:
+            left {int} -- The left most coordinate of the region to search
+            right {int} -- The rightmost coordinate of the region to search.
+                        This must be greater than the left side
+            bottom {int} -- The bottom of the region to search
+            top {int} -- The top of the region to search. This must be greater
+                        than the bottom of the region
+        """
+        if right < left:
+            raise ValueError("The right must be >= left")
+        if top < bottom:
+            raise ValueError("The top must be >= bottom")
+
+        # define the square as
+        # A -- B
+        # |    |
+        # |    |
+        # C -- D
+        # The sum of the region is thus:
+        # B - A - D + C
+        # note that C is added due to it being doubly subtracted by A and D
+        # refer to https://en.wikipedia.org/wiki/Summed-area_table for more
+        # information
+        #
+        # also note that if A or C are on the first column, then they should
+        # be 0 in the SAT, likewise if C or D are below the first row
+        A = self.SAT[top, left-1] if left > 0 else 0
+        B = self.SAT[top, right]
+        C = self.SAT[bottom-1, left-1] if left > 0 and bottom > 0 else 0
+        D = self.SAT[bottom-1, right] if bottom > 0 else 0
+
+        return (B - A - D + C)
+
+    def get_total_sum(self):
+        """Returns the sum of values over the whole domain
+
+        i.e. the top right value
+        """
+        return self.SAT[-1, -1]
+
+    def fixed_filter_convolution(self, filt_size):
+        """Gets the effective unity weighted fixed convolution of a filter over
+        the whole domain. 
+
+        Is equivalent to looping over every pixel and working out the sum within
+        a region equal to filter, centered on each pixel. 
+        Values outside of the domain are assumed to be 0
+
+        Must be an odd filter size
+
+        Arguments:
+            filt_size {int, odd} -- The size of the filter to apply over 
+                                    the domain
+        """
+
+        if not filt_size % 2:
+            raise ValueError("The filter size must be odd")
+
+        rad = int((filt_size - 1) / 2)
+
+        # using pad in this way shifts the elements of the array, and fills in
+        # to the correct size, using the edge value as the fill.
+        # this makes it such that the window will effectively sum 0 values
+        # outside of the image
+
+        # note that the comments define the direction that we want to move
+        # the desired reference pixel in. This is the opposite to the direction
+        # that the actual array is moving in.
+
+        # MODIFY THIS CODE WITH CAUTION
+
+        # shift the top right down and to the left, keeping the values
+        # at the edges
+        tr = np.pad(self.SAT, ((0, rad), (0, rad)),
+                    mode='edge')[rad:, rad:]
+
+        # shift the top left down and to the right. Keep the values along the
+        # top edge, set new values to 0 along the left edge
+        tl = np.pad(self.SAT, ((0, rad), (0, 0)),
+                    mode='edge')[rad:, :]
+        tl = np.pad(tl, ((0, 0), (rad+1, 0)),
+                    mode='constant')[:, :-(rad+1)]
+
+
+        # shift the bottom right up and to the left. Keep the values along the
+        # right hand edge, set new values to 0 along the bottom
+        br = np.pad(self.SAT, ((0, 0), (0, rad)),
+                    mode='edge')[:, rad:]
+        br = np.pad(br, ((rad+1, 0), (0, 0)),
+                    mode='constant')[:-(rad+1), :]
+
+        # shift the bottom left up and to the right.
+        # Set all new values to 0
+        bl = np.pad(self.SAT, ((rad+1, 0), (rad+1, 0)),
+                    mode='constant')[:-(rad+1), :-(rad+1)]
+
+        return tr - tl - br + bl
+
+
 if __name__ == '__main__':
     pass
