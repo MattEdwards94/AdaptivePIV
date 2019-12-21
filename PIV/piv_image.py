@@ -515,6 +515,90 @@ def gen_uniform_part_locations(img_dim, seed_dens,
     return xp1, yp1, d_tau, Ip
 
 
+def gen_part_locations_quasi_linear(img_dim, min_seed_dens, max_seed_dens,
+                                    n_strips=20,
+                                    d_tau_mean=2.5, d_tau_std=0.25,
+                                    int_mean=0.9, int_std=0.05):
+    """Generates particle images with a seeding density that quasi linearly 
+    decreases from minimum to maximum from left to right. 
+
+    The domain is split into a number of approximately equal strips, and 
+    seeded with a uniform seeding density within each strip.
+
+    Arguments:
+        img_dim {int, tuple} -- The vertical and horizontal dimensions of the 
+                                image
+        min_seed_dens {float} -- The minimum seeding density in particles per 
+                                 pixel
+        max_seed_dens {float} -- The maximum seeding density in particles per
+                                 pixel
+
+    Keyword Arguments:
+        n_strips {int} -- The number of strips to split the image into, within
+                          which the seeding density is constant.
+                          n_strips must be greater than the width of the image
+                          (default: {10})
+        d_tau_mean {float}: The mean particle image diameter, in pixels 
+                            (default: {2.5})
+        d_tau_std {float}: Standard deviation of particle image
+                           diameter, in pixels 
+                           (default: {0.25})
+        int_mean {float}: The mean intensity of particle images
+                          values between 0 - 1 
+                          (default: {0.9})
+        int_std {float}: The standard deviation of intensities of 
+                         particles about the mean 
+                         (default: {0.05})
+
+    Returns:
+            xp1, yp1 {float, list} -- The locations of particles in
+                                      the first timestep 
+            d_tau, Ip {float, list} -- Properties of the particle images
+    """
+
+    if n_strips > img_dim[1]:
+        raise ValueError("The number of strips must be less than the width "
+                         "of the image")
+
+    # get evenly spaced strips over the domain
+    strips = np.floor(np.linspace(0, img_dim[1], n_strips+1))
+    # extend left and right to allow for particles to come into the domain
+    extend_generation = 5 + d_tau_mean
+    strips[0] -= extend_generation
+    strips[-1] += extend_generation
+
+    xp1, yp1 = [], []
+
+    # loop over the number of strips from left to right
+    # the left side has the min seeding density and
+    # the right side has the maximum
+    for left, right in zip(strips[:-1], strips[1:]):
+        # get the seeding density for the current strip by linear interpolation
+        if left < 0:
+            sd = min_seed_dens
+        else:
+            sd = (min_seed_dens +
+                  left * (max_seed_dens - min_seed_dens) / (img_dim[1]))
+
+        # calculate the number of particles for the current strip
+        n_part = np.round((right - left) *
+                          (img_dim[0] + 2 * extend_generation) *
+                          sd).astype(int)
+
+        # get the particle locations
+        xp1.extend(np.random.uniform(left,
+                                     right,
+                                     n_part))
+        yp1.extend(np.random.uniform(-extend_generation,
+                                     img_dim[0]+extend_generation,
+                                     n_part))
+
+    d_tau = np.random.normal(d_tau_mean, d_tau_std, len(xp1))
+    Ip = np.random.normal(int_mean, int_std, len(xp1))
+
+    return xp1, yp1, d_tau, Ip
+
+
 def displace_particles(xp1, yp1, u, v):
     """Displaces particles accurding to the displacement field defined
     by u and v
@@ -846,7 +930,7 @@ def calc_seeding_density(binary_part_img_locations, mask=None,
     st = utils.SummedAreaTable(binary_part_img_locations)
     if mask is None:
         mask = np.ones_like(binary_part_img_locations)
-    
+
     st_mask = utils.SummedAreaTable(mask)
 
     # calculate the global mean seeding density, n_part / n_px
