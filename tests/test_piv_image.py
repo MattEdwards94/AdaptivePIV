@@ -608,7 +608,7 @@ def test_particle_detection_perf_n_undetected():
 
 def test_detect_particles_max_filter():
     """
-    Tests the particle detection for a couple of simple cases
+    Tests the particle detection for a simple cases
     """
 
     # create mock image
@@ -626,6 +626,48 @@ def test_detect_particles_max_filter():
 
 
     assert np.allclose(exp, act)
+
+def test_detect_particles_max_filter_considers_mask():
+    """If a mask is given the the particle detection routine should return
+    0's in this region
+    """
+
+    # create mock image
+    img_dim = (150, 150)
+    (xp1, yp1, 
+    dtau, Ip) = piv_image.gen_uniform_part_locations(img_dim, 0.05,
+                                                     int_mean=0.8, int_std=0.1)
+    img = piv_image.render_synthetic_PIV_image(img_dim, xp1, yp1,
+                                               dtau, Ip,
+                                               noise_mean=0.4, noise_std=0.05)
+    
+    # define the mask on the left half of the image
+    mask_lim = int(img_dim[1] / 2)
+    mask = np.ones(img_dim)
+    mask[:, 0:mask_lim] = 0
+
+    # this is to make sure that the threshold will be different if the mask
+    # is not considered
+    img[:, 0:mask_lim] = 0
+
+    # we know that we have particle images over the whole image
+    # we want to check that only one half of the image is being considered 
+    # in terms of the identified particles, and the threshold used.
+    # apply the maximum filter
+    import scipy.ndimage.filters as im_filter
+    import skimage.filters
+
+    mf = im_filter.maximum_filter(img, size=3)
+
+    # obtain the threshold
+    thr = skimage.filters.threshold_otsu(img[mask==1])
+    
+    # get the particle locations
+    exp = (img == mf) & (img >= thr) & (mask == 1)
+
+    act = piv_image.detect_particles_max_filter(img, mask)
+
+    assert np.allclose(act, exp)
 
 
 

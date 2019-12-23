@@ -866,7 +866,7 @@ def plot_pair_images(ia, ib, fig_size=(20, 10), n_bits=None):
     return fig, a, b
 
 
-def detect_particles_max_filter(img):
+def detect_particles_max_filter(img, mask=None):
     """
     Detect particles in the input image, by applying a maximum filter followed
     by a automatic thresholding based on the Otsu threshold
@@ -879,14 +879,18 @@ def detect_particles_max_filter(img):
                                       have been detected
     """
 
+    # apply the mask
+    if mask is None:
+        mask = np.ones_like(img)
+
     # apply the maximum filter
     mf = im_filter.maximum_filter(img, size=3)
 
     # obtain the threshold
-    thr = skimage.filters.threshold_otsu(img)
+    thr = skimage.filters.threshold_otsu(img[mask == 1])
 
     # select the maximum locations above the threshold
-    return (img == mf) & (img >= thr)
+    return (img == mf) & (img >= thr) & (mask == 1)
 
 
 def calc_seeding_density(binary_part_img_locations, mask=None,
