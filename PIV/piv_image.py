@@ -315,7 +315,6 @@ def load_images(flowtype, im_number):
 
     # get the formatted filename with the correct image number inserted
     filenames = im_info.formatted_filenames(im_number)
-    # print(filenames)
 
     # try to load image A
     if filenames[0][-4:] == ".mat":
@@ -893,59 +892,78 @@ def detect_particles_max_filter(img, mask=None):
     return (img == mf) & (img >= thr) & (mask == 1)
 
 
-def calc_seeding_density(binary_part_img_locations, mask=None,
-                         target_filt_part=20):
+def calc_seeding_density(IA, mask=None,
+                         detection_mode='simple',
+                         filt_target_NI=15):
     """
-    Calculates the approximate seeding density for each pixel over the
-    domain
-
-    The method uses a summed area table to accelerate the process
+    Detects particles in the image IA, using the method defined by 
+    'detection_mode', and returns the approximate seeding density over 
+    the domain in particles per pixel. 
+    filt_target_NI defines approximately how many particles the convolution 
+    filter should contain when evaluating the seeding density 
 
     Args:
-        binary_part_img_locations (ndarray): Binary image showing the locations
-                                            of particles using true/1
+        IA (ndarray): PIV image containing particle images
         mask (binary ndarray): Indicates with 0/false the locations with a mask
-        target_filt_part (int): The target number of particles to be contained
-                                in the convolution filter, such that we have
-                                good reliability of the seeding density 
-                                calculation
-                                The default is 20 for the following reasons:
-                                    There is ~5% chance of the seeding dens
-                                    estimate being more than ~35% more than
-                                    it truly is. When constructing a window
-                                    based on this, with a target NI of 8, this 
-                                    maintains a ~70% chance of containing at 
-                                    least 5 particles within a window sized
-                                    off of the incorrect sd. Of course, if the 
-                                    seeding density has been locally over-
-                                    estimated then the chance of having at least
-                                    5 particles is higher. 
-                                    Furthermore, and perhaps more importantly, 
-                                    if the minimum seeding density is approx
-                                    1/7th that of the mean, then the chance of 
-                                    a search window containing at least 1 
-                                    particle is about 95%. 
+        detection_mode (string): The method to use to detect particle images
+                                 'simple': maximum filter + otsu threshold
+        filt_target_NI (int): The target number of particles to be contained
+                              in the convolution filter, such that we have
+                              good reliability of the seeding density 
+                              calculation. 
+                              default 15
 
     Returns:
         seed_dens (ndarray): seeding density over the domain in particles
-                            per pixel
+                             per pixel
     """
 
-    st = utils.SummedAreaTable(binary_part_img_locations)
-    if mask is None:
-        mask = np.ones_like(binary_part_img_locations)
+    # detect particles
+    if detection_mode == 'simple':
+        part_locations = detect_particles_max_filter(IA)
+    else:
+        raise ValueError("Particle detection method not defined")
 
+    # create invisible mask if one is not already defined
+    if mask is None:
+        mask = np.ones_like(IA)
+    else:  # otherwise check the dimensions match
+        if not np.all(np.shape(mask) == np.shape(IA)):
+            raise ValueError("The mask must have the same shape as IA")
+
+    mean_sd = np.sum(part_locations) / np.sum(mask)
+    filter_size = utils.round_to_odd(np.ceil(np.sqrt(filt_target_NI
+                                                     / mean_sd)))
+    print(filter_size)
+
+    return calculate_local_mean_value(part_locations, mask, filter_size)
+
+
+def calculate_local_mean_value(IA, mask=None, filter_size=None):
+    """Calculates the local mean value within a region, taking into account the
+    mask if present
+
+    Arguments:
+        IA {ndarray} -- The array containing the values to be averaged locally
+        mask {ndarray} -- The mask to impose on the underlying array. Only
+                          regions of IA where the mask has unity value are 
+                          considered
+        filter_size {odd int} -- The size of the filter to average IA over. 
+                                 Must be odd.
+                                 Default: 33
+    """
+
+    # create the summed area tables to accelerate the convolution
+    st = utils.SummedAreaTable(IA)
+    if mask is None:
+        mask = np.ones_like(IA)
     st_mask = utils.SummedAreaTable(mask)
 
-    # calculate the global mean seeding density, n_part / n_px
-    mean_sd = st.get_total_sum() / st_mask.get_total_sum()
+    if filter_size is None:
+        filter_size = 33
+    else:
+        if not filter_size % 2:
+            raise ValueError("Input filter size must be odd")
 
-    # use this to obtain the correctly sized filter.
-    # make sure the filter is odd to make interacting with the SAT easier
-    filt_sz = utils.round_to_odd(np.ceil(np.sqrt(target_filt_part
-                                                 / mean_sd)))
-    
-    return (st.fixed_filter_convolution(filt_sz) / 
-            st_mask.fixed_filter_convolution(filt_sz))
-
-
+    return (st.fixed_filter_convolution(filter_size) /
+            st_mask.fixed_filter_convolution(filter_size)) * mask

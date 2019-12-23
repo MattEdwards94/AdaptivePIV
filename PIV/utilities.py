@@ -326,8 +326,10 @@ class SummedAreaTable():
         Arguments:
             IA {ndarray} -- Input array to create the SAT from
         """
+
         # sum the rows and then the columns
         self.SAT = IA.cumsum(axis=1).cumsum(axis=0)
+        self.img_dim = np.shape(IA)
 
     def get_area_sum(self, left, right, bottom, top):
         """Gets the sum of the region defined by left/right/bottom/top
@@ -357,12 +359,16 @@ class SummedAreaTable():
         if top < bottom:
             raise ValueError("The top must be >= bottom")
 
+        # bounds check the inputs
+        top = min(max(top, 0), self.img_dim[0]-1)
+        right = min(max(right, 0), self.img_dim[1]-1)
+
         # define the square as
         # A -- B
         # |    |
         # |    |
         # C -- D
-        # The sum of the region is thus:
+        # The sum of the region, including B, excluding the rest, is thus:
         # B - A - D + C
         # note that C is added due to it being doubly subtracted by A and D
         # refer to https://en.wikipedia.org/wiki/Summed-area_table for more
@@ -426,7 +432,6 @@ class SummedAreaTable():
                     mode='edge')[rad:, :]
         tl = np.pad(tl, ((0, 0), (rad+1, 0)),
                     mode='constant')[:, :-(rad+1)]
-
 
         # shift the bottom right up and to the left. Keep the values along the
         # right hand edge, set new values to 0 along the bottom
