@@ -315,7 +315,6 @@ def load_images(flowtype, im_number):
 
     # get the formatted filename with the correct image number inserted
     filenames = im_info.formatted_filenames(im_number)
-    # print(filenames)
 
     # try to load image A
     if filenames[0][-4:] == ".mat":
@@ -461,52 +460,168 @@ def quintic_spline_image_filter(IA):
     return C
 
 
-def generate_particle_locations(img_dim, seed_density,
-                                u, v,
-                                d_tau_mean=2.5, d_tau_std=0.25,
-                                int_mean=0.9, int_std=0.05,
-                                **kwargs):
-    """Generates particles for synthetic generation
+""" ~~~~~~~~~~ Synthetic image generation ~~~~~~~~~~ """
 
-        Arguments:
-            img_dim {int, tuple} -- The height and width of the image in pixels
-            seed_density {float} -- Approximate number of particles per pixel
-            u {float, ndarray} -- Horizontal displacement field 
-                                  defined pixelwise
-            v {float, ndarray} -- Vertical displacement field, defined pixelwise
-            d_tau_mean {float} -- The average particle image diameter px
-            d_tau_std {float} -- The standard deviation of particle 
-                                 image diameters
-            int_mean {float} -- The mean intensity of particle images, 0-1
-            int_std {float} -- The standard deviation of intensities 
-                               about the mean
 
-        Returns:
-            xp1, yp1, xp2, yp2 (float, list) -- The locations of particles in
-                                                the first and second timestep 
+def gen_uniform_part_locations(img_dim, seed_dens,
+                               d_tau_mean=2.5, d_tau_std=0.25,
+                               int_mean=0.9, int_std=0.05):
+    """Generates a uniform distribution of particle images, with 
+    diameter and intensity drawn from a normal distribution
+
+    Particles are generated a small distance beyond the image dimensions to
+    be more representative of the true situation, and allow new particles
+    to enter the domain in the second image, once the particles are displaced
+
+    Arguments:
+        img_dim {int, tuple}: The height and width, respectively, of the 
+                              image to be populated
+        seed_dens {float}: The target seeding density in particles per
+                           pixel
+        d_tau_mean {float}: The mean particle image diameter, in pixels 
+                            (default: {2.5})
+        d_tau_std {float}: Standard deviation of particle image
+                           diameter, in pixels 
+                           (default: {0.25})
+        int_mean {float}: The mean intensity of particle images
+                          values between 0 - 1 
+                          (default: {0.9})
+        int_std {float}: The standard deviation of intensities of 
+                         particles about the mean 
+                         (default: {0.05})
+
+    Returns:
+            xp1, yp1 (float, list) -- The locations of particles in
+                                      the first timestep 
             d_tau, Ip (float, list) -- Properties of the particle images
     """
+
     # extend the particle seed beyond the edge of the domain, equal to the
     # maximum displacement and the particle diameter, such that particles
     # can enter the domain in the second iteration as they would in reality
-    max_disp = 10
+    extend_generation = 5 + d_tau_mean
 
-    # create a random distribution of particles over the domain
-    n_part = int((img_dim[0]+d_tau_mean+max_disp) *
-                 (img_dim[1]+d_tau_mean+max_disp) *
-                 seed_density)
+    n_part = int((img_dim[0]+2*extend_generation) *
+                 (img_dim[1]+2*extend_generation) *
+                 seed_dens)
 
-    xp1 = np.random.uniform(-d_tau_mean-max_disp,
-                            img_dim[1]+d_tau_mean+max_disp,
+    xp1 = np.random.uniform(-extend_generation,
+                            img_dim[1]+extend_generation,
                             n_part)
-    yp1 = np.random.uniform(-d_tau_mean-max_disp,
-                            img_dim[0]+d_tau_mean+max_disp,
+    yp1 = np.random.uniform(-extend_generation,
+                            img_dim[0]+extend_generation,
                             n_part)
     d_tau = np.random.normal(d_tau_mean, d_tau_std, n_part)
     Ip = np.random.normal(int_mean, int_std, n_part)
 
+    return xp1, yp1, d_tau, Ip
+
+
+def gen_part_locations_quasi_linear(img_dim, min_seed_dens, max_seed_dens,
+                                    n_strips=20,
+                                    d_tau_mean=2.5, d_tau_std=0.25,
+                                    int_mean=0.9, int_std=0.05):
+    """Generates particle images with a seeding density that quasi linearly 
+    decreases from minimum to maximum from left to right. 
+
+    The domain is split into a number of approximately equal strips, and 
+    seeded with a uniform seeding density within each strip.
+
+    Arguments:
+        img_dim {int, tuple} -- The vertical and horizontal dimensions of the 
+                                image
+        min_seed_dens {float} -- The minimum seeding density in particles per 
+                                 pixel
+        max_seed_dens {float} -- The maximum seeding density in particles per
+                                 pixel
+
+    Keyword Arguments:
+        n_strips {int} -- The number of strips to split the image into, within
+                          which the seeding density is constant.
+                          n_strips must be greater than the width of the image
+                          (default: {10})
+        d_tau_mean {float}: The mean particle image diameter, in pixels 
+                            (default: {2.5})
+        d_tau_std {float}: Standard deviation of particle image
+                           diameter, in pixels 
+                           (default: {0.25})
+        int_mean {float}: The mean intensity of particle images
+                          values between 0 - 1 
+                          (default: {0.9})
+        int_std {float}: The standard deviation of intensities of 
+                         particles about the mean 
+                         (default: {0.05})
+
+    Returns:
+            xp1, yp1 {float, list} -- The locations of particles in
+                                      the first timestep 
+            d_tau, Ip {float, list} -- Properties of the particle images
+    """
+
+    if n_strips > img_dim[1]:
+        raise ValueError("The number of strips must be less than the width "
+                         "of the image")
+
+    # get evenly spaced strips over the domain
+    strips = np.floor(np.linspace(0, img_dim[1], n_strips+1))
+    # extend left and right to allow for particles to come into the domain
+    extend_generation = 5 + d_tau_mean
+    strips[0] -= extend_generation
+    strips[-1] += extend_generation
+
+    xp1, yp1 = [], []
+
+    # loop over the number of strips from left to right
+    # the left side has the min seeding density and
+    # the right side has the maximum
+    for left, right in zip(strips[:-1], strips[1:]):
+        # get the seeding density for the current strip by linear interpolation
+        if left < 0:
+            sd = min_seed_dens
+        else:
+            sd = (min_seed_dens +
+                  left * (max_seed_dens - min_seed_dens) / (img_dim[1]))
+
+        # calculate the number of particles for the current strip
+        n_part = np.round((right - left) *
+                          (img_dim[0] + 2 * extend_generation) *
+                          sd).astype(int)
+
+        # get the particle locations
+        xp1.extend(np.random.uniform(left,
+                                     right,
+                                     n_part))
+        yp1.extend(np.random.uniform(-extend_generation,
+                                     img_dim[0]+extend_generation,
+                                     n_part))
+
+    d_tau = np.random.normal(d_tau_mean, d_tau_std, len(xp1))
+    Ip = np.random.normal(int_mean, int_std, len(xp1))
+
+    return xp1, yp1, d_tau, Ip
+
+
+def displace_particles(xp1, yp1, u, v):
+    """Displaces particles accurding to the displacement field defined
+    by u and v
+
+    Arguments:
+        xp1 {float, list like} -- The horizontal location of particle images in 
+                                  the first timestep
+        yp1 {float, list like} -- The vertical location of particle images in 
+                                  the first timestep
+        u {float, ndarray} -- Horizontal displacement field 
+                              defined pixelwise
+        v {float, ndarray} -- Vertical displacement field, defined pixelwise
+
+    Returns:
+        xp2, yp2 (float, list) -- The locations of particles in
+                                  the second timestep 
+    """
+
     # interpolate the displacement field to obtain a function
     # this allows us to calculate the sub-pixel displacement
+    img_dim = np.shape(u)
     f_u = interp.interp2d(np.arange(img_dim[1]),
                           np.arange(img_dim[0]), u)
     f_v = interp.interp2d(np.arange(img_dim[1]),
@@ -518,7 +633,7 @@ def generate_particle_locations(img_dim, seed_density,
     xp2 = xp1 + up1
     yp2 = yp1 + vp1
 
-    return xp1, yp1, xp2, yp2, d_tau, Ip
+    return xp2, yp2
 
 
 def render_synthetic_PIV_image(img_dim,
@@ -597,10 +712,11 @@ def render_synthetic_PIV_image(img_dim,
 
 
 def create_synthetic_image_pair(img_dim, seed_dens, u, v, **kwargs):
-    """Helper function to generate synthetic PIV images
+    """Helper function to generate synthetic PIV images, assumes uniform 
+    distribution of particle images
 
     For additional arguments, refer to:
-        generate_particle_locations
+        gen_uniform_part_locations
         render_synthetic_PIV_image
 
     Arguments:
@@ -611,11 +727,9 @@ def create_synthetic_image_pair(img_dim, seed_dens, u, v, **kwargs):
     """
 
     # get particle image locations
-    (xp1, yp1,
-     xp2, yp2,
-     d_tau, Ip) = generate_particle_locations(img_dim, seed_dens,
-                                              u, v,
-                                              **kwargs)
+    xp1, yp1, d_tau, Ip = gen_uniform_part_locations(img_dim, seed_dens,
+                                                     **kwargs)
+    xp2, yp2 = displace_particles(xp1, yp1, u, v)
 
     img_a = render_synthetic_PIV_image(img_dim,
                                        xp1, yp1,
@@ -625,6 +739,40 @@ def create_synthetic_image_pair(img_dim, seed_dens, u, v, **kwargs):
                                        d_tau, Ip, **kwargs)
 
     return img_a, img_b
+
+
+""" ~~~~~~~~~~  Particle detection ~~~~~~~~~~ """
+
+
+def detect_particles(img, mask=None, method='simple'):
+    """
+    dispatch function to chose the relavent particle detection routine
+
+    Args:
+        img (ndarray, double): Array containing the image intensities
+        mask (ndarray, optional): Array containing mask information. 
+                                  Zero indicates pixel to be masked. 
+                                  Size must be the same as img.
+        method (str, optional): Method used to detect particles. 
+                                'Simple' - Uses a maximum filter and a threshold
+                                           set by the otsu method
+                                Defaults to 'simple'.   
+
+    Returns:
+        binary_array: Binary array containing ones where there has been a
+                      particle detected
+    """
+
+    if mask is None:
+        mask = np.ones_like(img)
+
+    if np.shape(img) != np.shape(mask):
+        raise ValueError("The mask must be the same size as the image")
+
+    if method == 'simple':
+        return detect_particles_max_filter(img, mask)
+    else:
+        raise NotImplementedError("This method has not been implemented")
 
 
 def get_binary_image_particle_locations(xp, yp, img_dim):
@@ -754,7 +902,7 @@ def plot_pair_images(ia, ib, fig_size=(20, 10), n_bits=None):
     return fig, a, b
 
 
-def detect_particles_max_filter(img):
+def detect_particles_max_filter(img, mask=None):
     """
     Detect particles in the input image, by applying a maximum filter followed
     by a automatic thresholding based on the Otsu threshold
@@ -767,93 +915,92 @@ def detect_particles_max_filter(img):
                                       have been detected
     """
 
+    # apply the mask
+    if mask is None:
+        mask = np.ones_like(img)
+
     # apply the maximum filter
     mf = im_filter.maximum_filter(img, size=3)
 
     # obtain the threshold
-    thr = skimage.filters.threshold_otsu(img)
+    thr = skimage.filters.threshold_otsu(img[mask == 1])
 
     # select the maximum locations above the threshold
-    return (img == mf) & (img >= thr)
+    return (img == mf) & (img >= thr) & (mask == 1)
 
 
-def calc_seeding_density(binary_part_img_locations, mask=None,
-                         target_filt_part=20):
+def calc_seeding_density(IA, mask=None,
+                         method='simple',
+                         filt_target_NI=20):
     """
-    Calculates the approximate seeding density for each pixel over the
-    domain
-
-    The method uses a summed area table to accelerate the process
+    Detects particles in the image IA, using the method defined by 
+    'detection_mode', and returns the approximate seeding density over 
+    the domain in particles per pixel. 
+    filt_target_NI defines approximately how many particles the convolution 
+    filter should contain when evaluating the seeding density 
 
     Args:
-        binary_part_img_locations (ndarray): Binary image showing the locations
-                                            of particles using true/1
+        IA (ndarray): PIV image containing particle images
         mask (binary ndarray): Indicates with 0/false the locations with a mask
-        target_filt_part (int): The target number of particles to be contained
-                                in the convolution filter, such that we have
-                                good reliability of the seeding density 
-                                calculation
-                                The default is 20 for the following reasons:
-                                    There is ~5% chance of the seeding dens
-                                    estimate being more than ~35% more than
-                                    it truly is. When constructing a window
-                                    based on this, with a target NI of 8, this 
-                                    maintains a ~70% chance of containing at 
-                                    least 5 particles within a window sized
-                                    off of the incorrect sd. Of course, if the 
-                                    seeding density has been locally over-
-                                    estimated then the chance of having at least
-                                    5 particles is higher. 
-                                    Furthermore, and perhaps more importantly, 
-                                    if the minimum seeding density is approx
-                                    1/7th that of the mean, then the chance of 
-                                    a search window containing at least 1 
-                                    particle is about 95%. 
+        detection_mode (string): The method to use to detect particle images
+                                 'simple': maximum filter + otsu threshold
+        filt_target_NI (int): The target number of particles to be contained
+                              in the convolution filter, such that we have
+                              good reliability of the seeding density 
+                              calculation. 
+                              default 15
 
     Returns:
         seed_dens (ndarray): seeding density over the domain in particles
-                            per pixel
+                             per pixel
     """
 
-    st = utils.SummedAreaTable(binary_part_img_locations)
+    # detect particles
+    part_locations = detect_particles(IA, mask)
+
+    # create invisible mask if one is not already defined
     if mask is None:
-        mask = np.ones_like(binary_part_img_locations)
-    
+        mask = np.ones_like(IA)
+    else:  # otherwise check the dimensions match
+        if not np.all(np.shape(mask) == np.shape(IA)):
+            raise ValueError("The mask must have the same shape as IA")
+
+    # detect particles
+    part_locations = detect_particles(IA, mask, method)
+
+    mean_sd = np.sum(part_locations) / np.sum(mask)
+    filter_size = utils.round_to_odd(np.ceil(np.sqrt(filt_target_NI
+                                                     / mean_sd)))
+    print(filter_size)
+
+    return calculate_local_mean_value(part_locations, mask, filter_size)
+
+
+def calculate_local_mean_value(IA, mask=None, filter_size=None):
+    """Calculates the local mean value within a region, taking into account the
+    mask if present
+
+    Arguments:
+        IA {ndarray} -- The array containing the values to be averaged locally
+        mask {ndarray} -- The mask to impose on the underlying array. Only
+                          regions of IA where the mask has unity value are 
+                          considered
+        filter_size {odd int} -- The size of the filter to average IA over. 
+                                 Must be odd.
+                                 Default: 33
+    """
+
+    # create the summed area tables to accelerate the convolution
+    st = utils.SummedAreaTable(IA)
+    if mask is None:
+        mask = np.ones_like(IA)
     st_mask = utils.SummedAreaTable(mask)
 
-    # calculate the global mean seeding density, n_part / n_px
-    mean_sd = st.get_total_sum() / st_mask.get_total_sum()
+    if filter_size is None:
+        filter_size = 33
+    else:
+        if not filter_size % 2:
+            raise ValueError("Input filter size must be odd")
 
-    # use this to obtain the correctly sized filter.
-    # make sure the filter is odd to make interacting with the SAT easier
-    filt_sz = utils.round_to_odd(np.ceil(np.sqrt(target_filt_part
-                                                 / mean_sd)))
-    
-    return (st.fixed_filter_convolution(filt_sz) / 
-            st_mask.fixed_filter_convolution(filt_sz))
-
-
-if __name__ == "__main__":
-    # img = load_PIVImage(1, 1)
-    # u, v = 5 * np.ones((640, 1280)), 5 * np.ones((640, 1280))
-    # dp = dense_predictor.DensePredictor(u, v)
-    # img_def = img.deform_image(dp)
-
-    # # save into mat file
-    # IA, IB = img.IA, img.IB
-    # IAf, IBf = img_def.IA, img_def.IB
-    # mdict = {"IA": IA,
-    #          "IB": IB,
-    #          "IAf": IAf,
-    #          "IBf": IBf,
-    #          "u": u,
-    #          "v": v,
-    #          }
-    # sio.savemat("test_file.mat", mdict)
-
-    (x_part, y_part,
-     d_tau, part_intens,
-     x_part2, y_part2) = generate_particle_locations((50, 50), 0.01,
-                                                     5*np.ones((50, 50)), np.zeros((50, 50)))
-
-    render_synthetic_PIV_image(50, 50, x_part, y_part, d_tau, part_intens)
+    return (st.fixed_filter_convolution(filter_size) /
+            st_mask.fixed_filter_convolution(filter_size)) * mask
