@@ -433,6 +433,27 @@ class WidimSettings():
 
         self._interp = value
 
+def structured_adaptive_analysis(img, settings):
+    """
+    Analyses the PIV image using a structured grid, but allowing for 
+    adaptively sized windows
+
+    Args:
+        img (PIVImage): PIVImage object containing the images to be analysed
+        settings (dict): dictionary of settings obtained by using
+                        'AdaptStructSettings()'
+    """
+    pass
+
+
+class AdaptStructSettings():
+    """
+    Class to hold the settings required for a structured, adaptive, analysis.
+    """
+
+    def __init__(self):
+        pass
+
 
 if __name__ == '__main__':
     img = PIV.PIVImage.from_flowtype(22, 1)
