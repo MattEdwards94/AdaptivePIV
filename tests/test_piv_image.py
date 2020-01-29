@@ -627,6 +627,7 @@ def test_detect_particles_max_filter():
 
     assert np.allclose(exp, act)
 
+
 def test_detect_particles_max_filter_considers_mask():
     """If a mask is given the the particle detection routine should return
     0's in this region
@@ -669,5 +670,34 @@ def test_detect_particles_max_filter_considers_mask():
 
     assert np.allclose(act, exp)
 
+def test_detect_particles_with_mask_shape_wrong():
+    """
+    Test that a mask with the wrong size is caught
+    """
+
+    with pytest.raises(ValueError):
+        piv_image.detect_particles(np.random.rand(100, 100), 
+                                   mask=np.random.randint(0, 2, (50, 50)))
+
+
+def test_detect_particles_method_not_implemented():
+    """
+    If a bad method is given, raise not implemented error
+    """ 
+    
+    with pytest.raises(NotImplementedError):
+        piv_image.detect_particles(np.random.rand(100, 100), 
+                                   method='not_implemented')
+
+def test_detect_particles_output_shape():
+    """
+    Test that the output of detect particles maintains the same shape as the
+    input image
+    """    
+
+    img = np.random.rand(100, 100)
+    out = piv_image.detect_particles(img)
+    assert np.shape(img) == np.shape(out)
+    
 
 

@@ -460,6 +460,9 @@ def quintic_spline_image_filter(IA):
     return C
 
 
+""" ~~~~~~~~~~ Synthetic image generation ~~~~~~~~~~ """
+
+
 def gen_uniform_part_locations(img_dim, seed_dens,
                                d_tau_mean=2.5, d_tau_std=0.25,
                                int_mean=0.9, int_std=0.05):
@@ -738,6 +741,40 @@ def create_synthetic_image_pair(img_dim, seed_dens, u, v, **kwargs):
     return img_a, img_b
 
 
+""" ~~~~~~~~~~  Particle detection ~~~~~~~~~~ """
+
+
+def detect_particles(img, mask=None, method='simple'):
+    """
+    dispatch function to chose the relavent particle detection routine
+
+    Args:
+        img (ndarray, double): Array containing the image intensities
+        mask (ndarray, optional): Array containing mask information. 
+                                  Zero indicates pixel to be masked. 
+                                  Size must be the same as img.
+        method (str, optional): Method used to detect particles. 
+                                'Simple' - Uses a maximum filter and a threshold
+                                           set by the otsu method
+                                Defaults to 'simple'.   
+
+    Returns:
+        binary_array: Binary array containing ones where there has been a
+                      particle detected
+    """
+
+    if mask is None:
+        mask = np.ones_like(img)
+
+    if np.shape(img) != np.shape(mask):
+        raise ValueError("The mask must be the same size as the image")
+
+    if method == 'simple':
+        return detect_particles_max_filter(img, mask)
+    else:
+        raise NotImplementedError("This method has not been implemented")
+
+
 def get_binary_image_particle_locations(xp, yp, img_dim):
     """For a given list of particle locations, return a binary image with 
     the locations of the particles set to 1
@@ -893,8 +930,8 @@ def detect_particles_max_filter(img, mask=None):
 
 
 def calc_seeding_density(IA, mask=None,
-                         detection_mode='simple',
-                         filt_target_NI=15):
+                         method='simple',
+                         filt_target_NI=20):
     """
     Detects particles in the image IA, using the method defined by 
     'detection_mode', and returns the approximate seeding density over 
@@ -919,10 +956,7 @@ def calc_seeding_density(IA, mask=None,
     """
 
     # detect particles
-    if detection_mode == 'simple':
-        part_locations = detect_particles_max_filter(IA)
-    else:
-        raise ValueError("Particle detection method not defined")
+    part_locations = detect_particles(IA, mask)
 
     # create invisible mask if one is not already defined
     if mask is None:
@@ -930,6 +964,9 @@ def calc_seeding_density(IA, mask=None,
     else:  # otherwise check the dimensions match
         if not np.all(np.shape(mask) == np.shape(IA)):
             raise ValueError("The mask must have the same shape as IA")
+
+    # detect particles
+    part_locations = detect_particles(IA, mask, method)
 
     mean_sd = np.sum(part_locations) / np.sum(mask)
     filter_size = utils.round_to_odd(np.ceil(np.sqrt(filt_target_NI
