@@ -339,6 +339,7 @@ def test_AdaptStruct_init_WS_default():
     settings = analysis.AdaptStructSettings()
     assert settings.init_WS == 'auto'
 
+
 def test_AdaptStruct_final_WS_numeric():
     """
     The final WS can be numeric or 'auto', check that a numeric input 
@@ -394,3 +395,88 @@ def test_AdaptStruct_final_WS_default():
     # initialise settings with no inputs
     settings = analysis.AdaptStructSettings()
     assert settings.final_WS == 'auto'
+
+
+def test_AdaptStruct_n_iter_main():
+    """
+    Checks that the number of main iterations is an integer and:
+    1 <= n_iter_main <= 10
+    """
+
+    # check that a value error is raised for n_iter_main == 0
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(n_iter_main=0)
+
+    # check that a value error is not raised for n_iter_main == 1
+    analysis.AdaptStructSettings(n_iter_main=1)
+
+    # check that a value error is raised for n_iter_main == 11
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(n_iter_main=11)
+
+    # check that a value error is not raised for n_iter_main == 10
+    settings = analysis.AdaptStructSettings(n_iter_main=10)
+    assert settings.n_iter_main == 10
+
+    # check that a value error is raised if the input is not an integer
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(n_iter_main=3.5)
+
+
+def test_AdaptStruct_n_iter_ref():
+    """
+    Checks that the number of refinement iterations is an integer and:
+    0 <= n_iter_ref <= 10
+    """
+
+    # check that a value error is raised for n_iter_ref == -1
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(n_iter_ref=-1)
+
+    # check that a value error is not raised for n_iter_ref == 0
+    analysis.AdaptStructSettings(n_iter_ref=0)
+
+    # check that a value error is raised for n_iter_ref == 11
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(n_iter_ref=11)
+
+    # check that a value error is not raised for n_iter_ref == 10
+    settings = analysis.AdaptStructSettings(n_iter_ref=10)
+    assert settings.n_iter_ref == 10
+
+    # check that a value error is raised if the input is not an integer
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(n_iter_ref=3.5)
+
+
+def test_AdaptStruct_vec_val():
+    """
+    Checks that the vector validation method is one of the valid options
+    """
+
+    # check that a value error is raised for vec_val != 'NMT'
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(vec_val='testing')
+
+    # check that a value error is not raised for valid interp method
+    options = ['NMT', None]
+    for option in options:
+        settings = analysis.AdaptStructSettings(vec_val=option)
+        settings.vec_val == option
+
+
+def test_AdaptStruct_interp():
+    """
+    Checks that the interpolation method is one of the valid options
+    so far: 'struc_lin' and 'struc_cub'
+    """
+
+    # check that a value error is raised for invalid interp
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(interp='testing')
+
+    # check that a value error is not raised for valid interp method
+    options = ['struc_lin', 'struc_cub']
+    for option in options:
+        settings = analysis.AdaptStructSettings(interp=option)
+        settings.interp == option

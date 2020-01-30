@@ -453,21 +453,51 @@ class AdaptStructSettings():
 
     def __init__(self,
                  init_WS=None,
-                 final_WS=None):
+                 final_WS=None,
+                 n_iter_main=3,
+                 n_iter_ref=2,
+                 vec_val='NMT',
+                 interp='struc_cub'):
         """
 
         Args:
             init_WS (int/str, optional): Initial window size, if numeric, 
                                          must be odd and
                                          5 <= init_WS <= 245
-                                         Otheriwse 'auto'. 
+                                         Otheriwse 'auto', where the window
+                                         size will be calculated using the 
+                                         adaptive initial window routine. 
                                          Default 'auto'.
             final_WS (int, optional): Final window size, must be odd and
                                       5 <= final_WS <= 245
+                                      Otheriwse 'auto', where the window
+                                      size will be calculated according to the 
+                                      seeding density
+            n_iter_main (int, optional): Number of main iterations, wherein the
+                                         WS and spacing will reduce from init_WS
+                                         to final_WS
+                                         Must be 1 <= n_iter_main <= 10
+                                         If the number of main iterations is 1
+                                         then the final_WS is ignored
+            n_iter_ref (int, optional): Number of refinement iterations, where
+                                        the WS and locations remain fixed,
+                                        however, subsequent iterations are
+                                        performed to improve the solution
+                                        Must be 0 <= n_iter_ref <= 10
+            vec_val (str, optional): Type of vector validation to perform.
+                                     Options: 'NMT', None
+                                     Default: 'NMT'
+            interp (str, optional): Type of interpolation to perform
+                                    Options: 'struc_lin', 'struc_cub'
+                                    Default: 'struc_cub'
         """
 
         self.init_WS = init_WS
         self.final_WS = final_WS
+        self.n_iter_main = n_iter_main
+        self.n_iter_ref = n_iter_ref
+        self.vec_val = vec_val
+        self.interp = interp
 
     def __eq__(self, other):
         """
@@ -493,6 +523,8 @@ class AdaptStructSettings():
     def __repr__(self):
         output = f" init_WS: {self.init_WS}\n"
         output += f" final_WS: {self.final_WS}\n"
+        output += f" vec_val: {self.vec_val}\n"
+        output += f" interp: {self.interp}\n"
         return output
 
     @property
@@ -550,6 +582,98 @@ class AdaptStructSettings():
             raise ValueError("Final WS must be odd")
         else:
             self._final_WS = value
+
+    @property
+    def n_iter_main(self):
+        return self._n_iter_main
+
+    @n_iter_main.setter
+    def n_iter_main(self, value):
+        """Sets the number of main iterations, checking validity
+
+        Args:
+            value (float): Number of main iterations, wherein the WS and
+                           spacing will reduce from init_WS to final_WS
+                           1 <= n_iter_main <= 10
+                           If the number of main iterations is 1
+                           then the final_WS is ignored
+        """
+        if int(value) != value:
+            raise ValueError("Number of iterations must be integer")
+        if value < 1:
+            raise ValueError("Number of iterations must be at least 1")
+        if value > 10:
+            raise ValueError(
+                "Number of main iterations must be at most 10")
+
+        self._n_iter_main = value
+
+    @property
+    def n_iter_ref(self):
+        return self._n_iter_ref
+
+    @n_iter_ref.setter
+    def n_iter_ref(self, value):
+        """Sets the number of refinement iterations, checking validity
+
+        Args:
+            value (float): Number of refinement iterations, where the
+                           WS and locations remain fixed, however,
+                           subsequent iterations are performed to
+                           improve the solution
+                           0 <= n_iter_ref <= 10
+        """
+
+        if int(value) != value:
+            msg = "Number of refinement iterations must be integer"
+            raise ValueError(msg)
+        if value < 0:
+            msg = "Number of refinement iterations must be at least 0"
+            raise ValueError(msg)
+        if value > 10:
+            msg = "Number of refinement iterations must be at most 10"
+            raise ValueError(msg)
+
+        self._n_iter_ref = value
+
+    @property
+    def vec_val(self):
+        return self._vec_val
+
+    @vec_val.setter
+    def vec_val(self, value):
+        """Sets the type of vector validation, checking validity
+
+        Args:
+            value (float): Type of vector validation to perform.
+                           Options: 'NMT', None
+        """
+
+        options = ['NMT', None]
+
+        if value not in options:
+            raise ValueError("Vector validation method not handled")
+
+        self._vec_val = value
+
+    @property
+    def interp(self):
+        return self._interp
+
+    @interp.setter
+    def interp(self, value):
+        """Sets the type of interpolation, checking validity
+
+        Args:
+            value (float): Type of interpolation to perform
+                            Options: 'struc_lin', 'struc_cub'
+        """
+
+        options = ['struc_lin', 'struc_cub']
+        if value not in options:
+            raise ValueError("Interpolation method not handled")
+
+        self._interp = value
 
 
 if __name__ == '__main__':
