@@ -480,3 +480,63 @@ def test_AdaptStruct_interp():
     for option in options:
         settings = analysis.AdaptStructSettings(interp=option)
         settings.interp == option
+
+
+def test_AdaptStruct_init_spacing_numeric():
+    """
+    The initial spacing can be numeric or 'auto', check that a numeric input 
+    is bounds tested
+    """
+
+    # check that a Value error is raised if init_spacing is less than 2
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(init_spacing=1)
+
+    # check that a Value error is raised if init_spacing is not integer
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(init_spacing=5.5)
+
+
+def test_AdaptStruct_init_spacing_string():
+    """
+    The initial spacing can be numeric or 'auto', 
+    check that if a string is passed, only 'auto' is accepted
+    """
+
+    # check that 'auto' is a valid input
+    settings = analysis.AdaptStructSettings(init_spacing='auto')
+    assert settings.init_spacing == 'auto'
+
+    # check error is raised otherwise
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(init_spacing='Not_auto')
+
+
+def test_AdaptStruct_final_spacing_numeric():
+    """
+    The final spacing can be numeric or 'auto', check that a numeric input 
+    is bounds tested
+    """
+
+    # check that a Value error is raised if final_spacing is less than 2
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(final_spacing=1)
+
+    # check that a Value error is raised if final_spacing is not integer
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(final_spacing=5.5)
+
+
+def test_AdaptStruct_final_spacing_string():
+    """
+    The initial spacing can be numeric or 'auto', 
+    check that if a string is passed, only 'auto' is accepted
+    """
+
+    # check that 'auto' is a valid input
+    settings = analysis.AdaptStructSettings(final_spacing='auto')
+    assert settings.final_spacing == 'auto'
+
+    # check error is raised otherwise
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(final_spacing='Not_auto')

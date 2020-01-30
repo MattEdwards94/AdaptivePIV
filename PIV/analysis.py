@@ -454,6 +454,8 @@ class AdaptStructSettings():
     def __init__(self,
                  init_WS=None,
                  final_WS=None,
+                 init_spacing=None,
+                 final_spacing=None,
                  n_iter_main=3,
                  n_iter_ref=2,
                  vec_val='NMT',
@@ -468,11 +470,27 @@ class AdaptStructSettings():
                                          size will be calculated using the 
                                          adaptive initial window routine. 
                                          Default 'auto'.
-            final_WS (int, optional): Final window size, must be odd and
-                                      5 <= final_WS <= 245
-                                      Otheriwse 'auto', where the window
-                                      size will be calculated according to the 
-                                      seeding density
+            final_WS (int/str, optional): Final window size, must be odd and
+                                          5 <= final_WS <= 245
+                                          Otheriwse 'auto', where the window
+                                          size will be calculated according to 
+                                          the seeding density
+            init_spacing (int/str, optional): The initial spacing between 
+                                              samples, in px. The spacing will
+                                              decline linearly from init to 
+                                              final over the first n_iter_main
+                                              where possible. 
+                                              Must be x >= 2.
+                                              Alternatively 'Auto' to calculate
+                                              based on the number of particles
+            final_spacing (int/str, optional): The final spacing between 
+                                               corr windows, in px. 
+                                               If only one iteration is 
+                                               requested, the initial grid 
+                                               spacing will be used.
+                                               Must be x >= 2
+                                               Alternatively 'Auto' to calculate
+                                               based on the number of particles
             n_iter_main (int, optional): Number of main iterations, wherein the
                                          WS and spacing will reduce from init_WS
                                          to final_WS
@@ -494,6 +512,8 @@ class AdaptStructSettings():
 
         self.init_WS = init_WS
         self.final_WS = final_WS
+        self.init_spacing = init_spacing
+        self.final_spacing = final_spacing
         self.n_iter_main = n_iter_main
         self.n_iter_ref = n_iter_ref
         self.vec_val = vec_val
@@ -582,6 +602,56 @@ class AdaptStructSettings():
             raise ValueError("Final WS must be odd")
         else:
             self._final_WS = value
+
+    @property
+    def init_spacing(self):
+        return self._init_spacing
+
+    @init_spacing.setter
+    def init_spacing(self, value):
+        """Sets the value of initial vector spacing checking its validity
+
+        Args:
+            value (int/string): Initial vector spacing in px,
+                                if numeric, must be >=2
+                                if string, must be 'auto'
+        """
+
+        if value is None or value == 'auto':
+            self._init_spacing = 'auto'
+        elif type(value) is str and value != 'auto':
+            raise ValueError("If non-numeric input, must be 'auto'")
+        elif int(value) != value:
+            raise ValueError("Initial spacing must be integer")
+        elif (value <= 2):
+            raise ValueError("Initial spacing must be 2 <= spacing")
+        else:
+            self._init_spacing = int(value)
+
+    @property
+    def final_spacing(self):
+        return self._final_spacing
+
+    @final_spacing.setter
+    def final_spacing(self, value):
+        """Sets the value of the final vector spacing, checking validity
+
+        Args:
+            value (int/str): Final vector spacing, px
+                             if numeric, must be >=2
+                             otherwise 'auto'
+        """
+
+        if value is None or value == 'auto':
+            self._final_spacing = 'auto'
+        elif type(value) is str and value != 'auto':
+            raise ValueError("If non-numeric input, must be 'auto'")
+        elif int(value) != value:
+            raise ValueError("Final spacing must be integer")
+        elif (value <= 2):
+            raise ValueError("Final spacing must be 2 <= spacing")
+        else:
+            self._final_spacing = value
 
     @property
     def n_iter_main(self):
