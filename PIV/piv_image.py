@@ -928,7 +928,8 @@ def detect_particles_max_filter(img, mask=None):
 
 def calc_seeding_density(IA, mask=None,
                          method='simple',
-                         filt_target_NI=20):
+                         filt_target_NI=20,
+                         return_part_locations=False):
     """
     Detects particles in the image IA, using the method defined by 
     'detection_mode', and returns the approximate seeding density over 
@@ -941,15 +942,21 @@ def calc_seeding_density(IA, mask=None,
         mask (binary ndarray): Indicates with 0/false the locations with a mask
         detection_mode (string): The method to use to detect particle images
                                  'simple': maximum filter + otsu threshold
-        filt_target_NI (int): The target number of particles to be contained
-                              in the convolution filter, such that we have
-                              good reliability of the seeding density 
-                              calculation. 
-                              default 15
+        filt_target_NI (int, optional): The target number of particles to be 
+                                        contained in the convolution filter, 
+                                        such that we have good reliability of 
+                                        the seeding density calculation. 
+                                        default 20
+        return_part_locatiosn (bool, optional): If True, will also return the 
+                                                locations of the particles as
+                                                a boolean array                            
 
     Returns:
         seed_dens (ndarray): seeding density over the domain in particles
                              per pixel
+        part_locations (ndarray): The locations of the particles over the 
+                                  domain, if requested
+
     """
 
     # create invisible mask if one is not already defined
@@ -966,7 +973,11 @@ def calc_seeding_density(IA, mask=None,
     filter_size = utils.round_to_odd(np.ceil(np.sqrt(filt_target_NI
                                                      / mean_sd)))
 
-    return calculate_local_mean_value(part_locations, mask, filter_size)
+    if return_part_locations:
+        return (calculate_local_mean_value(part_locations, mask, filter_size),
+                part_locations)
+    else:
+        return calculate_local_mean_value(part_locations, mask, filter_size)
 
 
 def calculate_local_mean_value(IA, mask=None, filter_size=None):
