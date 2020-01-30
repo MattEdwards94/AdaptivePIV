@@ -81,6 +81,8 @@ class PIVImage:
         self.n_cols = np.shape(IA)[1]
         self.dim = (self.n_rows, self.n_cols)
         self.is_filtered = False
+        self.part_loc_IA, self.part_loc_IB = None, None
+        self.sd_IA, self.sd_IB = None, None
 
     @staticmethod
     def from_flowtype(flowtype, im_number):
@@ -327,6 +329,33 @@ class PIVImage:
         fig = plt.figure()
         ax = fig.add_subplot(111)
         im = ax.imshow(self.mask)
+
+    def calc_seed_density(self, method='simple', P_target=20):
+        """
+        Wrapper to calculate the seeding density for the current images
+        stores the particle locations in self.part_loc_IA/IB
+        stores the seeding densities in self.sd_IA/IB
+
+        Args:
+            method (str, optional): Particle detection method to use.
+                                    Defaults to 'simple'.
+            P_target (int, optional): Number of particles to target per kernel
+                                    when calculating the seeding density.
+                                    Defaults to 20.
+        """
+        (sd_a,
+         particles_a) = calc_seeding_density(self.IA, self.mask,
+                                             method=method,
+                                             filt_target_NI=P_target,
+                                             return_part_locations=True)
+        (sd_b,
+         particles_b) = calc_seeding_density(self.IB, self.mask,
+                                             method=method,
+                                             filt_target_NI=P_target,
+                                             return_part_locations=True)
+
+        self.part_loc_IA, self.part_loc_IB = particles_a, particles_b
+        self.sd_IA, self.sd_IB = sd_a, sd_b
 
 
 def load_images(flowtype, im_number):

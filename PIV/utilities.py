@@ -232,7 +232,7 @@ def round_to_odd(val):
     """
 
     # round down to nearest integer
-    bf = math.floor(val)
+    bf = np.floor(val)
 
     # if even, increment
     return bf + (1 - (bf % 2))

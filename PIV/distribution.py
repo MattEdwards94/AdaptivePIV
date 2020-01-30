@@ -18,6 +18,7 @@ class Distribution:
                                                           windows to initialise
                                                           the distribution with
         """
+
         # if there is nothing passed, then initialise empty list
         if init_locations is None:
             self.windows = []
@@ -330,6 +331,23 @@ class Distribution:
                   uv[:, 0],
                   uv[:, 1])
         plt.show()
+
+    def AIW(self, img, step_size=6, SNR_thr=1.3):
+        """
+        Analyses the contained distribution using Adaptive Initial Window sizing. 
+        Correlates the windows and stores the results inside the class, as it
+        would for correlate_all_windows
+
+        Args:
+            img (PIVImage): PIVImage object containing the images to be analysed
+            NI_target (int, optional): The number of particles to target for 
+                                       each correlation window. 
+                                       Defaults to 25.
+            step_size (int, optional): If a correlation fails, the amount to 
+                                       increase the window size by. 
+                                       Must be even integer. 
+                                       Defaults to 6.
+        """
 
 
 def NMT_detection(u, v, nb_ind, eps=0.1):
