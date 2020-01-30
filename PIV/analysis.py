@@ -442,8 +442,44 @@ def structured_adaptive_analysis(img, settings):
         img (PIVImage): PIVImage object containing the images to be analysed
         settings (dict): dictionary of settings obtained by using
                         'AdaptStructSettings()'
+
     """
-    pass
+    # For now, lets forget about auto spacing - we will consider this later
+    if 'auto' in [settings.init_spacing, settings.final_spacing]:
+        raise NotImplementedError("Auto spacing is not implemented yet")
+
+    # if one of init/final WS/spacing are auto, we will need the seeding info
+    if 'auto' in [settings.init_WS, settings.final_WS,
+                  settings.init_spacing, settings.final_spacing]:
+        img.calc_seeding_density(method=settings.part_detect,
+                                 P_target=settings.sd_P_target)
+
+    for _iter in range(1, settings.n_iter_main+1):
+        print("Starting main iteration, {}".format(iter_))
+
+        print("Creating sampling grid")
+        init_h, fin_h = settings.init_spacing, settings.final_spacing
+        h = fin_h + ((_iter-1) / (settings.n_iter_main - 1)) * (fin_h - init_h)
+        print(f"  sample spacing: {h}")
+        xv, yv = (np.arange(0, img.n_cols, h),
+                  np.arange(0, img.n_rows, h))
+        xx, yy = np.meshgrid(xv, yv)
+        print("{} windows".format(len(xx.ravel())))
+
+        # get WS based on seeding only.
+        min_sd = np.minimum(img.sd_IA, img.sd_IB)
+        ws_seed = utilities.round_to_odd(np.sqrt(settings.target_NI/min_sd))
+
+        # create correlation windows
+        cw_list = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), ws_seed)
+        dist = distribution.Distribution(cw_list)
+
+        # correlate using adaptive initial window size.
+        dist.AIW(img)
+
+        # if
+
+        # ~~~~ Create sampling grid ~~~~ #
 
 
 class AdaptStructSettings():
@@ -459,7 +495,9 @@ class AdaptStructSettings():
                  n_iter_main=3,
                  n_iter_ref=2,
                  vec_val='NMT',
-                 interp='struc_cub'):
+                 interp='struc_cub',
+                 part_detect='simple',
+                 sd_P_target=20):
         """
 
         Args:
@@ -508,6 +546,13 @@ class AdaptStructSettings():
             interp (str, optional): Type of interpolation to perform
                                     Options: 'struc_lin', 'struc_cub'
                                     Default: 'struc_cub'
+            part_detect (str, optional): The type of particle detection to use
+            sd_P_target (int, optional): The number of particles to target per
+                                         kernel when estimating the seeding 
+                                         density. 
+                                         default = 20
+                                         Refer to piv_image.calc_seeding_density
+                                         for more information
         """
 
         self.init_WS = init_WS
@@ -518,6 +563,8 @@ class AdaptStructSettings():
         self.n_iter_ref = n_iter_ref
         self.vec_val = vec_val
         self.interp = interp
+        self.part_detect = part_detect
+        self.sd_P_target = sd_P_target
 
     def __eq__(self, other):
         """
