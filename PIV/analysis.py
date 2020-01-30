@@ -451,8 +451,105 @@ class AdaptStructSettings():
     Class to hold the settings required for a structured, adaptive, analysis.
     """
 
-    def __init__(self):
-        pass
+    def __init__(self,
+                 init_WS=None,
+                 final_WS=None):
+        """
+
+        Args:
+            init_WS (int/str, optional): Initial window size, if numeric, 
+                                         must be odd and
+                                         5 <= init_WS <= 245
+                                         Otheriwse 'auto'. 
+                                         Default 'auto'.
+            final_WS (int, optional): Final window size, must be odd and
+                                      5 <= final_WS <= 245
+        """
+
+        self.init_WS = init_WS
+        self.final_WS = final_WS
+
+    def __eq__(self, other):
+        """
+        Allow for comparing equality between settings classes
+
+        Args:
+            other (WidimSettings): The other WidimSettings to be compared to
+
+        Returns:
+            Bool: Whether the two WidimSettings match
+        """
+
+        if not isinstance(other, AdaptStructSettings):
+            return NotImplemented
+
+        for s, o in zip(self.__dict__.values(), other.__dict__.values()):
+            if s != o:
+                if not np.all(np.isnan((s, o))):
+                    return False
+
+        return True
+
+    def __repr__(self):
+        output = f" init_WS: {self.init_WS}\n"
+        output += f" final_WS: {self.final_WS}\n"
+        return output
+
+    @property
+    def init_WS(self):
+        return self._init_ws
+
+    @init_WS.setter
+    def init_WS(self, value):
+        """Sets the value of initial window size checking its validity
+
+        Args:
+            value (int/string): Initial window size,
+                                if numeric, must be odd
+                                5 <= init_WS <= 245
+                                if string, must be 'auto'
+        """
+
+        if value is None or value == 'auto':
+            self._init_ws = 'auto'
+        elif type(value) is str and value != 'auto':
+            raise ValueError("If non-numeric input, must be 'auto'")
+        elif int(value) != value:
+            raise ValueError("Initial WS must be integer")
+        elif (value < 5) or (value > 245):
+            raise ValueError("Initial WS must be 5 <= WS <= 245")
+        elif value % 2 != 1:
+            raise ValueError("Initial WS must be odd")
+        else:
+            self._init_ws = int(value)
+
+    @property
+    def final_WS(self):
+        return self._final_WS
+
+    @final_WS.setter
+    def final_WS(self, value):
+        """Sets the value of the final window size, checking validity
+
+        Args:
+            value (int): Final window size,
+                         if numeric, must be odd
+                         5 <= final_WS <= 245
+                         otherwise 'auto'
+        """
+
+        if value is None or value == 'auto':
+            self._final_WS = 'auto'
+        elif type(value) is str and value != 'auto':
+            raise ValueError("If non-numeric input, must be 'auto'")
+        elif int(value) != value:
+            raise ValueError("Final WS must be integer")
+        elif (value < 5) or (value > 245):
+            raise ValueError("Final WS must be 5 <= WS <= 245")
+        elif value % 2 != 1:
+            raise ValueError("Final WS must be odd")
+        else:
+            self._final_WS = value
 
 
 if __name__ == '__main__':

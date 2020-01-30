@@ -280,3 +280,117 @@ def test_quick_widim():
         analysis.widim(img, settings)
 
     PIV.utilities.root_path = old
+
+
+def test_AdaptStruct_init_WS_numeric():
+    """
+    The initial WS can be numeric or 'auto', check that a numeric input 
+    is bounds tested as for Widim
+
+    Checks that the initial window size must be
+    odd,
+    5 <= init_WS <= 245  (245, because adding 10 takes it to 255, which is
+                          is the biggest fft (i.e. 256) I want to allow)
+    Must be >= than the final WS
+    """
+
+    # check that a Value error is raised if init_WS is even
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(init_WS=96)
+
+    # check that a Value error is raised if init_WS is less than 5
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(init_WS=3)
+
+    # check that a value error is not raised if init_WS is 5
+    analysis.AdaptStructSettings(init_WS=5)
+
+    # check that a Value error is raised if init_WS is greater than 245
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(init_WS=257)
+
+    # check that a value error is not raised if init_WS is 245
+    # also check that the initial window size is actually stored
+    settings = analysis.AdaptStructSettings(init_WS=245)
+    assert settings.init_WS == 245
+
+
+def test_AdaptStruct_init_WS_string():
+    """
+    The initial WS can be numeric or 'auto', check that if a string is passed, 
+    only 'auto' is accepted
+    """
+
+    # check that 'auto' is a valid input
+    settings = analysis.AdaptStructSettings(init_WS='auto')
+    assert settings.init_WS == 'auto'
+
+    # check error is raised otherwise
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(init_WS='Not_auto')
+
+
+def test_AdaptStruct_init_WS_default():
+    """
+    The initial WS can be numeric or 'auto'. The default is 'auto'. 
+    """
+
+    # initialise settings with no inputs
+    settings = analysis.AdaptStructSettings()
+    assert settings.init_WS == 'auto'
+
+def test_AdaptStruct_final_WS_numeric():
+    """
+    The final WS can be numeric or 'auto', check that a numeric input 
+    is bounds tested as for Widim
+
+    Checks that the final window size must be
+    odd,
+    5 <= final_WS <= 245  (245, because the adding 10 takes it to 255, which is
+                          is the biggest fft (i.e. 256) I want to allow)
+    Must be <= than the initial WS
+    """
+
+    # check that a Value error is raised if final_WS is even
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(final_WS=32)
+
+    # check that a Value error is raised if final_WS is less than 5
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(final_WS=3)
+
+    # check that a value error is not raised if final_WS is 5
+    analysis.AdaptStructSettings(final_WS=5)
+
+    # check that a Value error is raised if final_WS is greater than 245
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(final_WS=257)
+
+    # check that a value error is not raised if final_WS is valid
+    settings = analysis.AdaptStructSettings(final_WS=33)
+    assert settings.final_WS == 33
+
+
+def test_AdaptStruct_final_WS_string():
+    """
+    The final WS can be numeric or 'auto', check that if a string is passed, 
+    only 'auto' is accepted
+    """
+
+    # check that 'auto' is a valid input
+    settings = analysis.AdaptStructSettings(final_WS='auto')
+    assert settings.final_WS == 'auto'
+
+    # check error is raised otherwise
+    with pytest.raises(ValueError):
+        analysis.AdaptStructSettings(final_WS='Not_auto')
+
+
+def test_AdaptStruct_final_WS_default():
+    """
+    The final WS can be numeric or 'auto'. The default is 'auto'. 
+    """
+
+    # initialise settings with no inputs
+    settings = analysis.AdaptStructSettings()
+    assert settings.final_WS == 'auto'
