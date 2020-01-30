@@ -969,9 +969,6 @@ def calc_seeding_density(IA, mask=None,
                              per pixel
     """
 
-    # detect particles
-    part_locations = detect_particles(IA, mask)
-
     # create invisible mask if one is not already defined
     if mask is None:
         mask = np.ones_like(IA)
@@ -985,7 +982,6 @@ def calc_seeding_density(IA, mask=None,
     mean_sd = np.sum(part_locations) / np.sum(mask)
     filter_size = utils.round_to_odd(np.ceil(np.sqrt(filt_target_NI
                                                      / mean_sd)))
-    print(filter_size)
 
     return calculate_local_mean_value(part_locations, mask, filter_size)
 
