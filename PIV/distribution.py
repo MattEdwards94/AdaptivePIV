@@ -332,7 +332,7 @@ class Distribution:
                   uv[:, 1])
         plt.show()
 
-    def AIW(self, img, step_size=6, SNR_thr=1.3):
+    def AIW(self, img, dp, step_size=6, SNR_thr=1.3, max_WS=245):
         """
         Analyses the contained distribution using Adaptive Initial Window sizing. 
         Correlates the windows and stores the results inside the class, as it
@@ -348,6 +348,22 @@ class Distribution:
                                        Must be even integer. 
                                        Defaults to 6.
         """
+
+        for cw in self.windows:
+            while cw.WS < max_WS:
+                cw.correlate(img, dp)
+                # now check validity of result
+                if cw.SNR == 0:
+                    # the location is masked
+                    break
+                elif (cw.SNR <= SNR_thr) or (cw.disp_mag() > cw.WS*0.25):
+                    # if SNR is too low, or the displacement violates 1/4 rule
+                    cw.WS += step_size
+                    if cw.WS > max_WS:
+                        break
+                else:
+                    # WS is ok
+                    break
 
     def interp_WS(self, mask):
         """Interpolates the windows sizes onto a domain with the same dimensions
