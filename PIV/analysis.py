@@ -466,9 +466,82 @@ def structured_adaptive_analysis(img, settings):
         xx, yy = np.meshgrid(xv, yv)
         print("{} windows".format(len(xx.ravel())))
 
-        # get WS based on seeding only.
-        min_sd = np.minimum(img.sd_IA, img.sd_IB)
-        ws_seed = utilities.round_to_odd(np.sqrt(settings.target_NI/min_sd))
+        # correlate using adaptive initial window size.
+        if _iter == 1:
+            # if the initial WS is auto, calculate this
+            if settings.init_WS == 'auto':
+                # get WS based on seeding only.
+                ws_seed_init = utilities.round_to_odd(
+                    np.sqrt(settings.target_init_NI / min_sd))
+                ws_seed_init[np.isnan(ws_seed_init)] = 97
+
+                # create correlation windows
+                cw_list = corr_window.corrWindow_list(xx,
+                                                      yy,
+                                                      ws_seed_init)
+                dist = distribution.Distribution(cw_list)
+
+                # analyse the windows
+                print("Analysing first iteration with AIW")
+                dist.AIW(img_def, dp)
+                
+
+                # need to store the actual initial WS for subsequent iterations
+                ws_first_iter = dist.interp_WS(img_def.mask)
+                # print(ws_first_iter)
+                fig = plt.figure(figsize=(20, 10))
+            else:
+                # just create and correlate the windows
+                cw_list = corr_window.corrWindow_list(xx.ravel(),
+                                                      yy.ravel(),
+                                                      settings.init_WS)
+                dist = distribution.Distribution(cw_list)
+
+                ws_first_iter = np.ones(img_def.dim) * settings.init_WS
+                print("Analysing first iteration with uniform window size")
+                dist.correlate_all_windows(img_def, dp)
+
+            if settings.vec_val is not None:
+                print("Validate vectors")
+                dist.validation_NMT_8NN()
+
+            print("Interpolating")
+            u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+            dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+            # dp.plot_displacement_field()
+
+            print("Deforming image")
+            img_def = img.deform_image(dp)
+
+        else:
+            # get WS for current iteration,
+            ws = ws_first_iter + ((_iter-1) / (settings.n_iter_main - 1)) * \
+                (ws_final - ws_first_iter)
+            ws = utilities.round_to_odd(ws)
+            ws[np.isnan(ws)] = 5
+
+            # create correlation windows
+            cw_list = corr_window.corrWindow_list(xx.ravel(),
+                                                  yy.ravel(),
+                                                  ws)
+            dist = distribution.Distribution(cw_list)
+
+            # correlate windows
+            dist.correlate_all_windows(img_def, dp)
+
+            if settings.vec_val is not None:
+                print("Validate vectors")
+                dist.validation_NMT_8NN()
+
+            print("Interpolating")
+            u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+            dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+
+            print("Deforming image")
+            img_def = img.deform_image(dp)
+
+    print("Refinement iterations")
+    for _iter in range(1, settings.n_iter_ref + 1):
 
         # create correlation windows
         cw_list = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), ws_seed)
