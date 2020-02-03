@@ -493,8 +493,8 @@ def structured_adaptive_analysis(img, settings):
                 ws_seed_init[np.isnan(ws_seed_init)] = 97
 
                 # create correlation windows
-                cw_list = corr_window.corrWindow_list(xx.ravel(),
-                                                      yy.ravel(),
+                cw_list = corr_window.corrWindow_list(xx,
+                                                      yy,
                                                       ws_seed_init)
                 dist = distribution.Distribution(cw_list)
 
