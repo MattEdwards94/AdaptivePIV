@@ -6,6 +6,7 @@ import PIV.piv_image as piv_image
 from scipy import interpolate
 from sklearn.neighbors import NearestNeighbors
 import PIV.dense_predictor as dense_predictor
+import PIV.utilities as utilities
 
 
 def nan_equal(a, b):
@@ -685,3 +686,32 @@ def test_all_windows_have_displacements_after_correlating():
     for cw in dist.windows:
         assert not np.isnan(cw.u)
         assert not np.isnan(cw.v)
+
+
+def test_Distribution_interp_WS():
+    """Tests that the WS interpolation is performed as intended, checking 
+    that the mask is applied
+    """
+
+    # create structured grid with known spacing
+    img_dim = (25, 20)
+    mask = np.ones(img_dim)
+    mask[:, 0:10] = 0
+    h = (4, 3)
+    xv, yv = np.arange(0, img_dim[1], h[1]), np.arange(0, img_dim[0], h[0])
+    xx, yy = np.meshgrid(xv, yv)
+
+    ws = utilities.round_to_odd(np.random.randint(21, 61, np.shape(xx)))
+
+    # interpolate as it should be
+    f_ws = interpolate.interp2d(xv, yv, ws)
+    exp = f_ws(np.arange(0, img_dim[1]), np.arange(0, img_dim[0]))
+    exp *= mask
+
+    # create distribution
+    cw_list = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), ws)
+    dist = distribution.Distribution(cw_list)
+
+    ws = dist.interp_WS(mask)
+
+    assert np.allclose(ws, exp)

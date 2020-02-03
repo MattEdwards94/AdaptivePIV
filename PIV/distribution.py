@@ -349,6 +349,42 @@ class Distribution:
                                        Defaults to 6.
         """
 
+    def interp_WS(self, mask):
+        """Interpolates the windows sizes onto a domain with the same dimensions
+        as the mask.       
+        Assumes input is a grid with uniform spacing in each direction equal
+        to the spacing between the first and second points in each direction.
+        interpolation is linear. 
+        Extrapolation is performed via nearest neighbour
+
+        Arguments:
+            mask {ndarray} -- Array containing zeros at the locations of the 
+                              domain not to be considered. 
+
+        Returns:
+            WS {ndarray} -- the interpolated WS over the domain. 
+                            zero where the mask is zero
+        """
+
+        # the y value will be all zeros for each row, with a jump equal to the
+        # vertical spacing each row.
+        y_size = int([i for i, x in enumerate(np.diff(self.y)) if x != 0][0]
+                     + 1)
+        x_size = int(np.size(self.x) / y_size)
+
+        # now reshape the vectors
+        xv_grid = np.reshape(self.x, (x_size, y_size))
+        yv_grid = np.reshape(self.y, (x_size, y_size))
+        ws_grid = np.reshape(self.WS, (x_size, y_size))
+        # ws_grid = np.nan_to_num(ws_grid, nan=97)
+
+        f_ws_interp = interp.interp2d(xv_grid[0],
+                                      yv_grid[:, 0],
+                                      ws_grid)
+
+        return f_ws_interp(np.arange(np.shape(mask)[1]),
+                           np.arange(np.shape(mask)[0])) * mask
+
 
 def NMT_detection(u, v, nb_ind, eps=0.1):
     """
