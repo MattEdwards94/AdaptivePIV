@@ -7,6 +7,7 @@ import PIV.dense_predictor as dense_predictor
 import PIV.piv_image as piv_image
 import PIV.ensemble_solution as es
 import PIV.multiGrid as mg
+import matplotlib.pyplot as plt
 
 
 def ensemble_widim(flowtype, im_start, im_stop, settings):
@@ -435,7 +436,7 @@ class WidimSettings():
 
 def structured_adaptive_analysis(img, settings):
     """
-    Analyses the PIV image using a structured grid, but allowing for 
+    Analyses the PIV image using a structured grid, but allowing for
     adaptively sized windows
 
     Args:
@@ -444,6 +445,11 @@ def structured_adaptive_analysis(img, settings):
                         'AdaptStructSettings()'
 
     """
+
+    img_def = img
+    dp = dense_predictor.DensePredictor(
+        np.zeros(img.dim), np.zeros(img.dim), img.mask)
+
     # For now, lets forget about auto spacing - we will consider this later
     if 'auto' in [settings.init_spacing, settings.final_spacing]:
         raise NotImplementedError("Auto spacing is not implemented yet")
@@ -451,35 +457,124 @@ def structured_adaptive_analysis(img, settings):
     # if one of init/final WS/spacing are auto, we will need the seeding info
     if 'auto' in [settings.init_WS, settings.final_WS,
                   settings.init_spacing, settings.final_spacing]:
-        img.calc_seeding_density(method=settings.part_detect,
-                                 P_target=settings.sd_P_target)
+        img.calc_seed_density(method=settings.part_detect,
+                              P_target=settings.sd_P_target)
+        min_sd = np.minimum(img.sd_IA, img.sd_IB)
+        min_sd[min_sd == 0] = 0.0021
+
+    if settings.final_WS == 'auto':
+        # get WS based on seeding only.
+        ws_final = utilities.round_to_odd(np.sqrt(settings.target_fin_NI /
+                                                  min_sd))
+    else:
+        ws_final = settings.final_WS * np.ones(img_def.dim)
+
+        # if the final WS is auto, calculate this
 
     for _iter in range(1, settings.n_iter_main+1):
-        print("Starting main iteration, {}".format(iter_))
+        print("Starting main iteration, {}".format(_iter))
 
         print("Creating sampling grid")
         init_h, fin_h = settings.init_spacing, settings.final_spacing
-        h = fin_h + ((_iter-1) / (settings.n_iter_main - 1)) * (fin_h - init_h)
+        h = init_h + ((_iter-1) / (settings.n_iter_main - 1)) * (fin_h - init_h)
         print(f"  sample spacing: {h}")
         xv, yv = (np.arange(0, img.n_cols, h),
                   np.arange(0, img.n_rows, h))
         xx, yy = np.meshgrid(xv, yv)
         print("{} windows".format(len(xx.ravel())))
 
-        # get WS based on seeding only.
-        min_sd = np.minimum(img.sd_IA, img.sd_IB)
-        ws_seed = utilities.round_to_odd(np.sqrt(settings.target_NI/min_sd))
-
-        # create correlation windows
-        cw_list = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), ws_seed)
-        dist = distribution.Distribution(cw_list)
-
         # correlate using adaptive initial window size.
-        dist.AIW(img)
+        if _iter == 1:
+            # if the initial WS is auto, calculate this
+            if settings.init_WS == 'auto':
+                # get WS based on seeding only.
+                ws_seed_init = utilities.round_to_odd(
+                    np.sqrt(settings.target_init_NI / min_sd))
+                ws_seed_init[np.isnan(ws_seed_init)] = 97
 
-        # if
+                # create correlation windows
+                cw_list = corr_window.corrWindow_list(xx.ravel(),
+                                                      yy.ravel(),
+                                                      ws_seed_init)
+                dist = distribution.Distribution(cw_list)
 
-        # ~~~~ Create sampling grid ~~~~ #
+                # analyse the windows
+                print("Analysing first iteration with AIW")
+                dist.AIW(img_def, dp)
+                
+
+                # need to store the actual initial WS for subsequent iterations
+                ws_first_iter = dist.interp_WS(img_def.mask)
+                # print(ws_first_iter)
+                fig = plt.figure(figsize=(20, 10))
+            else:
+                # just create and correlate the windows
+                cw_list = corr_window.corrWindow_list(xx.ravel(),
+                                                      yy.ravel(),
+                                                      settings.init_WS)
+                dist = distribution.Distribution(cw_list)
+
+                ws_first_iter = np.ones(img_def.dim) * settings.init_WS
+                print("Analysing first iteration with uniform window size")
+                dist.correlate_all_windows(img_def, dp)
+
+            if settings.vec_val is not None:
+                print("Validate vectors")
+                dist.validation_NMT_8NN()
+
+            print("Interpolating")
+            u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+            dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+            # dp.plot_displacement_field()
+
+            print("Deforming image")
+            img_def = img.deform_image(dp)
+
+        else:
+            # get WS for current iteration,
+            ws = ws_first_iter + ((_iter-1) / (settings.n_iter_main - 1)) * \
+                (ws_final - ws_first_iter)
+            ws = utilities.round_to_odd(ws)
+            ws[np.isnan(ws)] = 5
+
+            # create correlation windows
+            cw_list = corr_window.corrWindow_list(xx.ravel(),
+                                                  yy.ravel(),
+                                                  ws)
+            dist = distribution.Distribution(cw_list)
+
+            # correlate windows
+            dist.correlate_all_windows(img_def, dp)
+
+            if settings.vec_val is not None:
+                print("Validate vectors")
+                dist.validation_NMT_8NN()
+
+            print("Interpolating")
+            u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+            dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+
+            print("Deforming image")
+            img_def = img.deform_image(dp)
+
+    print("Refinement iterations")
+    for _iter in range(1, settings.n_iter_ref + 1):
+
+        print("Correlating all windows")
+        dist.correlate_all_windows(img_def, dp)
+
+        if settings.vec_val is not None:
+            print("validate vectors")
+            dist.validation_NMT_8NN()
+
+        print("Interpolating")
+        u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+        dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+
+        print("Deforming image")
+        img_def = img.deform_image(dp)
+
+    return dp
 
 
 class AdaptStructSettings():
@@ -497,7 +592,9 @@ class AdaptStructSettings():
                  vec_val='NMT',
                  interp='struc_cub',
                  part_detect='simple',
-                 sd_P_target=20):
+                 sd_P_target=20,
+                 target_init_NI=20,
+                 target_fin_NI=8):
         """
 
         Args:
@@ -553,6 +650,23 @@ class AdaptStructSettings():
                                          default = 20
                                          Refer to piv_image.calc_seeding_density
                                          for more information
+            target_init_NI (int, optional): The number of particles to target 
+                                            per correlation window in the first
+                                            iteration.
+                                            Considering AIW, it is possible the 
+                                            resulting window will be 
+                                            significantly larger depending on 
+                                            the underlying displacement.
+                                            default = 20.
+            target_fin_NI (int, optional): The number of particles to target 
+                                           per correlation window in the last
+                                           iteration.
+                                           Unlike the initial target, the final
+                                           WS should contain approximately this
+                                           many particles, depending on the 
+                                           accuracy of particle detection and
+                                           seeding density estimation 
+                                           default = 8.
         """
 
         self.init_WS = init_WS
@@ -565,6 +679,8 @@ class AdaptStructSettings():
         self.interp = interp
         self.part_detect = part_detect
         self.sd_P_target = sd_P_target
+        self.target_init_NI = target_init_NI
+        self.target_fin_NI = target_fin_NI
 
     def __eq__(self, other):
         """
@@ -590,8 +706,17 @@ class AdaptStructSettings():
     def __repr__(self):
         output = f" init_WS: {self.init_WS}\n"
         output += f" final_WS: {self.final_WS}\n"
+        output += f" init_spacing: {self.init_spacing}\n"
+        output += f" final_spacing: {self.final_spacing}\n"
+        output += f" n_iter_main: {self.n_iter_main}\n"
+        output += f" n_iter_ref: {self.n_iter_ref}\n"
         output += f" vec_val: {self.vec_val}\n"
         output += f" interp: {self.interp}\n"
+        output += f" part_detect: {self.part_detect}\n"
+        output += f" sd_P_target: {self.sd_P_target}\n"
+        output += f" target_init_NI: {self.target_init_NI}\n"
+        output += f" target_fin_NI: {self.target_fin_NI}\n"
+
         return output
 
     @property
@@ -794,6 +919,9 @@ class AdaptStructSettings():
 
 
 if __name__ == '__main__':
-    img = piv_image.PIVImage.from_flowtype(22, 1)
+    img = piv_image.load_PIVImage(1, 1)
+    settings = AdaptStructSettings(init_spacing=48, final_spacing=12)
+    dp =  structured_adaptive_analysis(img, settings)
 
-    multi_grid_analysis(img)
+
+    
