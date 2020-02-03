@@ -264,6 +264,11 @@ class CorrWindow:
 
         return self.u, self.v, self.SNR
 
+    def disp_mag(self):
+        """Returns the displacement magnitude calculated as the euclidean norm
+        """
+        return np.sqrt(self.u * self.u + self.v * self.v)
+
 
 def plot_corrmap_surface(self, img):
     """Plots a 3D surface of the correlation map and it's values
