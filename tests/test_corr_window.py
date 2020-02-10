@@ -198,10 +198,10 @@ def test_calculate_correlation_map_is_padded_by_10_zeros():
     """
 
     # perform the correlation using the method being tested
-    wsa = np.random.rand(33, 33)
-    wsb = np.random.rand(33, 33)
-    WS = 33
-    rad = 16
+    wsa = np.random.rand(55, 55)
+    wsb = np.random.rand(55, 55)
+    WS = 55
+    rad = 27
     corrmap = corr_window.calculate_correlation_map(wsa, wsb, WS, rad)
 
     # now we want to manually perform the correlation with the padding
