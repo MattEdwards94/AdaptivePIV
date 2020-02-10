@@ -114,11 +114,11 @@ def widim(img, settings):
         xv, yv = (np.arange(0, img.n_cols, h),
                   np.arange(0, img.n_rows, h))
         xx, yy = np.meshgrid(xv, yv)
+        ws_grid = np.ones_like(xx) * WS
         print("{} windows".format(len(xx.ravel())))
 
         # create distribution of correlation windows
-        cwList = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), WS)
-        dist = distribution.Distribution(cwList)
+        dist = distribution.Distribution.from_locations(xx, yy, ws_grid)
 
         print("Correlating all windows")
         dist.correlate_all_windows(img_def, dp)

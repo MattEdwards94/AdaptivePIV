@@ -365,30 +365,6 @@ def get_corrwindow_scaling(i, j, WS, rad):
     return (WS * WS) / (x_val * y_val[:, np.newaxis])
 
 
-def corrWindow_list(x, y, WS):
-    """
-    Creates a corrWindow object for each location in x, y, with window size WS
-
-    If WS is a scalar int, then all windows will be given the same size
-    If not, WS must be the same length as the input
-
-    Args:
-        x (list, int): The x location of the windows
-        y (list, int): The y location of the windows
-        WS (list, odd int): The window sizes
-
-    Returns:
-        list: List of CorrWindow objects
-    """
-
-    if isinstance(WS, int):
-        WS = [WS] * len(x)
-
-    cwList = list(map(CorrWindow, x, y, WS))
-
-    return cwList
-
-
 if __name__ == '__main__':
     IA, IB, mask = piv_image.load_image_from_flow_type(22, 1)
     img = piv_image.PIVImage(IA, IB, mask)
