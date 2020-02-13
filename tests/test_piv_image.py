@@ -441,7 +441,7 @@ def test_deformation_is_done_on_filtered_images(mock_IA,
     assert np.allclose(IB_def, img_def.IB)
 
 
-def test_load_PIVImage():
+def test_from_flowtype_constructor():
     """
     Tests that the image loaded is equivalent to loading the image in the
     manual way
@@ -461,7 +461,7 @@ def test_load_PIVImage():
     exp = piv_image.PIVImage(IA, IB, mask)
 
     # test method
-    act = piv_image.load_PIVImage(flowtype, im_number)
+    act = piv_image.PIVImage.from_flowtype(flowtype, im_number)
     assert exp, act
     PIV.utilities.root_path = old
 

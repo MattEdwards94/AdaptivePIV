@@ -250,10 +250,6 @@ class CorrWindow:
 
         # load the image and mask values and perform the cross correlation
         wsa, wsb, mask = self.prepare_correlation_windows(img)
-        # plt.imshow(wsa)
-        # plt.show()
-        # plt.imshow(wsb)
-        # plt.show()
 
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
@@ -320,8 +316,6 @@ def calculate_correlation_map(wsa, wsb, WS, rad):
     idx = (np.arange(WS) + rad) % nPow2
     bf = corrmap[idx, :]
     corrmap = bf[:, idx]
-    # plt.imshow(corrmap)
-    # plt.show()
 
     return corrmap
 

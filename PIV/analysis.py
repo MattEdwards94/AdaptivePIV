@@ -26,7 +26,7 @@ def ensemble_widim(flowtype, im_start, im_stop, settings):
 
     for i in range(im_start, im_stop + 1):
         print("Analysing image {}".format(i))
-        dp = widim(piv_image.load_PIVImage(flowtype, i),
+        dp = widim(piv_image.PIVImage.from_flowtype(flowtype, i),
                    settings)
         ensR.add_displacement_field(dp)
 
@@ -446,7 +446,7 @@ def run_script():
 if __name__ == '__main__':
     # # load the image
     # flowtype, im_number = 1, 1
-    # img = piv_image.load_PIVImage(flowtype, im_number)
+    # img = piv_image.PIVImage.from_flowtype(flowtype, im_number)
     # # img.plot_images()
     # settings = WidimSettings(init_WS=129,
     #                          final_WS=65,
@@ -464,6 +464,6 @@ if __name__ == '__main__':
     # # ensR = ensemble_widim(22, 1, 2, settings)
     # # ensR.save_to_file('test_file.mat')
 
-    img = piv_image.load_PIVImage(22, 1)
+    img = piv_image.PIVImage.from_flowtype(22, 1)
 
     multi_grid_analysis(img)
