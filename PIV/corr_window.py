@@ -250,10 +250,6 @@ class CorrWindow:
 
         # load the image and mask values and perform the cross correlation
         wsa, wsb, mask = self.prepare_correlation_windows(img)
-        # plt.imshow(wsa)
-        # plt.show()
-        # plt.imshow(wsb)
-        # plt.show()
 
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
@@ -320,8 +316,6 @@ def calculate_correlation_map(wsa, wsb, WS, rad):
     idx = (np.arange(WS) + rad) % nPow2
     bf = corrmap[idx, :]
     corrmap = bf[:, idx]
-    # plt.imshow(corrmap)
-    # plt.show()
 
     return corrmap
 
@@ -363,30 +357,6 @@ def get_corrwindow_scaling(i, j, WS, rad):
     x_val = WS - np.abs(np.array([rad - j + 1, rad - j, rad - j - 1]))
 
     return (WS * WS) / (x_val * y_val[:, np.newaxis])
-
-
-def corrWindow_list(x, y, WS):
-    """
-    Creates a corrWindow object for each location in x, y, with window size WS
-
-    If WS is a scalar int, then all windows will be given the same size
-    If not, WS must be the same length as the input
-
-    Args:
-        x (list, int): The x location of the windows
-        y (list, int): The y location of the windows
-        WS (list, odd int): The window sizes
-
-    Returns:
-        list: List of CorrWindow objects
-    """
-
-    if isinstance(WS, int):
-        WS = [WS] * len(x)
-
-    cwList = list(map(CorrWindow, x, y, WS))
-
-    return cwList
 
 
 if __name__ == '__main__':

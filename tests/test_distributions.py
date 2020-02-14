@@ -96,6 +96,50 @@ def test_initialisation_with_list_is_shallow_only(mock_cwList):
     assert dist.windows[0] == mock_cwList[0]
 
 
+def test_initialisation_using_from_locations():
+    """
+    Test the list is created according to the input values
+    """
+
+    xv, yv, WS = np.arange(100), np.arange(100), np.ones((100,)) * 33
+    cw_list = []
+    for x, y, WS_ in zip(xv, yv, WS):
+        cw = corr_window.CorrWindow(x, y, WS_)
+        cw_list.append(cw)
+
+    exp_dist = distribution.Distribution(cw_list)
+
+    act_dist = distribution.Distribution.from_locations(xv, yv, WS)
+
+    assert act_dist == exp_dist
+
+
+def test_initialisation_using_from_locations_multi_dimensional():
+    """Test that if the input lists to the contstructor are multidimensional
+    that the lists are raveled first.
+    """
+
+    # create grid
+    xv, yv = (np.arange(0, 25, 6),
+              np.arange(0, 20, 3))
+    xx, yy = np.meshgrid(xv, yv)
+    # crate random WS values which will be accepted by the CorrWindow
+    # constructore - i.e. positive odd integer 5
+    ws_grid = np.random.randint(0, 10, np.shape(xx))
+    ws_grid *= 2
+    ws_grid += 11
+
+    # pass too corrWindow_list()
+    act_dist = distribution.Distribution.from_locations(xx, yy, ws_grid)
+
+    cw_list = []
+    for x, y, ws in zip(xx.ravel(), yy.ravel(), ws_grid.ravel()):
+        cw = corr_window.CorrWindow(x, y, ws)
+        cw_list.append(cw)
+
+    assert act_dist == distribution.Distribution(cw_list)
+
+
 def test_n_windows_returns_number_of_windows(mock_cw, mock_cwList):
     """
     Checks it returns the correct number of windows for empty, 1 and many

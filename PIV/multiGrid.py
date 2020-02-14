@@ -28,10 +28,15 @@ class MultiGrid(distribution.Distribution):
         x_vec = np.arange(0, img_dim[1], spacing)
         y_vec = np.arange(0, img_dim[0], spacing)
         xx, yy = np.meshgrid(x_vec, y_vec)
+        ws_grid = np.ones_like(xx) * WS
 
         # turn each of the coordinates into a corrwindow object
         # note that this flattens the grid row by row
-        self.windows = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), WS)
+
+        self.windows = list(map(corr_window.CorrWindow,
+                                xx.ravel(),
+                                yy.ravel(),
+                                ws_grid.ravel()))
 
         # create a new grid for the base tier
         self.grids = [Grid(img_dim, spacing)]

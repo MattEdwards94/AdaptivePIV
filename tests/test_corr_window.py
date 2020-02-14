@@ -198,10 +198,10 @@ def test_calculate_correlation_map_is_padded_by_10_zeros():
     """
 
     # perform the correlation using the method being tested
-    wsa = np.random.rand(33, 33)
-    wsb = np.random.rand(33, 33)
-    WS = 33
-    rad = 16
+    wsa = np.random.rand(55, 55)
+    wsb = np.random.rand(55, 55)
+    WS = 55
+    rad = 27
     corrmap = corr_window.calculate_correlation_map(wsa, wsb, WS, rad)
 
     # now we want to manually perform the correlation with the padding
@@ -538,36 +538,3 @@ def test_flag_initialised_to_none():
     cw = corr_window.CorrWindow(x, y, WS)
 
     assert np.isnan(cw.flag)
-
-
-def test_corrwindow_list_from_locations():
-    """
-    Test the list is created according to the input values
-    """
-
-    xv, yv, WS = np.arange(100), np.arange(100), np.ones((100,)) * 33
-    expList = []
-    for x, y, WS_ in zip(xv, yv, WS):
-        cw = corr_window.CorrWindow(x, y, WS_)
-        expList.append(cw)
-
-    actlist = corr_window.corrWindow_list(xv, yv, WS)
-
-    assert actlist == expList
-
-
-def test_corrwindow_list_with_scalar_WS():
-    """
-    Test that the list is properly initialised if only a single WS value is
-    passed in
-    """
-
-    xv, yv, WS = np.arange(100), np.arange(100), 33
-    expList = []
-    for x, y in zip(xv, yv):
-        cw = corr_window.CorrWindow(x, y, WS)
-        expList.append(cw)
-
-    actlist = corr_window.corrWindow_list(xv, yv, WS)
-
-    assert actlist == expList
