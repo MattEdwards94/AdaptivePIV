@@ -100,12 +100,12 @@ def widim(img, settings):
         np.zeros(img.dim), np.zeros(img.dim), img.mask)
 
     # main iterations
-    for iter_ in range(1, settings.n_iter_main + 1):
-        print("Starting main iteration, {}".format(iter_))
+    for _iter in range(1, settings.n_iter_main + 1):
+        print("Starting main iteration, {}".format(_iter))
 
         # calculate spacing and create sample grid
         print("Calculating WS and spacing")
-        WS = WS_for_iter(iter_, settings)
+        WS = WS_for_iter(_iter, settings)
         print("WS: {}".format(WS))
         h = max(1, math.floor((1 - settings.WOR) * WS))
         print(h)
@@ -136,7 +136,7 @@ def widim(img, settings):
 
     print("Starting refinement iterations")
 
-    for iter_ in range(1, settings.n_iter_ref + 1):
+    for _iter in range(1, settings.n_iter_ref + 1):
 
         print("Correlating all windows")
         dist.correlate_all_windows(img_def, dp)
@@ -155,9 +155,9 @@ def widim(img, settings):
     return dp
 
 
-def WS_for_iter(iter_, settings):
+def WS_for_iter(_iter, settings):
     """
-    Returns the WS to be used for iteration iter_ for the current settings
+    Returns the WS to be used for iteration _iter for the current settings
 
     The window size is calculated by finding what reduction factor (RF) would
     need to be applied to init_WS, n_iter_main times
@@ -165,10 +165,10 @@ def WS_for_iter(iter_, settings):
 
     WS = init_WS*(RF^n_iter_main) = final_WS
 
-    iter_ = 1 returns init_WS
+    _iter = 1 returns init_WS
         UNLESS
         iter_ = 1 and n_iter_main == 1, which returns final_WS
-    iter_ >= n_iter_main returns final_WS
+    _iter >= n_iter_main returns final_WS
 
     Args:
         iter_ (int): The iteration to calculate the WS for.
@@ -180,13 +180,13 @@ def WS_for_iter(iter_, settings):
     """
 
     # check inputs for special cases
-    if iter_ == 1:
+    if _iter == 1:
         if settings.n_iter_main == 1:
             return settings.final_WS
         else:
             return settings.init_WS
 
-    if iter_ >= settings.n_iter_main:
+    if _iter >= settings.n_iter_main:
         return settings.final_WS
 
     # now calculate intermediate WS value
@@ -194,7 +194,7 @@ def WS_for_iter(iter_, settings):
         np.log(settings.final_WS / settings.init_WS)
         / (settings.n_iter_main - 1)
     )
-    WS = settings.init_WS * (reduction_fact ** (iter_ - 1))
+    WS = settings.init_WS * (reduction_fact ** (_iter - 1))
 
     # return the nearest odd integer
     return utilities.round_to_odd(WS)
@@ -434,36 +434,7 @@ class WidimSettings():
         self._interp = value
 
 
-def run_script():
-    IA, IB, mask = piv_image.load_image_from_flow_type(22, 1)
-    img = piv_image.PIVImage(IA, IB, mask)
-    print("here")
-    settings = WidimSettings(final_WS=15, n_iter_ref=0)
-
-    widim(img, settings)
-
-
 if __name__ == '__main__':
-    # # load the image
-    # flowtype, im_number = 1, 1
-    # img = piv_image.PIVImage.from_flowtype(flowtype, im_number)
-    # # img.plot_images()
-    # settings = WidimSettings(init_WS=129,
-    #                          final_WS=65,
-    #                          n_iter_main=2)
-
-    # # analyse the image
-    # dp = widim(img, settings)
-
-    # # print(dp.u[200, 100])
-    # # dp.plot_displacement_field(width=0.001,
-    # #                            headlength=2.5,
-    # #                            headwidth=2,
-    # #                            headaxislength=6)
-
-    # # ensR = ensemble_widim(22, 1, 2, settings)
-    # # ensR.save_to_file('test_file.mat')
-
     img = piv_image.PIVImage.from_flowtype(22, 1)
 
     multi_grid_analysis(img)
