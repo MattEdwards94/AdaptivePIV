@@ -244,6 +244,7 @@ def test_calculate_WS_middle_input():
     assert analysis.WS_for_iter(2, settings) == exp
 
 
+@pytest.mark.slow
 def test_quick_widim():
     """
     Analyses a single image for a selection of images:
