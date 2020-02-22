@@ -17,14 +17,14 @@ class CorrWindow:
     location, i.e. x, y, WS, u, v, and provides functionality to correlate
     such a location, given an image, densepredictor and settings.
 
-    Does not store any kind of intensity or displacement data otherwise this
+    Does not store any kind of intensity or densepredictor data otherwise this
     would make everything slower
 
     Attributes:
         x (int): x location of the window
         y (int): y location of the window
         WS (odd int): size of the correlation window
-                      must be odd
+                      must be odd                      
                       must be integer
                       Assumes square windows
         rad (int): (WS-1)*0.5
@@ -35,6 +35,8 @@ class CorrWindow:
         v_pre_validation (double): The vertical displacement of the window
                                    before validation took place
         flag (bool): Whether the vector has been validated
+        is_masked (bool): Whether the CorrWindow location represents a masked
+                          region
     """
 
     def __init__(self, x, y, WS):
@@ -190,11 +192,11 @@ class CorrWindow:
         # get index values where the image is valid
         ID = mask == 1
 
+        mask_sum = np.add.reduce(mask, axis=None)
+
         # subtract the mean values from the intensities
-        wsa = ia - (np.add.reduce(ia[ID], axis=None) /
-                    np.add.reduce(mask, axis=None))
-        wsb = ib - (np.add.reduce(ib[ID], axis=None) /
-                    np.add.reduce(mask, axis=None))
+        wsa = ia - (np.add.reduce(ia[ID], axis=None) / mask_sum)
+        wsb = ib - (np.add.reduce(ib[ID], axis=None) / mask_sum)
 
         # set mask pixels to 0
         wsa[mask == 0] = 0
