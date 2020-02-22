@@ -431,7 +431,7 @@ def test_get_displacement_from_corrmap_central_peak():
     corrmap[3, 3] = 1
 
     # run through the script to get the displacement
-    u, v, SNR = cyth_corr_window.get_displacement_from_corrmap(corrmap, 7, 3)
+    u, v, SNR = cyth_corr_window.get_disp_from_corrmap(corrmap, 7, 3)
 
     assert u == 0
     assert v == 0

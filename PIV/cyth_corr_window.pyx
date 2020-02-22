@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 
 @cython.boundscheck(False)
-def get_corrwindow_scaling(int i, int j, int WS, int rad):
+cdef get_corrwindow_scaling(int i, int j, int WS, int rad):
     """
     When correlating two windows, assume one is staying fixed and the other is
     moving. When the windows are half overlapped, then only half of the image
@@ -56,7 +56,7 @@ def get_corrwindow_scaling(int i, int j, int WS, int rad):
 
 
 @cython.boundscheck(False)
-def get_displacement_from_corrmap(double[:, :] corrmap, int WS, int rad):
+def get_disp_from_corrmap(double[:, :] corrmap, int WS, int rad):
     """
     Finds the largest and second largest peaks in the correlation map and
     calculates the SNR ratio
@@ -82,23 +82,32 @@ def get_displacement_from_corrmap(double[:, :] corrmap, int WS, int rad):
 
     cdef int i, j
     cdef double u, v, SNR
-    cdef double[:, :] R
+    cdef double R[3][3]
 
     # get the biggest peak
-    i, j = np.unravel_index(np.argmax(corrmap), (WS, WS))
+    cdef int ii, jj
+    cdef double max_val = 0
+    for ii in range(WS):
+        for jj in range(WS):
+            if corrmap[ii, jj] > max_val:
+                max_val = corrmap[ii,jj]
+                i, j = ii, jj
 
     # catch if the peak is on the edge of the domain
     if (i == 0) or (j == 0) or (i == WS - 1) or (j == WS - 1):
         u, v, SNR = 0, 0, 1
         return u, v, SNR
 
-    # set values around peak to NaN to find the second largest peak
-    R = np.copy(corrmap[i - 1:i + 2, j - 1:j + 2])
-    corrmap[i - 1:i + 2, j - 1:j + 2] = np.NaN
+    # get the second largest value in the domain
+    cdef double max_val2 = 0
+    for ii in range(WS):
+        for jj in range(WS):
+            if ii in [i-1, i, i+1] and jj in [j-1, j, j+1]:
+                continue
+            if corrmap[ii, jj] > max_val2:
+                max_val2 = corrmap[ii,jj]
 
-    # get the second peak and calculate SNR
-    SNR = R[1, 1] / (bn.nanmax(corrmap) + 1e-15)
-    corrmap[i - 1:i + 2, j - 1:j + 2] = R
+    SNR = max_val / (max_val2 + 1e-15)
 
     # Get the neighbouring values for the Gaussian fitting
     scale = get_corrwindow_scaling(i, j, WS, rad)
@@ -106,27 +115,22 @@ def get_displacement_from_corrmap(double[:, :] corrmap, int WS, int rad):
     cdef double min_R = 0
     for ii in range(3):
         for jj in range(3):
-            R[ii, jj] *= scale[ii][jj]
-            if R[ii, jj] <= min_R:
+            R[ii][jj] = corrmap[i+ii-1, j+jj-1]*scale[ii][jj]
+            if R[ii][jj] <= min_R:
                 flag = 1
-                min_R = R[ii, jj]
+                min_R = R[ii][jj]
 
     if flag == 1:
         for ii in range(3):
             for jj in range(3):
-                R[ii, jj] += 0.00001 - min_R
+                R[ii][jj] += 0.00001 - min_R
 
     for ii in range(3):
         for jj in range(3):
-            R[ii, jj] = log(R[ii, jj])
+            R[ii][jj] = log(R[ii][jj])
 
-    # R *= np.asarray(get_corrwindow_scaling(i, j, WS, rad))
-
-    # if np.min(R) <= 0:
-    #     R += 0.00001 - np.min(R)
-
-    u = j - rad + 0.5 * ((R[1, 0] - R[1, 2]) /
-                         (R[1, 0] - 2 * R[1, 1] + R[1, 2]))
-    v = i - rad + 0.5 * ((R[0, 1] - R[2, 1]) /
-                         (R[0, 1] - 2 * R[1, 1] + R[2, 1]))
+    u = j - rad + 0.5 * ((R[1][0] - R[1][2]) /
+                         (R[1][0] - 2 * R[1][1] + R[1][2]))
+    v = i - rad + 0.5 * ((R[0][1] - R[2][1]) /
+                         (R[0][1] - 2 * R[1][1] + R[2][1]))
     return u, v, SNR

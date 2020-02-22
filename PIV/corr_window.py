@@ -211,7 +211,7 @@ class CorrWindow:
         Args:
             corrmap (ndarray): Correlation map
         """
-        u, v, SNR = cyth_corr_window.get_displacement_from_corrmap(
+        u, v, SNR = cyth_corr_window.get_disp_from_corrmap(
             corrmap, self.WS, self.rad)
 
         return u, v, SNR
@@ -254,7 +254,7 @@ class CorrWindow:
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
         # find the subpixel displacement from the correlation map
-        self.u, self.v, self.SNR = cyth_corr_window.get_displacement_from_corrmap(
+        self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap(
             corrmap, self.WS, self.rad)
         # print(f"u: {self.u}, v: {self.v}, SNR: {self.SNR}")
 
