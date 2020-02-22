@@ -709,8 +709,8 @@ def test_Distribution_interp_WS():
     exp *= mask
 
     # create distribution
-    cw_list = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), ws)
-    dist = distribution.Distribution(cw_list)
+    dist = distribution.Distribution.from_locations(xx.ravel(), yy.ravel(),
+                                                    [ws]*np.size(xx))
 
     ws = dist.interp_WS(mask)
 
