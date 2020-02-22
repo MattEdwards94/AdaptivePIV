@@ -85,7 +85,13 @@ def get_displacement_from_corrmap(double[:, :] corrmap, int WS, int rad):
     cdef double[:, :] R
 
     # get the biggest peak
-    i, j = np.unravel_index(np.argmax(corrmap), (WS, WS))
+    cdef int ii, jj
+    cdef double max_val = 0
+    for ii in range(WS):
+        for jj in range(WS):
+            if corrmap[ii, jj] > max_val:
+                max_val = corrmap[ii,jj]
+                i, j = ii, jj
 
     # catch if the peak is on the edge of the domain
     if (i == 0) or (j == 0) or (i == WS - 1) or (j == WS - 1):
