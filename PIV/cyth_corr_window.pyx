@@ -82,7 +82,7 @@ def get_displacement_from_corrmap(double[:, :] corrmap, int WS, int rad):
 
     cdef int i, j
     cdef double u, v, SNR
-    cdef double[:, :] R
+    cdef double R[3][3]
 
     # get the biggest peak
     cdef int ii, jj
@@ -115,27 +115,22 @@ def get_displacement_from_corrmap(double[:, :] corrmap, int WS, int rad):
     cdef double min_R = 0
     for ii in range(3):
         for jj in range(3):
-            R[ii, jj] *= scale[ii][jj]
-            if R[ii, jj] <= min_R:
+            R[ii][jj] = corrmap[i+ii-1, j+jj-1]*scale[ii][jj]
+            if R[ii][jj] <= min_R:
                 flag = 1
-                min_R = R[ii, jj]
+                min_R = R[ii][jj]
 
     if flag == 1:
         for ii in range(3):
             for jj in range(3):
-                R[ii, jj] += 0.00001 - min_R
+                R[ii][jj] += 0.00001 - min_R
 
     for ii in range(3):
         for jj in range(3):
-            R[ii, jj] = log(R[ii, jj])
+            R[ii][jj] = log(R[ii][jj])
 
-    # R *= np.asarray(get_corrwindow_scaling(i, j, WS, rad))
-
-    # if np.min(R) <= 0:
-    #     R += 0.00001 - np.min(R)
-
-    u = j - rad + 0.5 * ((R[1, 0] - R[1, 2]) /
-                         (R[1, 0] - 2 * R[1, 1] + R[1, 2]))
-    v = i - rad + 0.5 * ((R[0, 1] - R[2, 1]) /
-                         (R[0, 1] - 2 * R[1, 1] + R[2, 1]))
+    u = j - rad + 0.5 * ((R[1][0] - R[1][2]) /
+                         (R[1][0] - 2 * R[1][1] + R[1][2]))
+    v = i - rad + 0.5 * ((R[0][1] - R[2][1]) /
+                         (R[0][1] - 2 * R[1][1] + R[2][1]))
     return u, v, SNR
