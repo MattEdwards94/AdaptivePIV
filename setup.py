@@ -1,8 +1,15 @@
 import setuptools
 from distutils.extension import Extension
 import numpy
+import sys
 
-USE_CYTHON = True
+if sys.argv[-2] == "--cyth":
+    USE_CYTHON = sys.argv[-1]
+    sys.argv.pop()
+    sys.argv.pop()
+else:
+    USE_CYTHON = False
+
 
 ext = '.pyx' if USE_CYTHON else '.c'
 
