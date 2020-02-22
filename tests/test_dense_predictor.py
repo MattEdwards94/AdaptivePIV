@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import PIV.dense_predictor as dense_predictor
+import PIV.utilities as utils
 
 
 def test_initialisation_with_mask():
@@ -461,3 +462,32 @@ def test_magnitude():
     exp = np.sqrt(u1*u1 + u2*u2)
 
     assert np.allclose(dp1.magnitude(), exp)
+
+
+def test_get_local_average_disp():
+    """Checks that the displacement obtained from the local average using summed
+    area tables is the same as calculating traditionally
+
+    make sure that the mask is considered
+    """
+
+    u = np.random.rand(50, 50)
+    v = np.random.rand(50, 50)
+    mask = np.random.randint(0, 2, (50, 50))
+    dp = dense_predictor.DensePredictor(u, v, mask)
+    WS, rad = 33, 16
+
+    u_exp, v_exp = np.zeros_like(u), np.zeros_like(v)
+    u_act, v_act = np.zeros_like(u), np.zeros_like(v)
+
+    for y in range(50):
+        for x in range(50):
+            dpx, dpy, mask_reg = dp.get_region(x, y, rad)
+            n_elem = np.sum(mask_reg)
+            u_exp[y, x] += (np.sum(dpx[mask_reg == 1]) / n_elem)
+            v_exp[y, x] += (np.sum(dpy[mask_reg == 1]) / n_elem)
+
+            u_act[y, x], v_act[y, x] = dp.get_local_avg_disp(x, y, rad)
+
+    assert np.allclose(u_act, u_exp)
+    assert np.allclose(v_act, v_exp)

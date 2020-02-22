@@ -261,10 +261,9 @@ class CorrWindow:
         # print(f"u: {self.u}, v: {self.v}, SNR: {self.SNR}")
 
         # combine displacement with predictor
-        dpx, dpy, mask = dp.get_region(self.x, self.y, self.rad)
-        n_elem = np.sum(mask)
-        self.u += (np.sum(dpx[mask == 1]) / n_elem)
-        self.v += (np.sum(dpy[mask == 1]) / n_elem)
+        u_avg, v_avg = dp.get_local_avg_disp(self.x, self.y, self.rad)
+        self.u += u_avg
+        self.v += v_avg
 
         return self.u, self.v, self.SNR
 
