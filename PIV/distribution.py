@@ -73,6 +73,8 @@ class Distribution:
             Distribution: Distribution object containing the specified locations
         """
 
+        x, y, WS = np.array(x), np.array(y), np.array(WS)
+
         cwList = list(map(corr_window.CorrWindow,
                           x.ravel(),
                           y.ravel(),
