@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 
 @cython.boundscheck(False)
-def get_corrwindow_scaling(int i, int j, int WS, int rad):
+cdef get_corrwindow_scaling(int i, int j, int WS, int rad):
     """
     When correlating two windows, assume one is staying fixed and the other is
     moving. When the windows are half overlapped, then only half of the image
