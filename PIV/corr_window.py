@@ -7,6 +7,8 @@ import time
 import cyth_corr_window
 import numpy.fft._pocketfft_internal as pfi
 from numpy.core import zeros, swapaxes
+import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 
 
 class CorrWindow:
@@ -261,16 +263,27 @@ class CorrWindow:
         return self.u, self.v, self.SNR
 
 
-def plot_regions(wsa, wsb, corrmap):
-    plt.figure(1)
-    plt.imshow(wsa)
-    plt.title("IA")
-    plt.figure(2)
-    plt.imshow(wsb)
-    plt.title("IB")
-    plt.figure(3)
-    plt.imshow(corrmap)
-    plt.title("corrmap")
+def plot_corrmap_surface(self, img):
+    """Plots a 3D surface of the correlation map and it's values
+    """
+
+    # load the image and mask values and perform the cross correlation
+    wsa, wsb, mask = self.prepare_correlation_windows(img)
+
+    corrmap = calc_corrmap_inline(wsa, wsb, self.WS, self.rad)
+
+    # find the subpixel displacement from the correlation map
+    # self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap_opt(
+    #     corrmap, self.WS, self.rad)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    xx, yy = np.meshgrid(np.arange(-self.rad, self.rad+1, 1),
+                         np.arange(-self.rad, self.rad+1, 1))
+    surf = ax.plot_surface(xx, yy, corrmap, cmap='viridis')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
     plt.show()
 
 
