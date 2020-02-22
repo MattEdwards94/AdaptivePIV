@@ -395,6 +395,9 @@ class DensePredictor:
         if ax is None:
             fig, ax = plt.subplots()
 
+        if np.sum(self.mask) != np.prod(self.dim):
+            ax.imshow(self.mask)
+
         ax.quiver(xv, yv, u, v, **kwargs)
         ax.set_title("displacement")
 
@@ -436,4 +439,3 @@ class DensePredictor:
         fig, ax = plt.subplots()
         im = ax.imshow(self.magnitude(), **kwargs)
         ax.figure.colorbar(im)
-
