@@ -162,14 +162,7 @@ class CorrWindow:
             raise ValueError("WS must be positive")
 
         self._WS = int(value)
-
-    @property
-    def rad(self):
-        """
-        Returns:
-            int: Radius of the correlation window as (WS-1) * 0.5
-        """
-        return int((self.WS - 1) * 0.5)
+        self.rad = int((self._WS - 1) * 0.5)
 
     def prepare_correlation_windows(self, img):
         """
