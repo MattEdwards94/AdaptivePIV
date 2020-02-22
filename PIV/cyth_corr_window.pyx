@@ -98,13 +98,16 @@ def get_displacement_from_corrmap(double[:, :] corrmap, int WS, int rad):
         u, v, SNR = 0, 0, 1
         return u, v, SNR
 
-    # set values around peak to NaN to find the second largest peak
-    R = np.copy(corrmap[i - 1:i + 2, j - 1:j + 2])
-    corrmap[i - 1:i + 2, j - 1:j + 2] = np.NaN
+    # get the second largest value in the domain
+    cdef double max_val2 = 0
+    for ii in range(WS):
+        for jj in range(WS):
+            if ii in [i-1, i, i+1] and jj in [j-1, j, j+1]:
+                continue
+            if corrmap[ii, jj] > max_val2:
+                max_val2 = corrmap[ii,jj]
 
-    # get the second peak and calculate SNR
-    SNR = R[1, 1] / (bn.nanmax(corrmap) + 1e-15)
-    corrmap[i - 1:i + 2, j - 1:j + 2] = R
+    SNR = max_val / (max_val2 + 1e-15)
 
     # Get the neighbouring values for the Gaussian fitting
     scale = get_corrwindow_scaling(i, j, WS, rad)
