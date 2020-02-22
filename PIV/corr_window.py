@@ -5,6 +5,8 @@ import PIV.dense_predictor as dense_predictor
 import math
 import time
 import cyth_corr_window
+import numpy.fft._pocketfft_internal as pfi
+from numpy.core import zeros, swapaxes
 
 
 class CorrWindow:
@@ -306,9 +308,9 @@ def calculate_correlation_map(wsa, wsb, WS, rad):
 
     # perform the correlation
     corrmap = np.real(
-        np.fft.ifftn(
-            np.fft.fftn(wsa, [nPow2, nPow2])
-            * np.fft.fftn(wsb, [nPow2, nPow2])
+        ifft2(
+            fft2(wsa, [nPow2, nPow2])
+            * fft2(wsb, [nPow2, nPow2]), [nPow2, nPow2]
         )
     )
 
@@ -318,6 +320,79 @@ def calculate_correlation_map(wsa, wsb, WS, rad):
     corrmap = bf[:, idx]
 
     return corrmap
+
+
+def fft2(a, s):
+    """Helper function for fft in 2 dimensions
+
+    Is equivalent to  np.fft.fft2 (or np.fft.fftn), but accepts limited 
+    arguments allowing for less input checking
+
+    Arguments:
+        a {ndarray} -- Array to perform fft on
+        s {list, int} -- 1x2 list indicating the dimensions of the calculation
+                         of the fft
+
+    Returns:
+        ndarray -- The frequency domain version of a
+    """
+    a = _raw_fft(a, n=s[1], axis=1, is_real=False, is_forward=True, inv_norm=1)
+    a = _raw_fft(a, n=s[0], axis=0, is_real=False, is_forward=True, inv_norm=1)
+    return a
+
+
+def ifft2(a, s):
+    """Helper function for ifft in 2 dimensions
+
+    Is equivalent to  np.fft.ifft2 (or np.fft.ifftn), but accepts limited 
+    arguments allowing for less input checking
+
+    a ~ ifft2(fft2(a))
+
+    Arguments:
+        a {ndarray} -- Array to perform ifft on
+        s {list, int} -- 1x2 list indicating the dimensions of the calculation
+                         of the ifft
+
+    Returns:
+        ndarray -- The spatial domain version of a
+    """
+    a = _raw_fft(a, n=s[1], axis=1, is_real=False,
+                 is_forward=False, inv_norm=1/s[1])
+    a = _raw_fft(a, n=s[0], axis=0, is_real=False,
+                 is_forward=False, inv_norm=1/s[0])
+    return a
+
+
+def _raw_fft(a, n, axis, is_real, is_forward, inv_norm):
+    """Caller function for both fft and ifft
+
+    see np.fft._pocketfft.py
+
+    Arguments:
+        a {ndarray} -- Array to be calculated upon
+        n {int} -- Size of the dimension to calculate fft on (i.e. next pow 2)
+        axis {int} -- Axis upon which to calculate fft
+        is_forward {bool} -- Whether to calculate fft (True) or ifft (False)
+        inv_norm {double} -- normalising value
+    """
+    if is_forward:
+        # pad with 0's
+        s = list(a.shape)
+        index = [slice(None)]*len(s)
+        index[axis] = slice(0, s[axis])
+        s[axis] = n
+        z = np.zeros(s, a.dtype.char)
+        z[tuple(index)] = a
+        a = z
+
+    if axis == a.ndim-1:
+        r = pfi.execute(a, is_real, is_forward, inv_norm)
+    else:
+        a = swapaxes(a, axis, -1)
+        r = pfi.execute(a, is_real, is_forward, inv_norm)
+        r = swapaxes(r, axis, -1)
+    return r
 
 
 def get_corrwindow_scaling(i, j, WS, rad):
