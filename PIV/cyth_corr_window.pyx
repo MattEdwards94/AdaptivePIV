@@ -56,7 +56,7 @@ cdef get_corrwindow_scaling(int i, int j, int WS, int rad):
 
 
 @cython.boundscheck(False)
-def get_displacement_from_corrmap(double[:, :] corrmap, int WS, int rad):
+def get_disp_from_corrmap(double[:, :] corrmap, int WS, int rad):
     """
     Finds the largest and second largest peaks in the correlation map and
     calculates the SNR ratio
