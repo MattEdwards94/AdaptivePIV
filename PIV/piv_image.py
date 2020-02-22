@@ -5,6 +5,7 @@ from scipy.special import erf
 import h5py
 from PIL import Image
 import matplotlib.pyplot as plt
+import matplotlib.animation as mplanimate
 import mpl_toolkits.axes_grid1 as axgrid1
 import numpy as np
 import math
@@ -295,11 +296,27 @@ class PIVImage:
         """Summary
         """
         plt.figure(1)
-        plt.imshow(self.IA)
+        plt.imshow(self.IA, cmap='gray')
         plt.title("IA")
         plt.figure(2)
-        plt.imshow(self.IB)
+        plt.imshow(self.IB, cmap='gray')
         plt.title("IB")
+        plt.show()
+
+    def plot_images_animation(self):
+        """Plots the images, flickering between A and B so you can see the 
+        particle motion
+        """
+        def animate(i):
+            if i == 0:
+                im.set_data(self.IA)
+            else:
+                im.set_data(self.IB)
+            return im,
+
+        fig, ax = plt.subplots()
+        im = ax.imshow(self.IA, cmap='gray')
+        anim = mplanimate.FuncAnimation(fig, animate, frames=2, interval=1000)
         plt.show()
 
     def plot_mask(self):
