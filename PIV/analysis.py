@@ -4,9 +4,9 @@ import PIV.utilities as utilities
 import math
 import PIV.corr_window as corr_window
 import PIV.dense_predictor as dense_predictor
-import PIV.piv_image as piv_image
 import PIV.ensemble_solution as es
 import PIV.multiGrid as mg
+import PIV
 
 
 def ensemble_widim(flowtype, im_start, im_stop, settings):
@@ -26,7 +26,7 @@ def ensemble_widim(flowtype, im_start, im_stop, settings):
 
     for i in range(im_start, im_stop + 1):
         print("Analysing image {}".format(i))
-        dp = widim(piv_image.PIVImage.from_flowtype(flowtype, i),
+        dp = widim(PIV.PIVImage.from_flowtype(flowtype, i),
                    settings)
         ensR.add_displacement_field(dp)
 
@@ -40,7 +40,7 @@ def multi_grid_analysis(img):
     init_WS = 129
     final_WS = 65
 
-    dp = dense_predictor.DensePredictor(
+    dp = PIV.DensePredictor(
         np.zeros(img.dim), np.zeros(img.dim), img.mask)
 
     amg = mg.MultiGrid(img.dim, spacing=64, WS=init_WS)
@@ -96,7 +96,7 @@ def widim(img, settings):
     """
 
     img_def = img
-    dp = dense_predictor.DensePredictor(
+    dp = PIV.DensePredictor(
         np.zeros(img.dim), np.zeros(img.dim), img.mask)
 
     # main iterations
@@ -118,7 +118,7 @@ def widim(img, settings):
         print("{} windows".format(len(xx.ravel())))
 
         # create distribution of correlation windows
-        dist = distribution.Distribution.from_locations(xx, yy, ws_grid)
+        dist = PIV.Distribution.from_locations(xx, yy, ws_grid)
 
         print("Correlating all windows")
         dist.correlate_all_windows(img_def, dp)
@@ -129,7 +129,7 @@ def widim(img, settings):
 
         print("Interpolating")
         u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
-        dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+        dp = PIV.DensePredictor(u, v, img_def.mask)
 
         print("Deforming image")
         img_def = img.deform_image(dp)
@@ -147,7 +147,7 @@ def widim(img, settings):
 
         print("Interpolating")
         u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
-        dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+        dp = PIV.DensePredictor(u, v, img_def.mask)
 
         print("Deforming image")
         img_def = img.deform_image(dp)
@@ -435,6 +435,6 @@ class WidimSettings():
 
 
 if __name__ == '__main__':
-    img = piv_image.PIVImage.from_flowtype(22, 1)
+    img = PIV.PIVImage.from_flowtype(22, 1)
 
     multi_grid_analysis(img)
