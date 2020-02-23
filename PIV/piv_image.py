@@ -5,6 +5,7 @@ from scipy.special import erf
 import h5py
 from PIL import Image
 import matplotlib.pyplot as plt
+import matplotlib.animation as mplanimate
 import mpl_toolkits.axes_grid1 as axgrid1
 import numpy as np
 import math
@@ -80,6 +81,37 @@ class PIVImage:
         self.n_cols = np.shape(IA)[1]
         self.dim = (self.n_rows, self.n_cols)
         self.is_filtered = False
+
+    @staticmethod
+    def from_flowtype(flowtype, im_number):
+        """Creates a PIVimage object for the specified flowtype and image number
+
+        Args:
+            flowtype (Int): The flowtype of the desired piv images.
+                            For more information call
+                            image_info.list_available_flowtypes()
+            im_number (Int): The number in the ensemble to load into memory.
+                            If im_number is greater than the known number of 
+                            images for the specified flowtype, a warning will 
+                            be raised. The method will still try to open the 
+                            requested file, in case there are actually more
+                            images in the ensemble, and then if the file does 
+                            not exist then an error will be raised
+
+        Examples:
+            >>> import image_info
+            >>> image_info.list_available_flowtypes() # to obtain options
+            >>> img_obj = piv_image.PIVImage.from_flowtype(flowtype=1, 
+                                                           im_number=20)
+            >>> IA, IB, mask = piv_image.load_image_from_flow_type(1, 20)
+            >>> img_obj2 = piv_image.PIVImage(IA, IB, mask)
+            >>> img_obj == img_obj2
+            ... True
+        """
+
+        # load images
+        IA, IB, mask = load_images(flowtype, im_number)
+        return PIVImage(IA, IB, mask)
 
     def __eq__(self, other):
         """
@@ -264,11 +296,27 @@ class PIVImage:
         """Summary
         """
         plt.figure(1)
-        plt.imshow(self.IA)
+        plt.imshow(self.IA, cmap='gray')
         plt.title("IA")
         plt.figure(2)
-        plt.imshow(self.IB)
+        plt.imshow(self.IB, cmap='gray')
         plt.title("IB")
+        plt.show()
+
+    def plot_images_animation(self):
+        """Plots the images, flickering between A and B so you can see the 
+        particle motion
+        """
+        def animate(i):
+            if i == 0:
+                im.set_data(self.IA)
+            else:
+                im.set_data(self.IB)
+            return im,
+
+        fig, ax = plt.subplots()
+        im = ax.imshow(self.IA, cmap='gray')
+        anim = mplanimate.FuncAnimation(fig, animate, frames=2, interval=1000)
         plt.show()
 
     def plot_mask(self):
@@ -354,40 +402,6 @@ def load_images(flowtype, im_number):
         mask[mask > 0] = 1
 
     return IA, IB, mask
-
-
-def load_PIVImage(flowtype, im_number):
-    """Creates a PIVimage object for the specified flowtype and image number
-
-    Args:
-        flowtype (Int): The flowtype of the desired piv images.
-                        For more information call
-                        image_info.list_available_flowtypes()
-        im_number (Int): The number in the ensemble to load into memory.
-                         If im_number is greater than the known number of images
-                         for the specified flowtype, a warning will be raised
-                         The method will still try to open the requested file
-                         If the file does not exist then an error will
-                         be raised
-
-    Examples:
-        >>> import image_info
-        >>> image_info.list_available_flowtypes() # to obtain options
-        >>> img_obj = piv_image.load_PIVImage(flowtype=1, im_number=20)
-        >>> IA, IB, mask = piv_image.load_image_from_flow_type(1, 20)
-        >>> img_obj2 = piv_image.PIVImage(IA, IB, mask)
-        >>> img_obj == img_obj2
-        ... True
-
-    No Longer Returned:
-        IA (ndarray): Image intensities for the first in the image pair
-        IB (ndarray): Image intensities for the second in the image pair
-        mask (ndarray): mask values with 0 for no mask and 1 for mask
-    """
-
-    # load images
-    IA, IB, mask = load_images(flowtype, im_number)
-    return PIVImage(IA, IB, mask)
 
 
 def quintic_spline_image_filter(IA):

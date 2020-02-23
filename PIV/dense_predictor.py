@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import PIV.utilities as utils
 
 
 class DensePredictor:
@@ -58,6 +59,11 @@ class DensePredictor:
         self.n_rows = np.shape(u)[0]
         self.n_cols = np.shape(u)[1]
         self.dim = (self.n_rows, self.n_cols)
+
+        # create sat for u, v, and mask
+        self.u_sat = utils.SummedAreaTable(self.u)
+        self.v_sat = utils.SummedAreaTable(self.v)
+        self.mask_sat = utils.SummedAreaTable(self.mask)
 
     def get_region(self, x, y, rad, truncate=True):
         """
@@ -335,6 +341,25 @@ class DensePredictor:
 
         return dp
 
+    def get_local_avg_disp(self, x, y, rad):
+        """Return the local average displacement of the dp, within the 
+        non-masked region only
+
+        Args:
+            x (int): The horizontal location to center the extraction around
+            y (int): The vertical location to center the extraction around
+            rad (int): The distance either side of (x,y) to average the 
+                       displacement over, such that the total region is
+                       rad*2 + 1
+        """
+
+        # get the local sum, noting that masked values are 0
+        sum_u = self.u_sat.get_area_sum(x-rad, x+rad, y-rad, y+rad)
+        sum_v = self.v_sat.get_area_sum(x-rad, x+rad, y-rad, y+rad)
+        sum_mask = self.mask_sat.get_area_sum(x-rad, x+rad, y-rad, y+rad)
+
+        return sum_u / sum_mask, sum_v / sum_mask
+
     def apply_mask(self):
         """
         Method to apply the mask
@@ -369,6 +394,9 @@ class DensePredictor:
 
         if ax is None:
             fig, ax = plt.subplots()
+
+        if np.sum(self.mask) != np.prod(self.dim):
+            ax.imshow(self.mask)
 
         ax.quiver(xv, yv, u, v, **kwargs)
         ax.set_title("displacement")
@@ -411,4 +439,3 @@ class DensePredictor:
         fig, ax = plt.subplots()
         im = ax.imshow(self.magnitude(), **kwargs)
         ax.figure.colorbar(im)
-

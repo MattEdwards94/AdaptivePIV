@@ -5,6 +5,10 @@ import PIV.dense_predictor as dense_predictor
 import math
 import time
 import cyth_corr_window
+import numpy.fft._pocketfft_internal as pfi
+from numpy.core import zeros, swapaxes
+import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 
 
 class CorrWindow:
@@ -13,14 +17,14 @@ class CorrWindow:
     location, i.e. x, y, WS, u, v, and provides functionality to correlate
     such a location, given an image, densepredictor and settings.
 
-    Does not store any kind of intensity or displacement data otherwise this
+    Does not store any kind of intensity or densepredictor data otherwise this
     would make everything slower
 
     Attributes:
         x (int): x location of the window
         y (int): y location of the window
         WS (odd int): size of the correlation window
-                      must be odd
+                      must be odd                      
                       must be integer
                       Assumes square windows
         rad (int): (WS-1)*0.5
@@ -31,6 +35,8 @@ class CorrWindow:
         v_pre_validation (double): The vertical displacement of the window
                                    before validation took place
         flag (bool): Whether the vector has been validated
+        is_masked (bool): Whether the CorrWindow location represents a masked
+                          region
     """
 
     def __init__(self, x, y, WS):
@@ -160,14 +166,7 @@ class CorrWindow:
             raise ValueError("WS must be positive")
 
         self._WS = int(value)
-
-    @property
-    def rad(self):
-        """
-        Returns:
-            int: Radius of the correlation window as (WS-1) * 0.5
-        """
-        return int((self.WS - 1) * 0.5)
+        self.rad = int((self._WS - 1) * 0.5)
 
     def prepare_correlation_windows(self, img):
         """
@@ -193,11 +192,11 @@ class CorrWindow:
         # get index values where the image is valid
         ID = mask == 1
 
+        mask_sum = np.add.reduce(mask, axis=None)
+
         # subtract the mean values from the intensities
-        wsa = ia - (np.add.reduce(ia[ID], axis=None) /
-                    np.add.reduce(mask, axis=None))
-        wsb = ib - (np.add.reduce(ib[ID], axis=None) /
-                    np.add.reduce(mask, axis=None))
+        wsa = ia - (np.add.reduce(ia[ID], axis=None) / mask_sum)
+        wsb = ib - (np.add.reduce(ib[ID], axis=None) / mask_sum)
 
         # set mask pixels to 0
         wsa[mask == 0] = 0
@@ -211,7 +210,7 @@ class CorrWindow:
         Args:
             corrmap (ndarray): Correlation map
         """
-        u, v, SNR = cyth_corr_window.get_displacement_from_corrmap(
+        u, v, SNR = cyth_corr_window.get_disp_from_corrmap(
             corrmap, self.WS, self.rad)
 
         return u, v, SNR
@@ -250,37 +249,43 @@ class CorrWindow:
 
         # load the image and mask values and perform the cross correlation
         wsa, wsb, mask = self.prepare_correlation_windows(img)
-        # plt.imshow(wsa)
-        # plt.show()
-        # plt.imshow(wsb)
-        # plt.show()
 
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
         # find the subpixel displacement from the correlation map
-        self.u, self.v, self.SNR = cyth_corr_window.get_displacement_from_corrmap(
+        self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap(
             corrmap, self.WS, self.rad)
         # print(f"u: {self.u}, v: {self.v}, SNR: {self.SNR}")
 
         # combine displacement with predictor
-        dpx, dpy, mask = dp.get_region(self.x, self.y, self.rad)
-        n_elem = np.sum(mask)
-        self.u += (np.sum(dpx[mask == 1]) / n_elem)
-        self.v += (np.sum(dpy[mask == 1]) / n_elem)
+        u_avg, v_avg = dp.get_local_avg_disp(self.x, self.y, self.rad)
+        self.u += u_avg
+        self.v += v_avg
 
         return self.u, self.v, self.SNR
 
 
-def plot_regions(wsa, wsb, corrmap):
-    plt.figure(1)
-    plt.imshow(wsa)
-    plt.title("IA")
-    plt.figure(2)
-    plt.imshow(wsb)
-    plt.title("IB")
-    plt.figure(3)
-    plt.imshow(corrmap)
-    plt.title("corrmap")
+def plot_corrmap_surface(self, img):
+    """Plots a 3D surface of the correlation map and it's values
+    """
+
+    # load the image and mask values and perform the cross correlation
+    wsa, wsb, mask = self.prepare_correlation_windows(img)
+
+    corrmap = calc_corrmap_inline(wsa, wsb, self.WS, self.rad)
+
+    # find the subpixel displacement from the correlation map
+    # self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap_opt(
+    #     corrmap, self.WS, self.rad)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    xx, yy = np.meshgrid(np.arange(-self.rad, self.rad+1, 1),
+                         np.arange(-self.rad, self.rad+1, 1))
+    surf = ax.plot_surface(xx, yy, corrmap, cmap='viridis')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
     plt.show()
 
 
@@ -310,9 +315,9 @@ def calculate_correlation_map(wsa, wsb, WS, rad):
 
     # perform the correlation
     corrmap = np.real(
-        np.fft.ifftn(
-            np.fft.fftn(wsa, [nPow2, nPow2])
-            * np.fft.fftn(wsb, [nPow2, nPow2])
+        ifft2(
+            fft2(wsa, [nPow2, nPow2])
+            * fft2(wsb, [nPow2, nPow2]), [nPow2, nPow2]
         )
     )
 
@@ -320,10 +325,81 @@ def calculate_correlation_map(wsa, wsb, WS, rad):
     idx = (np.arange(WS) + rad) % nPow2
     bf = corrmap[idx, :]
     corrmap = bf[:, idx]
-    # plt.imshow(corrmap)
-    # plt.show()
 
     return corrmap
+
+
+def fft2(a, s):
+    """Helper function for fft in 2 dimensions
+
+    Is equivalent to  np.fft.fft2 (or np.fft.fftn), but accepts limited 
+    arguments allowing for less input checking
+
+    Arguments:
+        a {ndarray} -- Array to perform fft on
+        s {list, int} -- 1x2 list indicating the dimensions of the calculation
+                         of the fft
+
+    Returns:
+        ndarray -- The frequency domain version of a
+    """
+    a = _raw_fft(a, n=s[1], axis=1, is_real=False, is_forward=True, inv_norm=1)
+    a = _raw_fft(a, n=s[0], axis=0, is_real=False, is_forward=True, inv_norm=1)
+    return a
+
+
+def ifft2(a, s):
+    """Helper function for ifft in 2 dimensions
+
+    Is equivalent to  np.fft.ifft2 (or np.fft.ifftn), but accepts limited 
+    arguments allowing for less input checking
+
+    a ~ ifft2(fft2(a))
+
+    Arguments:
+        a {ndarray} -- Array to perform ifft on
+        s {list, int} -- 1x2 list indicating the dimensions of the calculation
+                         of the ifft
+
+    Returns:
+        ndarray -- The spatial domain version of a
+    """
+    a = _raw_fft(a, n=s[1], axis=1, is_real=False,
+                 is_forward=False, inv_norm=1/s[1])
+    a = _raw_fft(a, n=s[0], axis=0, is_real=False,
+                 is_forward=False, inv_norm=1/s[0])
+    return a
+
+
+def _raw_fft(a, n, axis, is_real, is_forward, inv_norm):
+    """Caller function for both fft and ifft
+
+    see np.fft._pocketfft.py
+
+    Arguments:
+        a {ndarray} -- Array to be calculated upon
+        n {int} -- Size of the dimension to calculate fft on (i.e. next pow 2)
+        axis {int} -- Axis upon which to calculate fft
+        is_forward {bool} -- Whether to calculate fft (True) or ifft (False)
+        inv_norm {double} -- normalising value
+    """
+    if is_forward:
+        # pad with 0's
+        s = list(a.shape)
+        index = [slice(None)]*len(s)
+        index[axis] = slice(0, s[axis])
+        s[axis] = n
+        z = np.zeros(s, a.dtype.char)
+        z[tuple(index)] = a
+        a = z
+
+    if axis == a.ndim-1:
+        r = pfi.execute(a, is_real, is_forward, inv_norm)
+    else:
+        a = swapaxes(a, axis, -1)
+        r = pfi.execute(a, is_real, is_forward, inv_norm)
+        r = swapaxes(r, axis, -1)
+    return r
 
 
 def get_corrwindow_scaling(i, j, WS, rad):
@@ -363,30 +439,6 @@ def get_corrwindow_scaling(i, j, WS, rad):
     x_val = WS - np.abs(np.array([rad - j + 1, rad - j, rad - j - 1]))
 
     return (WS * WS) / (x_val * y_val[:, np.newaxis])
-
-
-def corrWindow_list(x, y, WS):
-    """
-    Creates a corrWindow object for each location in x, y, with window size WS
-
-    If WS is a scalar int, then all windows will be given the same size
-    If not, WS must be the same length as the input
-
-    Args:
-        x (list, int): The x location of the windows
-        y (list, int): The y location of the windows
-        WS (list, odd int): The window sizes
-
-    Returns:
-        list: List of CorrWindow objects
-    """
-
-    if isinstance(WS, int):
-        WS = [WS] * len(x)
-
-    cwList = list(map(CorrWindow, x, y, WS))
-
-    return cwList
 
 
 if __name__ == '__main__':

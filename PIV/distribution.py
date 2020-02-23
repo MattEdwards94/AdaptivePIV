@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import PIV.utilities as utilities
+import PIV.corr_window as corr_window
 from scipy import interpolate as interp
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -26,11 +27,57 @@ class Distribution:
         else:
             self.windows = [init_locations]
 
+    def __eq__(self, other):
+        """
+        Allow for comparing equality
+
+        Args:
+            other (Distribution): The other Distribution obj to be compared to
+
+        Returns:
+            Bool: Whether the two Distributions match
+        """
+
+        if not isinstance(other, Distribution):
+            return NotImplemented
+
+        for s, o in zip(self.__dict__.values(), other.__dict__.values()):
+            if s != o:
+                if not np.all(np.isnan((s, o))):
+                    return False
+
+        return True
+
     def n_windows(self):
         """
         Returns the number of windows currently stored in the distribution
         """
         return len(self.windows)
+
+    @staticmethod
+    def from_locations(x, y, WS):
+        """
+        Creates a distribution of CorrWindow objects, made for each 
+        item in x, y and WS
+
+        Inputs are unrolled, using np.ravel() into a one dimensional array 
+        before creating any CorrWindows which assumes row-major indexing.
+
+        Args:
+            x (list, int): The x location of the windows
+            y (list, int): The y location of the windows
+            WS (list, odd int): The window sizes
+
+        Returns:
+            Distribution: Distribution object containing the specified locations
+        """
+
+        cwList = list(map(corr_window.CorrWindow,
+                          x.ravel(),
+                          y.ravel(),
+                          WS.ravel()))
+
+        return Distribution(cwList)
 
     @property
     def x(self):

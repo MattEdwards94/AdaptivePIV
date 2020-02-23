@@ -244,6 +244,7 @@ def test_calculate_WS_middle_input():
     assert analysis.WS_for_iter(2, settings) == exp
 
 
+@pytest.mark.slow
 def test_quick_widim():
     """
     Analyses a single image for a selection of images:
@@ -267,7 +268,7 @@ def test_quick_widim():
     for flowtype in flowtypes:
         print(flowtype)
         # load the image
-        img = piv_image.load_PIVImage(flowtype, 1)
+        img = piv_image.PIVImage.from_flowtype(flowtype, 1)
 
         settings = analysis.WidimSettings(init_WS=127,
                                           final_WS=63,

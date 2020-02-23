@@ -198,10 +198,10 @@ def test_calculate_correlation_map_is_padded_by_10_zeros():
     """
 
     # perform the correlation using the method being tested
-    wsa = np.random.rand(33, 33)
-    wsb = np.random.rand(33, 33)
-    WS = 33
-    rad = 16
+    wsa = np.random.rand(55, 55)
+    wsb = np.random.rand(55, 55)
+    WS = 55
+    rad = 27
     corrmap = corr_window.calculate_correlation_map(wsa, wsb, WS, rad)
 
     # now we want to manually perform the correlation with the padding
@@ -431,10 +431,102 @@ def test_get_displacement_from_corrmap_central_peak():
     corrmap[3, 3] = 1
 
     # run through the script to get the displacement
-    u, v, SNR = cyth_corr_window.get_displacement_from_corrmap(corrmap, 7, 3)
+    u, v, SNR = cyth_corr_window.get_disp_from_corrmap(corrmap, 7, 3)
 
     assert u == 0
     assert v == 0
+
+
+@pytest.fixture
+def mock_image():
+    """Creates a synthetic image with a known uniform displacement
+    """
+    # window is going to be 53 pixels wide (so that we can correlate with 64px)
+    dim = (53, 53)
+
+    # fix the random number seed so we don't get changing results
+    np.random.seed(7)
+    n_part = 15
+    xp1 = np.random.uniform(-2, dim[1]+2, n_part)
+    yp1 = np.random.uniform(-2, dim[0]+2, n_part)
+    d_tau_mean, d_tau_std = 2.5, 0.25  # particle size mean and std
+    d_tau = np.random.normal(d_tau_mean, d_tau_std, n_part)
+    int_mean, int_std = 0.9, 0.005  # particle brightness mean and std
+    Ip = np.random.normal(int_mean, int_std, n_part)
+
+    # set known displacement
+    u_exp, v_exp = 3.2, -1.5
+    xp2, yp2 = piv_image.displace_particles(xp1, yp1,
+                                            np.ones(dim)*u_exp,
+                                            np.ones(dim)*v_exp)
+
+    # create the piv images
+    ia = piv_image.render_synthetic_PIV_image(dim, xp1, yp1,
+                                              d_tau, Ip)
+    ib = piv_image.render_synthetic_PIV_image(dim, xp2, yp2,
+                                              d_tau, Ip)
+
+    # set up the image for correlation
+    return piv_image.PIVImage(ia, ib)
+
+
+def test_correlate_on_synthetic_image(mock_image):
+    """Creates a small synthetic image (from mock_image input), and displaces 
+    the particles by a small known amount. Performs correlation and checks 
+    that the value is close to what is expected
+    """
+
+    u_exp, v_exp = 3.2, -1.5
+    dim = mock_image.dim
+    dp = dense_predictor.DensePredictor(np.zeros(dim), np.zeros(dim))
+
+    # set up the correlation window
+    cw = corr_window.CorrWindow(x=26, y=26, WS=53)
+
+    # correlate
+    u_act, v_act, SNR_act = cw.correlate(mock_image, dp)
+    print(u_act)
+    print(v_act)
+
+    assert np.isclose(u_exp, u_act, atol=0.05)
+    assert np.isclose(v_exp, v_act, atol=0.05)
+
+
+def test_SNR_from_correlation(mock_image):
+    """Correlates a part of a synthetic image, checks that the SNR is calculated
+    correctly
+    """
+
+    dim = mock_image.dim
+    dp = dense_predictor.DensePredictor(np.zeros(dim), np.zeros(dim))
+
+    # set up the correlation window
+    cw = corr_window.CorrWindow(x=26, y=26, WS=53)
+
+    # calculate the expected correlation map, so we can determine the expected
+    # signal to noise ratio
+    wsa, wsb, mask = cw.prepare_correlation_windows(mock_image)
+    corrmap = corr_window.calculate_correlation_map(wsa, wsb, WS=53, rad=26)
+
+    # correlate
+    u_act, v_act, SNR_act = cw.correlate(mock_image, dp)
+    print(SNR_act)
+
+    # biggest peak
+    i, j = np.unravel_index(corrmap.argmax(), corrmap.shape)
+    peak_val = corrmap[i, j]
+
+    # since we're done with the corrmap we don't have to worry about preserving
+    # any values
+    corrmap[i-1:i+2, j-1:j+2] = corrmap.min()
+    # second max
+    i2, j2 = np.unravel_index(corrmap.argmax(), corrmap.shape)
+    second_peak = corrmap[i2, j2]
+
+    SNR_exp = peak_val / (second_peak + 1e-15)
+    print(SNR_exp)
+
+    assert np.isclose(SNR_act, SNR_exp)
 
 
 def test_changing_values_in_get_displacement_doesnt_change_outer():
@@ -538,36 +630,3 @@ def test_flag_initialised_to_none():
     cw = corr_window.CorrWindow(x, y, WS)
 
     assert np.isnan(cw.flag)
-
-
-def test_corrwindow_list_from_locations():
-    """
-    Test the list is created according to the input values
-    """
-
-    xv, yv, WS = np.arange(100), np.arange(100), np.ones((100,)) * 33
-    expList = []
-    for x, y, WS_ in zip(xv, yv, WS):
-        cw = corr_window.CorrWindow(x, y, WS_)
-        expList.append(cw)
-
-    actlist = corr_window.corrWindow_list(xv, yv, WS)
-
-    assert actlist == expList
-
-
-def test_corrwindow_list_with_scalar_WS():
-    """
-    Test that the list is properly initialised if only a single WS value is
-    passed in
-    """
-
-    xv, yv, WS = np.arange(100), np.arange(100), 33
-    expList = []
-    for x, y in zip(xv, yv):
-        cw = corr_window.CorrWindow(x, y, WS)
-        expList.append(cw)
-
-    actlist = corr_window.corrWindow_list(xv, yv, WS)
-
-    assert actlist == expList
