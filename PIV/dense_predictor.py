@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import PIV.utilities as utils
-import PIV.image_info as im_info
-import PIV.piv_image as piv_image
 import scipy.io
 
 
@@ -104,6 +102,9 @@ class DensePredictor:
         Returns: 
             DensePredictor
         """
+
+        import PIV.piv_image as piv_image
+        import PIV.image_info as im_info
 
         info = im_info.ImageInfo(flowtype)
         true_filename = info.vel_field_fname
