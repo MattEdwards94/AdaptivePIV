@@ -284,7 +284,7 @@ def test_quick_widim():
 
 
 @pytest.mark.slow
-def test_utilities_verbosity_is_None_after_analysis():
+def test_utilities_verbosity_after_analysis():
     """We set the module level variable in utilities to some value, 
     check that this is reset to None after use
     """
@@ -295,4 +295,4 @@ def test_utilities_verbosity_is_None_after_analysis():
     analysis.widim(img, settings)
 
     print(PIV.utilities._verbosity)
-    assert PIV.utilities._verbosity is None
+    assert PIV.utilities._verbosity is 4

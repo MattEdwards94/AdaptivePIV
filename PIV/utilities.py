@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 import mpl_toolkits.axes_grid1 as axgrid1
 
-_verbosity = None
+_verbosity = 4
 
 
 class MeanAndVarCalculator():
