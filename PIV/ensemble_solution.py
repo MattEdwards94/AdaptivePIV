@@ -16,6 +16,7 @@ class EnsembleSolution():
 
         self.settings = settings
         self.flowtype = flowtype
+        self.dim = None
 
         self.u = None
         self.v = None
@@ -35,6 +36,7 @@ class EnsembleSolution():
             self.u = utilities.MeanAndVarCalculator(dp.u)
             self.v = utilities.MeanAndVarCalculator(dp.v)
             self.n_images = 1
+            self.dim = self.u.dim
         else:
             self.u.add_values(dp.u)
             self.v.add_values(dp.v)
