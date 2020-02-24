@@ -303,7 +303,7 @@ class PIVImage:
         plt.title("IB")
         plt.show()
 
-    def plot_images_animation(self):
+    def plot_images_animation(self, fig=None):
         """Plots the images, flickering between A and B so you can see the 
         particle motion
         """
@@ -314,7 +314,11 @@ class PIVImage:
                 im.set_data(self.IB)
             return im,
 
-        fig, ax = plt.subplots()
+        if fig is None:
+            fig, ax = plt.subplots()
+        else:
+            ax = fig.gca()
+
         im = ax.imshow(self.IA, cmap='gray')
         anim = mplanimate.FuncAnimation(fig, animate, frames=2, interval=1000)
         plt.show()

@@ -7,6 +7,7 @@ import PIV.dense_predictor as dense_predictor
 import PIV.ensemble_solution as es
 import PIV.multiGrid as mg
 import PIV
+import matplotlib.pyplot as plt
 from PIV.utilities import vprint
 
 ESSENTIAL, BASIC, TERSE = 1, 2, 3
