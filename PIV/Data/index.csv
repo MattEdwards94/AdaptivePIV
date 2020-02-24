@@ -25,16 +25,16 @@ ID,flow description,folder,filename format,mask file,vel field file,image dimens
 24,Gauss. smoothed w freestream,Gaussian/Freestream,gaussian_%03d%c.mat,none,velField.mat,1000x1000,750,y,n
 25,Gauss. smoothed,Gaussian,gaussian_%03d%c.mat,none,gaussianVelField.mat,1000x1000,750,y,n
 26,Gauss. smoothed w var kernel,Gaussian/varKern,gaussian_%03d%c.mat,none,velField.mat,1000x1000,750,y,n
-27,uniform_flow,uniform_flow/horiz_0,uni_flow_0%03d%c.png,none,none,500x500,250,y,n
-28,uniform_flow,uniform_flow/horiz_0_1,uni_flow_0_1%03d%c.png,none,none,500x500,250,y,n
-29,uniform_flow,uniform_flow/horiz_0_2,uni_flow_0_2%03d%c.png,none,none,500x500,250,y,n
-30,uniform_flow,uniform_flow/horiz_0_3,uni_flow_0_3%03d%c.png,none,none,500x500,250,y,n
-31,uniform_flow,uniform_flow/horiz_0_4,uni_flow_0_4%03d%c.png,none,none,500x500,250,y,n
-32,uniform_flow,uniform_flow/horiz_0_5,uni_flow_0_5%03d%c.png,none,none,500x500,250,y,n
-33,uniform_flow,uniform_flow/horiz_0_75,uni_flow_0_75%03d%c.png,none,none,500x500,250,y,n
-34,uniform_flow,uniform_flow/horiz_1,uni_flow_1%03d%c.png,none,none,500x500,250,y,n
-35,uniform_flow,uniform_flow/horiz_1_5,uni_flow_1_5%03d%c.png,none,none,500x500,250,y,n
-36,uniform_flow,uniform_flow/horiz_2,uni_flow_2%03d%c.png,none,none,500x500,250,y,n
-37,uniform_flow,uniform_flow/horiz_3,uni_flow_3%03d%c.png,none,none,500x500,250,y,n
-38,uniform_flow,uniform_flow/horiz_4,uni_flow_4%03d%c.png,none,none,500x500,250,y,n
-39,uniform_flow,uniform_flow/horiz_5,uni_flow_5%03d%c.png,none,none,500x500,250,y,n
+27,uniform_flow,uniform_flow/horiz_0,uni_flow_0%03d%c.png,none,uni_flow_0vel.mat,500x500,250,y,n
+28,uniform_flow,uniform_flow/horiz_0_1,uni_flow_0_1%03d%c.png,none,uni_flow_0_1vel.mat,500x500,250,y,n
+29,uniform_flow,uniform_flow/horiz_0_2,uni_flow_0_2%03d%c.png,none,uni_flow_0_2vel.mat,500x500,250,y,n
+30,uniform_flow,uniform_flow/horiz_0_3,uni_flow_0_3%03d%c.png,none,uni_flow_0_3vel.mat,500x500,250,y,n
+31,uniform_flow,uniform_flow/horiz_0_4,uni_flow_0_4%03d%c.png,none,uni_flow_0_4vel.mat,500x500,250,y,n
+32,uniform_flow,uniform_flow/horiz_0_5,uni_flow_0_5%03d%c.png,none,uni_flow_0_5vel.mat,500x500,250,y,n
+33,uniform_flow,uniform_flow/horiz_0_75,uni_flow_0_75%03d%c.png,none,uni_flow_0_75vel.mat,500x500,250,y,n
+34,uniform_flow,uniform_flow/horiz_1,uni_flow_1%03d%c.png,none,uni_flow_1vel.mat,500x500,250,y,n
+35,uniform_flow,uniform_flow/horiz_1_5,uni_flow_1_5%03d%c.png,none,uni_flow_1_5vel.mat,500x500,250,y,n
+36,uniform_flow,uniform_flow/horiz_2,uni_flow_2%03d%c.png,none,uni_flow_2vel.mat,500x500,250,y,n
+37,uniform_flow,uniform_flow/horiz_3,uni_flow_3%03d%c.png,none,uni_flow_3vel.mat,500x500,250,y,n
+38,uniform_flow,uniform_flow/horiz_4,uni_flow_4%03d%c.png,none,uni_flow_4vel.mat,500x500,250,y,n
+39,uniform_flow,uniform_flow/horiz_5,uni_flow_5%03d%c.png,none,uni_flow_5vel.mat,500x500,250,y,n
