@@ -20,7 +20,7 @@ class ImageInfo:
         filename (string): filename format e.g. a_%05d_%c.tif
         mask_fname (string): filename for the mask if present, or "none"
         vel_field_fname (string): filename for the reference velocity field
-        or "none"
+        or None
         img_dim (string): string containing MxN
         n_images (int): how many images are in the ensemble
         is_synthetic (bool): whether the images are synthetic or experimental
@@ -43,7 +43,7 @@ class ImageInfo:
         self.folder = row[2]
         self.filename = row[3]
         self.mask_fname = row[4]
-        self.vel_field_fname = row[5]
+        self._vel_field_fname = row[5]
         self.img_dim_text = row[6]
         self.n_images = int(row[7])
         self.is_synthetic = row[8]
@@ -89,7 +89,7 @@ class ImageInfo:
                           self.folder,
                           self.filename,
                           self.mask_fname,
-                          self.vel_field_fname,
+                          self._vel_field_fname,
                           self.n_rows, self.n_cols,
                           self.n_images,
                           self.is_synthetic,
@@ -127,7 +127,7 @@ class ImageInfo:
             mask_yn = 'n'
         else:
             mask_yn = 'y'
-        if self.vel_field_fname == "none":
+        if self._vel_field_fname == "none":
             vel_yn = 'n'
         else:
             vel_yn = 'y'
@@ -140,6 +140,15 @@ class ImageInfo:
             vel_yn,
             self.img_dim_text,
             self.n_images))
+
+    @property
+    def vel_field_fname(self):
+        if self._vel_field_fname == 'none':
+            return None
+        else:
+            root = utilities.root_path()
+            folder = "images/imageDB/" + self.folder + "/"
+            return root + folder + self._vel_field_fname
 
     def formatted_filenames(self, im_number):
         """returns two file names corresponding to a and b for the

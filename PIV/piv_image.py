@@ -395,13 +395,32 @@ def load_images(flowtype, im_number):
         IB = np.asarray(Image.open(filenames[1])).copy()
 
     # mask
+    mask = load_mask(flowtype)
+
+    return IA, IB, mask
+
+
+def load_mask(flowtype):
+    """Loads the mask for a specified flow typ
+
+    Arguments:
+        flowtype {int} -- The specified flow type. See Data/index.csv for more
+    """
+
+    # first load the image information
+    im_info = image_info.ImageInfo(flowtype)
+
+    # get the formatted filename with an arbitray image number inserted
+    filenames = im_info.formatted_filenames(im_number=1)
+
+    # filenames[2] is the mask file
     if filenames[2] is None:
-        mask = np.ones(np.shape(IA))
+        mask = np.ones(im_info.img_dim)
     else:
         mask = np.asarray(Image.open(filenames[2]).convert('L')).copy()
         mask[mask > 0] = 1
 
-    return IA, IB, mask
+    return mask
 
 
 def quintic_spline_image_filter(IA):
