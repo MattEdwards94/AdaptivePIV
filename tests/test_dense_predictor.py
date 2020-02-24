@@ -519,3 +519,27 @@ def test_create_densepredictor_from_dimensions_with_value():
     act = dense_predictor.DensePredictor.from_dimensions(dim, uv_vals)
 
     assert act == exp
+
+
+def test_load_true_densepredictor():
+    """Test that loading the densepredictor from the stored .mat file creates
+    the expected densepredictor
+
+    simple test on a known file
+    """
+
+    # the flowtype for a 5 pixel horizontal flow is 39:
+    exp = dense_predictor.DensePredictor.from_dimensions((500, 500), (5, 0))
+    act = dense_predictor.DensePredictor.load_true(flowtype=39)
+
+    assert act == exp
+
+
+def test_load_true_densepredictor_no_file():
+    """Test that when we try to load a densepredictor without a vel field file
+    that we get a value error
+    """
+
+    # the flowtype for a 5 pixel horizontal flow is 39:
+    with pytest.raises(ValueError):
+        dense_predictor.DensePredictor.load_true(flowtype=1)
