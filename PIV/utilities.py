@@ -4,6 +4,8 @@ import math
 import matplotlib.pyplot as plt
 import mpl_toolkits.axes_grid1 as axgrid1
 
+_verbosity = 4
+
 
 class MeanAndVarCalculator():
 
@@ -446,6 +448,21 @@ class SummedAreaTable():
                     mode='constant')[:-(rad+1), :-(rad+1)]
 
         return tr - tl - br + bl
+
+
+def vprint(thr, *args, **kwargs):
+    """Checks if the _verbosity is equal to or above the threshold,
+    otherwise it doesn't print
+
+    Args:
+        thr (int) -- Threshold for verbosity. If _verbosity is >= thr, then 
+                     vprint will behave as the builtin `print'. Otherwise
+                     nothing will happen.
+    """
+    global _verbosity
+
+    if _verbosity >= thr:
+        print(*args, **kwargs)
 
 
 if __name__ == '__main__':

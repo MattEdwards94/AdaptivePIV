@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import PIV.utilities as utilities
+from PIV.utilities import vprint
 import PIV.corr_window as corr_window
 from scipy import interpolate as interp
 import matplotlib.pyplot as plt
@@ -224,9 +225,9 @@ class Distribution:
         flag = norm > threshold
         invalid = np.sum(flag)
         try:
-            print(f"  {invalid}/{self.n_windows()} vectors replaced")
+            vprint(2, f"  {invalid}/{self.n_windows()} vectors replaced")
         except:
-            print(f"  {invalid}/{self.n_windows} vectors replaced")
+            vprint(2, f"  {invalid}/{self.n_windows} vectors replaced")
 
         # replacement
         u, v = outlier_replacement(flag, u, v, nb_ind)
