@@ -291,8 +291,19 @@ def test_utilities_verbosity_after_analysis():
 
     settings = analysis.WidimSettings(verbosity=2)
 
+    # overwrite utilities.root_path() such that we look in the data folder
+    # instead of the main folder
+    import PIV.utilities
+
+    def replace_func():
+        return "./PIV/data/"
+    old = PIV.utilities.root_path
+    PIV.utilities.root_path = replace_func
+
     img = piv_image.PIVImage.from_flowtype(1, 1)
     analysis.widim(img, settings)
+
+    PIV.utilities.root_path = old
 
     print(PIV.utilities._verbosity)
     assert PIV.utilities._verbosity is 4

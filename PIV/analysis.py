@@ -99,6 +99,7 @@ def widim(img, settings):
     """
 
     # set the verbosity level
+    prev_verb = PIV.utilities._verbosity
     PIV.utilities._verbosity = settings.verbosity
 
     img_def = img
@@ -159,7 +160,7 @@ def widim(img, settings):
         img_def = img.deform_image(dp)
 
     # reset verbosity
-    PIV.utilities._verbosity = None
+    PIV.utilities._verbosity = prev_verb
 
     return dp
 
