@@ -530,7 +530,16 @@ def test_load_true_densepredictor():
 
     # the flowtype for a 5 pixel horizontal flow is 39:
     exp = dense_predictor.DensePredictor.from_dimensions((500, 500), (5, 0))
+    # overwrite utilities.root_path() such that we look in the data folder
+    # instead of the main folder
+    import PIV.utilities
+
+    def replace_func():
+        return "./PIV/data/"
+    old = PIV.utilities.root_path
+    PIV.utilities.root_path = replace_func
     act = dense_predictor.DensePredictor.load_true(flowtype=39)
+    PIV.utilities.root_path = old
 
     assert act == exp
 
@@ -542,4 +551,13 @@ def test_load_true_densepredictor_no_file():
 
     # the flowtype for a 5 pixel horizontal flow is 39:
     with pytest.raises(ValueError):
+        # overwrite utilities.root_path() such that we look in the data folder
+        # instead of the main folder
+        import PIV.utilities
+
+        def replace_func():
+            return "./PIV/data/"
+        old = PIV.utilities.root_path
+        PIV.utilities.root_path = replace_func
         dense_predictor.DensePredictor.load_true(flowtype=1)
+        PIV.utilities.root_path = old
