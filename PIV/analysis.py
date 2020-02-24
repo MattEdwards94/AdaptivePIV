@@ -214,7 +214,7 @@ class WidimSettings():
     def __init__(self, init_WS=97, final_WS=33, WOR=0.5,
                  n_iter_main=3, n_iter_ref=2,
                  vec_val='NMT', interp='struc_cub',
-                 verbosity=1):
+                 verbosity=2):
         """
 
         Args:
