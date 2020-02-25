@@ -1,5 +1,8 @@
 import scipy.io as sio
 import PIV.utilities as utilities
+from PIV.dense_predictor import DensePredictor
+from PIV.piv_image import load_mask
+import numpy as np
 
 
 class EnsembleSolution():
@@ -7,6 +10,8 @@ class EnsembleSolution():
     def __init__(self, settings, flowtype):
         """Initialise the ensemble solution by storing the
         settings and flow type
+
+        Will attempt to load the true displacement field upon construction
 
         Args:
             settings (Settings-like): settings object - e.g. WidimSettings
@@ -16,12 +21,19 @@ class EnsembleSolution():
 
         self.settings = settings
         self.flowtype = flowtype
-        self.dim = None
+        self.mask = load_mask(flowtype)
+        self.dim = np.shape(self.mask)
 
         self.u = None
         self.v = None
 
         self.n_images = None
+
+        try:
+            self.dp_true = DensePredictor.load_true(self.flowtype)
+        except ValueError:
+            # the file may not exist
+            self.dp_true = None
 
     def add_displacement_field(self, dp):
         """Adds a displacement field to the ensemble solution, updating

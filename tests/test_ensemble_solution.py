@@ -3,6 +3,14 @@ from PIV.analysis import WidimSettings
 import numpy as np
 import PIV.dense_predictor as dense_predictor
 import PIV.utilities as utilities
+import pytest
+
+# ensure that we always look in the right location for data
+@pytest.fixture(autouse=True)
+def test_data_location(monkeypatch):
+    def location():
+        return "./PIV/data/"
+    monkeypatch.setattr(utilities, "root_path", location)
 
 
 def test_ensemble_solution_init():
@@ -17,6 +25,27 @@ def test_ensemble_solution_init():
     assert ensR.settings == settings
     assert ensR.flowtype == flowtype
     assert ensR.u is ensR.v is ensR.n_images is None
+    assert ensR.dp_true is None
+
+
+def test_ensemble_solution_init_known_disp_field():
+    """
+    Checks that the settings and flow type are stored, and that the rest of
+    the properties are initialised to None
+
+    In this case though, the displacement field is known, so this should 
+    be loaded
+    """
+
+    settings = WidimSettings()
+    flowtype = 39
+
+    ensR = ens.EnsembleSolution(settings, flowtype=39)
+    assert ensR.settings == settings
+    assert ensR.flowtype == flowtype
+    assert ensR.u is ensR.v is ensR.n_images is None
+    exp = dense_predictor.DensePredictor.from_dimensions((500, 500), (5, 0))
+    assert ensR.dp_true == exp
 
 
 def test_add_displacement_field():
