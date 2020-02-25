@@ -268,29 +268,28 @@ class CorrWindow:
 
         return self.u, self.v, self.SNR
 
+    def plot_corrmap_surface(self, img):
+        """Plots a 3D surface of the correlation map and it's values
+        """
 
-def plot_corrmap_surface(self, img):
-    """Plots a 3D surface of the correlation map and it's values
-    """
+        # load the image and mask values and perform the cross correlation
+        wsa, wsb, mask = self.prepare_correlation_windows(img)
 
-    # load the image and mask values and perform the cross correlation
-    wsa, wsb, mask = self.prepare_correlation_windows(img)
+        corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
-    corrmap = calc_corrmap_inline(wsa, wsb, self.WS, self.rad)
+        # find the subpixel displacement from the correlation map
+        # self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap_opt(
+        #     corrmap, self.WS, self.rad)
 
-    # find the subpixel displacement from the correlation map
-    # self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap_opt(
-    #     corrmap, self.WS, self.rad)
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    xx, yy = np.meshgrid(np.arange(-self.rad, self.rad+1, 1),
-                         np.arange(-self.rad, self.rad+1, 1))
-    surf = ax.plot_surface(xx, yy, corrmap, cmap='viridis')
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    plt.show()
+        xx, yy = np.meshgrid(np.arange(-self.rad, self.rad+1, 1),
+                             np.arange(-self.rad, self.rad+1, 1))
+        surf = ax.plot_surface(xx, yy, corrmap, cmap='viridis')
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        plt.show()
 
 
 def calculate_correlation_map(wsa, wsb, WS, rad):
