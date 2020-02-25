@@ -26,13 +26,21 @@ def ensemble_widim(flowtype, im_start, im_stop, settings):
     Returns:
         EnsembleSolution: An EnsembleSolution object. See ensemble_solution.py
     """
+
+    # set the verbosity level
+    prev_verb = PIV.utilities._verbosity
+    PIV.utilities._verbosity = settings.verbosity
+
     ensR = es.EnsembleSolution(settings, flowtype)
 
     for i in range(im_start, im_stop + 1):
-        print("Analysing image {}".format(i))
+        vprint(1, "Analysing image {}".format(i))
         dp = widim(PIV.PIVImage.from_flowtype(flowtype, i),
                    settings)
         ensR.add_displacement_field(dp)
+
+    # reset verbosity
+    PIV.utilities._verbosity = prev_verb
 
     return ensR
 
