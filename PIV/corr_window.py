@@ -253,9 +253,13 @@ class CorrWindow:
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
         # find the subpixel displacement from the correlation map
-        self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap(
-            corrmap, self.WS, self.rad)
-        # print(f"u: {self.u}, v: {self.v}, SNR: {self.SNR}")
+        try:
+            self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap(
+                corrmap, self.WS, self.rad)
+        except ZeroDivisionError:
+            # happens if all values around the peak are the same value.
+            self.u, self.v, self.SNR = 0, 0, 1
+            return self.u, self.v, self.SNR
 
         # combine displacement with predictor
         u_avg, v_avg = dp.get_local_avg_disp(self.x, self.y, self.rad)
