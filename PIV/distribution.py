@@ -6,6 +6,7 @@ import PIV.corr_window as corr_window
 from scipy import interpolate as interp
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import random
 
 
 class Distribution:
@@ -398,6 +399,157 @@ def outlier_replacement(flag, u, v, nb_ind):
             continue
 
     return u, v
+
+
+class Disk():
+    """
+    Class for adaptive incremental stippling to provide functionality for
+    determining whether a disk is valid or not
+    """
+
+    def __init__(self, x, y, r):
+        """
+        Initialise a Disk with a specific location and radius
+
+        Args:
+            x (int): Horizontal location in the domain in pixels
+            y (int): Vertical location in the domain in pixels
+            r (float): Radius of the disk
+        """
+
+        self.x, self.y = x, y
+        self.r = r
+        # a list of arcs
+        self.avail_range = [[0, 2*np.pi]]
+
+    @property
+    def is_range_available(self):
+        """
+        Returns whether or not there is space around the perimeter of the disk
+        to place another disk
+        """
+        return len(self.avail_range) > 0
+
+    def random_avail_angle(self):
+        """
+        Returns a random angle from within the range of available arcs, as
+        defined by self.avail_range
+        """
+        rand_arc = random.choice(self.avail_range)
+        return np.random.uniform(rand_arc[0], rand_arc[1])
+
+    def overlaps_in_buffer(self, buffer, bf_refine):
+        """
+        Determines whether the current disk would overlap any existing disk in
+        the buffer.
+
+        To improve the accuracy of whether a disk overlaps of not, the buffer
+        may have been 'refined', that is, multiple pixels in the buffer_array
+        may refer to a single pixel in the 'actual' buffer.
+
+        Args:
+            buffer (ndarray): boolean array indicating where disks already exist
+            bf_refine (int): Ratio of number of pixels in the buffer array,
+                             to the number of pixels in the domain. Effectively,
+                             shape(buffer) = bf_refine*(dim_y, dim_x)
+        """
+
+        if int(bf_refine) != bf_refine:
+            raise ValueError("bf_refine must be an integer")
+
+        # get the properties of the disk in the buffer array
+        x_bf, y_bf = self.x*bf_refine, self.y*bf_refine
+        r_bf = self.r*bf_refine
+
+        n_rows_bf, n_cols_bf = np.shape(buffer)*bf_refine
+
+        # get the coordinates of the square of size 2r x 2r
+        l, r = max(0, x_bf - r_bf), min(n_cols_bf, x_bf + r_bf + 1)
+        b, t = max(0, y_bf - r_bf), min(n_rows_bf, y_bf + r_bf + 1)
+
+        # select the points in buffer which are within the radius of the disk
+        # if any of these points are unity, then the disk overlaps
+        xx, yy = (np.arange(l, r)-x_bf)**2, (np.arange(b, t)-y_bf)**2
+        return np.any(buffer[b:t, l:r][xx + yy[:, np.newaxis] <= r_bf**2])
+
+    def update_available_range(self, other_disk):
+        """
+        Adjusts the available range to reflect the presence of a new disk
+
+        Args:
+            other_disk (Disk): The new disk being added
+        """
+
+        # work out angles
+        cos_beta = max(-1, min(1, (self.r + other_disk.r)/(4*other_disk.r)))
+        beta = np.arccos(cos_beta)
+
+        if beta < 1e-3:
+            # if beta is too small, then break out early.
+            return
+
+        dx, dy = other_disk.x - self.x, other_disk.y - self.y
+        dist = np.sqrt(dx**2 + dy**2)
+        dx, dy = dx/dist, dy/dist
+        alpha = np.arctan2(dy, dx)
+
+        # define 2 pi for simplicity later
+        two_pi = np.pi*2
+
+        if alpha < 0:
+            alpha += two_pi
+
+        clippers = []
+        _from, to = alpha - beta, alpha + beta
+
+        if _from >= 0 and to <= two_pi:
+            # simple case, from and to is entirely within 0 and 2pi
+            clippers.append([_from, to])
+        else:
+            # clipper crosses 0, so need to split into two clippings
+            if _from < 0:
+                if to > 0:
+                    # if to == 2pi, then we only need one clipper
+                    clippers.append([0, to])
+                clippers.append([_from + two_pi, two_pi])
+
+            if to > two_pi:
+                if _from < two_pi:
+                    # see above comment
+                    clippers.append([_from, two_pi])
+                clippers.append([0, to - two_pi])
+
+        remaining = []
+        for clipper in clippers:
+            for arc in self.avail_range:
+                if arc[0] >= clipper[0] and arc[1] <= clipper[1]:
+                    # arc is completely culled, remove
+                    continue
+                elif arc[1] < clipper[0] or arc[0] > clipper[1]:
+                    # untouched
+                    remaining.append(arc)
+                elif (arc[0] <= clipper[0] and
+                      arc[1] >= clipper[0] and
+                      arc[1] <= clipper[1]):
+                    # if the clipper starts within this arc, and the arc ends
+                    # within the clipper
+                    _from, to = arc[0], clipper[0]
+                    remaining.append([_from, to])
+                elif (arc[0] >= clipper[0] and
+                      arc[0] <= clipper[1] and
+                      arc[1] >= clipper[1]):
+                    # if the arc starts within the clipper, and the arc ends
+                    # outside the clipper
+                    _from, to = clipper[1], arc[1]
+                    remaining.append([_from, to])
+                else:
+                    # clipper is entirely in the arc, split
+                    _from, to = arc[0], clipper[0]
+                    remaining.append([_from, to])
+                    _from, to = clipper[1], arc[1]
+                    remaining.append([_from, to])
+
+        self.avail_range = remaining
 
 
 if __name__ == '__main__':
