@@ -1,6 +1,7 @@
 import numpy as np
 cimport numpy as np
 import random
+from libc.math cimport floor, ceil, acos, atan2, sqrt, pi, cos, sin
 
 cdef class SummedAreaTable():
     """Creates a summed area table to allow for rapid extraction of the
@@ -22,7 +23,7 @@ cdef class SummedAreaTable():
         self.img_dim[1] = np.shape(IA)[1]
 
 
-    def get_area_sum(self, 
+    cdef double get_area_sum(self, 
                      int left, int right, 
                      int bottom, int top):
         """Gets the sum of the region defined by left/right/bottom/top
@@ -77,7 +78,7 @@ cdef class SummedAreaTable():
 
         return (B - A - D + C)
 
-    def get_total_sum(self):
+    cdef double get_total_sum(self):
         """Returns the sum of values over the whole domain
 
         i.e. the top right value
@@ -141,13 +142,16 @@ cdef class SummedAreaTable():
 
         return tr - tl - br + bl
 
-class Disk():
+cdef class Disk():
     """
     Class for adaptive incremental stippling to provide functionality for
     determining whether a disk is valid or not
     """
+    cdef public int x, y
+    cdef public double r
+    cdef public list avail_range
 
-    def __init__(self, x, y, r):
+    def __init__(self, int x, int y, double r):
         """
         Initialise a Disk with a specific location and radius
 
@@ -162,15 +166,14 @@ class Disk():
         # a list of arcs
         self.avail_range = [[0, 2*np.pi]]
 
-    @property
-    def is_range_available(self):
+    cdef is_range_available(self):
         """
         Returns whether or not there is space around the perimeter of the disk
         to place another disk
         """
         return len(self.avail_range) > 0
 
-    def random_avail_angle(self):
+    cdef double random_avail_angle(self):
         """
         Returns a random angle from within the range of available arcs, as
         defined by self.avail_range
@@ -178,7 +181,7 @@ class Disk():
         rand_arc = random.choice(self.avail_range)
         return np.random.uniform(rand_arc[0], rand_arc[1])
 
-    def overlaps_in_buffer(self, buffer, bf_refine):
+    cdef overlaps_in_buffer(self, double[:, :] buffer, int bf_refine):
         """
         Determines whether the current disk would overlap any existing disk in
         the buffer.
@@ -194,54 +197,65 @@ class Disk():
                              shape(buffer) = bf_refine*(dim_y, dim_x)
         """
 
-        if int(bf_refine) != bf_refine:
-            raise ValueError("bf_refine must be an integer")
-
         # get the properties of the disk in the buffer array
+        cdef int x_bf, y_bf, n_rows_bf, n_cols_bf
+        cdef double r_bf
         x_bf, y_bf = self.x*bf_refine, self.y*bf_refine
         r_bf = self.r*bf_refine
 
         n_rows_bf, n_cols_bf = np.shape(buffer)*bf_refine
 
         # get the coordinates of the square of size 2r x 2r
-        l = int(max(0, np.floor(x_bf - r_bf)))
-        r = int(min(n_cols_bf, np.ceil(x_bf + r_bf) + 1))
-        b = int(max(0, np.floor(y_bf - r_bf)))
-        t = int(min(n_rows_bf, np.ceil(y_bf + r_bf) + 1))
+        # cdef int l, r, b, t
+        # l = max(0, floor(x_bf - r_bf))
+        # r = min(n_cols_bf, ceil(x_bf + r_bf) + 1)
+        # b = max(0, floor(y_bf - r_bf))
+        # t = min(n_rows_bf, ceil(y_bf + r_bf) + 1)
 
         # select the points in buffer which are within the radius of the disk
         # if any of these points are unity, then the disk overlaps
-        xx, yy = (np.arange(l, r)-x_bf)**2, (np.arange(b, t)-y_bf)**2
-        return np.any(buffer[b:t, l:r][xx + yy[:, np.newaxis] <= r_bf**2])
+        cdef int r_bf_int = int(ceil(r_bf))
+        cdef double r_bf2 = r_bf*r_bf
+        cdef int i, j
+        for i in range(-r_bf_int, r_bf_int+1):
+            for j in range(-r_bf_int, r_bf_int+1):
+                if (i+y_bf >= 0 and i+y_bf < n_rows_bf and 
+                        j+x_bf >=0 and j+x_bf < n_cols_bf):
+                    if i*i + j*j <= r_bf2:
+                        if buffer[y_bf+i, x_bf+j] == 1:
+                            return True
+        return False
 
-    def update_available_range(self, other_disk):
+    cdef update_available_range(self, Disk other_disk):
         """
         Adjusts the available range to reflect the presence of a new disk
 
         Args:
             other_disk (Disk): The new disk being added
         """
+        cdef double cos_beta, beta, alpha, two_pi, dx, dy, dist
 
         # work out angles
         cos_beta = max(-1, min(1, (self.r + other_disk.r)/(4*other_disk.r)))
-        beta = np.arccos(cos_beta)
+        beta = acos(cos_beta)
 
         if beta < 1e-3:
             # if beta is too small, then break out early.
             return
 
         dx, dy = other_disk.x - self.x, other_disk.y - self.y
-        dist = np.sqrt(dx**2 + dy**2)
+        dist = sqrt(dx**2 + dy**2)
         dx, dy = dx/dist, dy/dist
-        alpha = np.arctan2(dy, dx)
+        alpha = atan2(dy, dx)
 
         # define 2 pi for simplicity later
-        two_pi = np.pi*2
+        two_pi = pi*2
 
         if alpha < 0:
             alpha += two_pi
 
-        clippers = []
+        cdef list clippers = []
+        cdef double _from, to
         _from, to = alpha - beta, alpha + beta
 
         if _from >= 0 and to <= two_pi:
@@ -261,7 +275,7 @@ class Disk():
                     clippers.append([_from, two_pi])
                 clippers.append([0, to - two_pi])
 
-        remaining = []
+        cdef list remaining = []
         for clipper in clippers:
             for arc in self.avail_range:
                 if arc[0] >= clipper[0] and arc[1] <= clipper[1]:
@@ -293,7 +307,9 @@ class Disk():
 
         self.avail_range = remaining
 
-    def approximate_local_density(self, pdf_sat, mask_sat):
+    cdef double approximate_local_density(self, 
+                                   SummedAreaTable pdf_sat, 
+                                   SummedAreaTable mask_sat):
         """
         Returns an estimate of the local pdf density around the disk.
 
@@ -304,14 +320,16 @@ class Disk():
             pdf_sat (SummedAreaTable): The pdf as a summed area table
             mask_sat (SummedAreaTable): The mask as a summed area table
         """
+        cdef int l, r, b, t
+        cdef double pdf_val, mask_val
 
         if self.r < 1:
             density = pdf_sat.get_area_sum(self.x, self.x, self.y, self.y)
         else:
-            l = int(max(0, np.floor(self.x - self.r)))
-            r = int(min(pdf_sat.img_dim[1], np.ceil(self.x + self.r)))
-            b = int(max(0, np.floor(self.y - self.r)))
-            t = int(min(pdf_sat.img_dim[0], np.ceil(self.y + self.r)))
+            l = int(max(0, floor(self.x - self.r)))
+            r = int(min(pdf_sat.img_dim[1], ceil(self.x + self.r)))
+            b = int(max(0, floor(self.y - self.r)))
+            t = int(min(pdf_sat.img_dim[0], ceil(self.y + self.r)))
 
             pdf_val = pdf_sat.get_area_sum(l, r, b, t)
             mask_val = mask_sat.get_area_sum(l, r, b, t)
@@ -319,14 +337,14 @@ class Disk():
             # area of square / non-masked area
             # also scale according to area of cirle in area of square
             # density = pdf_val * (4*self.r**2) / mask_val) * np.pi / 4
-            density = pdf_val * self.r**2 * np.pi / mask_val
+            density = pdf_val * self.r**2 * pi / mask_val
 
         if density == 0:
             density += 1e-6
 
         return density
 
-    def draw_onto_buffer(self, buffer, bf_refine):
+    cdef draw_onto_buffer(self, double [:, :] buffer, int bf_refine):
         """
         Draws a binary representation of the disk onto the buffer.
 
@@ -345,31 +363,37 @@ class Disk():
                                        expense of computational cost.
                                        Defaults to 1.
         """
-
-        if int(bf_refine) != bf_refine:
-            raise ValueError("bf_refine must be an integer")
+        cdef int x_bf, y_bf, n_rows_bf, n_cols_bf
+        cdef int l, r, b, t
+        cdef double r_bf
 
         # get the properties of the disk in the buffer array
         x_bf, y_bf = self.x*bf_refine, self.y*bf_refine
         r_bf = self.r*bf_refine
 
-        n_rows_bf, n_cols_bf = np.shape(buffer)*bf_refine
+        n_rows_bf, n_cols_bf = np.shape(buffer) * bf_refine
 
         # get the coordinates of the square of size 2r x 2r
-        l = int(max(0, np.floor(x_bf - r_bf)))
-        r = int(min(n_cols_bf, np.ceil(x_bf + r_bf)))
-        b = int(max(0, np.floor(y_bf - r_bf)))
-        t = int(min(n_rows_bf, np.ceil(y_bf + r_bf)))
+        # l = int(max(0, floor(x_bf - r_bf)))
+        # r = int(min(n_cols_bf, ceil(x_bf + r_bf)))
+        # b = int(max(0, floor(y_bf - r_bf)))
+        # t = int(min(n_rows_bf, ceil(y_bf + r_bf)))
 
-        # get dist squared to center
-        xx, yy = (np.arange(l, r)-x_bf)**2, (np.arange(b, t)-y_bf)**2
 
-        new_disk = np.zeros((t-b, r-l))
-        new_disk[xx + yy[:, np.newaxis] <= r_bf**2] = 1
+        cdef int r_bf_int = int(ceil(r_bf))
+        cdef double r_bf2 = r_bf*r_bf
+        cdef int i, j
+        for i in range(-r_bf_int, r_bf_int+1):
+            for j in range(-r_bf_int, r_bf_int+1):
+                if (i+y_bf >= 0 and i+y_bf < n_rows_bf and 
+                        j+x_bf >=0 and j+x_bf < n_cols_bf):
+                    if i*i + j*j <= r_bf2:
+                        buffer[y_bf+i, x_bf+j] = 1
 
-        buffer[b:t, l:r] = new_disk
 
-    def change_radius(self, Q, angle, K, pdf_sat, mask_sat):
+    cdef change_radius(self, Disk Q, double angle, 
+                       double K, SummedAreaTable pdf_sat, 
+                       SummedAreaTable mask_sat):
         """
         Changes the disks radius such that it contains the desired amount of 
         underlying pdf
@@ -382,22 +406,26 @@ class Disk():
             K (float): The amount of the underlying pdf to contain
             pdf_sat (SummedAreaTable): SAT representing the pdf function
         """
+
+        cdef double dens, radius_ratio, eps, rn
+        cdef int count, limit, n_rows, n_cols
         dens = self.approximate_local_density(pdf_sat, mask_sat)
-        radius_ratio = np.sqrt(K / dens)
+        radius_ratio = sqrt(K / dens)
         eps, count, limit = 0.001, 0, 13
         n_rows, n_cols = pdf_sat.img_dim
 
         while abs(radius_ratio-1) > eps and count < limit:
             rn = max(0.5, self.r*radius_ratio)
-            self.x = min(max(0, round(Q.x + (rn+Q.r)*np.cos(angle))), n_cols-1)
-            self.y = min(max(0, round(Q.y + (rn+Q.r)*np.sin(angle))), n_rows-1)
+            self.x = min(max(0, round(Q.x + (rn+Q.r)*cos(angle))), n_cols-1)
+            self.y = min(max(0, round(Q.y + (rn+Q.r)*sin(angle))), n_rows-1)
             self.r = rn
             dens = self.approximate_local_density(pdf_sat, mask_sat)
-            radius_ratio = np.sqrt(K/dens)
+            radius_ratio = sqrt(K/dens)
             count += 1
 
 
-def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
+cpdef AIS(double[:, :] pdf, double[:, :] mask, 
+          int n_points, int bf_refine=1, list ex_points=None):
     """
     Distributes approximately n_points samples with a local density similar to
     that described by the pdf. Points will not be placed in the masked region.
@@ -429,19 +457,28 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
     if not np.any(mask):
         raise ValueError("Mask can't be all 0")
 
+    cdef int n_rows, n_cols
     n_rows, n_cols = np.shape(pdf)
 
     # initialise the queue, output list, and the disk buffer
+    cdef list q, out_list
+    cdef double[:, :] disk_buf
     q, out_list, disk_buf = [], [], np.zeros((n_rows, n_cols)*bf_refine)
 
-    pdf *= mask
+    pdf = np.multiply(pdf, mask)
     # create summed area table for pdf
+    cdef SummedAreaTable pdf_sat, mask_sat
     pdf_sat = SummedAreaTable(pdf)
     mask_sat = SummedAreaTable(mask)
 
     # determine the initial estimate for r1
+    cdef double K, r1
     K = pdf_sat.get_total_sum() / n_points
-    r1 = np.sqrt(np.size(pdf)/(np.pi*n_points))
+    r1 = sqrt((n_rows*n_cols)/(pi*n_points))
+
+    cdef int xr, yr, count, limit
+    cdef Disk D
+    cdef double dens, ratioR, eps
 
     # initialise AIS
     if ex_points is None:
@@ -453,13 +490,13 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
 
         D = Disk(xr, yr, r1)
         dens = D.approximate_local_density(pdf_sat, mask_sat)
-        ratioR = np.sqrt(K/dens)
+        ratioR = sqrt(K/dens)
         eps, count, limit = 0.001, 0, 20
 
-        while np.abs(ratioR-1) > eps:
+        while abs(ratioR-1) > eps:
             D.r = max(0.5, D.r*ratioR)
             dens = D.approximate_local_density(pdf_sat, mask_sat)
-            ratioR = np.sqrt(K/dens)
+            ratioR = sqrt(K/dens)
             count += 1
             if count > limit:
                 break
@@ -478,13 +515,15 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
             D.draw_onto_buffer(disk_buf, bf_refine)
             out_list.append([D.x, D.y])
 
+    cdef Disk Q
+    cdef int attempts, xn, yn
     # main AIS loop
     while len(q) > 0:
         # get the last added disk
         Q = q.pop()
         attempts, limit = 0, 20
 
-        while Q.is_range_available and attempts < limit:
+        while Q.is_range_available() and attempts < limit:
             attempts += 1
             # create disk at random angle with init radius r1
             # checking it isn't masked or out of the domain
