@@ -7,6 +7,8 @@ from scipy import interpolate as interp
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import random
+import ais_module
+import time
 
 
 class Distribution:
@@ -799,4 +801,16 @@ if __name__ == '__main__':
     pdf = np.arange(1000)[:, np.newaxis] * np.ones((1000, 1000))
     pdf /= np.sum(pdf)
     mask = np.ones((1000, 1000))
-    points = AIS(pdf, mask, n_points=5000)
+    n_repeats = 3
+
+    start = time.time()
+    for i in range(n_repeats):
+        points = AIS(pdf, mask, n_points=1000)
+    end = time.time()
+    print((end-start)/n_repeats)
+
+    start = time.time()
+    for i in range(n_repeats):
+        points = ais_module.AIS(pdf, mask, n_points=1000)
+    end = time.time()
+    print((end-start)/n_repeats)
