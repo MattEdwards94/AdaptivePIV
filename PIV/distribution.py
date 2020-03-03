@@ -366,7 +366,7 @@ def NMT_detection(u, v, nb_ind, eps=0.1):
 
     u_norm, v_norm = (np.abs(u_fluct[:, 0] / resu),
                       np.abs(v_fluct[:, 0] / resv))
-    norm = np.np.sqrt(u_norm**2 + v_norm**2)
+    norm = np.sqrt(u_norm**2 + v_norm**2)
 
     return norm
 
@@ -424,7 +424,6 @@ class Disk():
         # a list of arcs
         self.avail_range = [[0, 2*np.pi]]
 
-    @property
     def is_range_available(self):
         """
         Returns whether or not there is space around the perimeter of the disk
@@ -746,7 +745,7 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
         Q = q.pop()
         attempts, limit = 0, 20
 
-        while Q.is_range_available and attempts < limit:
+        while Q.is_range_available() and attempts < limit:
             attempts += 1
             # create disk at random angle with init radius r1
             # checking it isn't masked or out of the domain
@@ -798,19 +797,35 @@ if __name__ == '__main__':
     # # ax[1].plot(x, U[0, :], 'ro-', xe, u_int[0, :], 'b-')
     # plt.show()
 
+    import cProfile
+    import pstats
+
+    def run_code(func, pdf, mask, n_points, n_repeats):
+        for i in range(n_repeats):
+            func(pdf, mask, n_points)
+
     pdf = np.arange(1000)[:, np.newaxis] * np.ones((1000, 1000))
     pdf /= np.sum(pdf)
     mask = np.ones((1000, 1000))
-    n_repeats = 3
+    n_repeats, n_points = 3, 1000
 
-    start = time.time()
-    for i in range(n_repeats):
-        points = ais_module.AIS(pdf, mask, n_points=1000)
-    end = time.time()
-    print((end-start)/n_repeats)
+    cProfile.runctx('run_code(ais_module.AIS, pdf, mask, n_points, n_repeats)',
+                    globals(), locals(), 'restats')
+    p = pstats.Stats('restats')
+    p.strip_dirs().sort_stats('tottime').print_stats(25)
 
-    start = time.time()
-    for i in range(n_repeats):
-        points = AIS(pdf, mask, n_points=1000)
-    end = time.time()
-    print((end-start)/n_repeats)
+    cProfile.runctx('run_code(AIS, pdf, mask, n_points, n_repeats)',
+                    globals(), locals(), 'restats')
+    p = pstats.Stats('restats')
+    p.strip_dirs().sort_stats('tottime').print_stats(25)
+    # start = time.time()
+    # for i in range(n_repeats):
+    #     points = ais_module.AIS(pdf, mask, n_points=1000)
+    # end = time.time()
+    # print((end-start)/n_repeats)
+
+    # start = time.time()
+    # for i in range(n_repeats):
+    #     points = AIS(pdf, mask, n_points=1000)
+    # end = time.time()
+    # print((end-start)/n_repeats)

@@ -22,7 +22,8 @@ extensions = [Extension("cyth_corr_window", ["PIV/cyth_corr_window" + ext],
 
 if USE_CYTHON:
     from Cython.Build import cythonize
-    directives = {'linetrace': False, 'language_level': 3}
+    directives = {'linetrace': False,
+                  'language_level': 3, 'boundscheck': False}
     extensions = cythonize(extensions, annotate=True,
                            compiler_directives=directives)
 

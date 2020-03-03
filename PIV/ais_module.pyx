@@ -2,6 +2,7 @@ import numpy as np
 cimport numpy as np
 import random
 from libc.math cimport floor, ceil, acos, atan2, sqrt, pi, cos, sin
+from libc.stdlib cimport rand, RAND_MAX
 
 cdef class SummedAreaTable():
     """Creates a summed area table to allow for rapid extraction of the
@@ -18,7 +19,23 @@ cdef class SummedAreaTable():
         """
 
         # sum the rows and then the columns
-        self.SAT = np.cumsum(np.cumsum(IA, axis=1), axis=0)
+        # self.SAT = np.cumsum(np.cumsum(IA, axis=1), axis=0)
+        cdef int i, j, imax, jmax
+        imax, jmax = np.shape(IA)
+        self.SAT = np.empty((imax, jmax))
+        self.SAT[0, 0] = IA[0, 0]
+        # first col
+        for i in range(1, imax):
+            self.SAT[i, 0] = self.SAT[i-1, 0] + IA[i, 0]
+        #first row
+        for j in range(1, jmax):
+            self.SAT[0, j] = self.SAT[0, j-1] + IA[0, j]
+
+        for i in range(1, imax):
+            for j in range(1, jmax):
+                self.SAT[i, j] = (IA[i, j] + self.SAT[i, j-1] + 
+                                  self.SAT[i-1, j] - self.SAT[i-1, j-1])
+
         self.img_dim[0] = np.shape(IA)[0]
         self.img_dim[1] = np.shape(IA)[1]
 
@@ -147,9 +164,10 @@ cdef class Disk():
     Class for adaptive incremental stippling to provide functionality for
     determining whether a disk is valid or not
     """
-    cdef public int x, y
-    cdef public double r
-    cdef public list avail_range
+    cdef int x, y
+    cdef double r
+    cdef list avail_range
+    cdef int n_arcs
 
     def __init__(self, int x, int y, double r):
         """
@@ -165,6 +183,8 @@ cdef class Disk():
         self.r = r
         # a list of arcs
         self.avail_range = [[0, 2*np.pi]]
+        self.n_arcs = 1
+
 
     cdef is_range_available(self):
         """
@@ -178,8 +198,13 @@ cdef class Disk():
         Returns a random angle from within the range of available arcs, as
         defined by self.avail_range
         """
-        rand_arc = random.choice(self.avail_range)
-        return np.random.uniform(rand_arc[0], rand_arc[1])
+        # rand_arc = random.choice(self.avail_range)
+        cdef list rand_arc 
+        cdef double rand_val
+        rand_arc = self.avail_range[rand()%self.n_arcs]
+        rand_val = rand_arc[0] + (rand_arc[1]-rand_arc[0])*rand()/RAND_MAX
+        # np.random.uniform(rand_arc[0], rand_arc[1])
+        return rand_val
 
     cdef overlaps_in_buffer(self, double[:, :] buffer, int bf_refine):
         """
@@ -222,7 +247,7 @@ cdef class Disk():
                 if (i+y_bf >= 0 and i+y_bf < n_rows_bf and 
                         j+x_bf >=0 and j+x_bf < n_cols_bf):
                     if i*i + j*j <= r_bf2:
-                        if buffer[y_bf+i, x_bf+j] == 1:
+                        if buffer[i+y_bf, j+x_bf] == 1:
                             return True
         return False
 
@@ -276,6 +301,7 @@ cdef class Disk():
                 clippers.append([0, to - two_pi])
 
         cdef list remaining = []
+        cdef int n_arcs = 0
         for clipper in clippers:
             for arc in self.avail_range:
                 if arc[0] >= clipper[0] and arc[1] <= clipper[1]:
@@ -284,6 +310,7 @@ cdef class Disk():
                 elif arc[1] < clipper[0] or arc[0] > clipper[1]:
                     # untouched
                     remaining.append(arc)
+                    n_arcs += 1
                 elif (arc[0] <= clipper[0] and
                       arc[1] >= clipper[0] and
                       arc[1] <= clipper[1]):
@@ -291,6 +318,7 @@ cdef class Disk():
                     # within the clipper
                     _from, to = arc[0], clipper[0]
                     remaining.append([_from, to])
+                    n_arcs += 1
                 elif (arc[0] >= clipper[0] and
                       arc[0] <= clipper[1] and
                       arc[1] >= clipper[1]):
@@ -298,14 +326,18 @@ cdef class Disk():
                     # outside the clipper
                     _from, to = clipper[1], arc[1]
                     remaining.append([_from, to])
+                    n_arcs += 1
                 else:
                     # clipper is entirely in the arc, split
                     _from, to = arc[0], clipper[0]
                     remaining.append([_from, to])
+                    n_arcs += 1
                     _from, to = clipper[1], arc[1]
                     remaining.append([_from, to])
+                    n_arcs += 1
 
         self.avail_range = remaining
+        self.n_arcs = n_arcs
 
     cdef double approximate_local_density(self, 
                                    SummedAreaTable pdf_sat, 
@@ -515,7 +547,7 @@ cpdef AIS(double[:, :] pdf, double[:, :] mask,
             D.draw_onto_buffer(disk_buf, bf_refine)
             out_list.append([D.x, D.y])
 
-    cdef Disk Q
+    cdef Disk Q, P
     cdef int attempts, xn, yn
     # main AIS loop
     while len(q) > 0:
@@ -528,8 +560,8 @@ cpdef AIS(double[:, :] pdf, double[:, :] mask,
             # create disk at random angle with init radius r1
             # checking it isn't masked or out of the domain
             alpha = Q.random_avail_angle()
-            xn = int(np.round(Q.x + (Q.r+r1)*np.cos(alpha)))
-            yn = int(np.round(Q.y + (Q.r+r1)*np.sin(alpha)))
+            xn = int(round(Q.x + (Q.r+r1)*cos(alpha)))
+            yn = int(round(Q.y + (Q.r+r1)*sin(alpha)))
             if (yn >= n_rows or xn >= n_cols or
                 yn < 0 or xn < 0 or
                     mask[yn, xn] == 0):
