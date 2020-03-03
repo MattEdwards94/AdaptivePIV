@@ -2,12 +2,14 @@ import numpy as np
 cimport numpy as np
 import random
 
-class SummedAreaTable():
+cdef class SummedAreaTable():
     """Creates a summed area table to allow for rapid extraction of the
     summation of a submatrix of an array
     """
+    cdef double[:, :] SAT
+    cdef public int[2] img_dim
 
-    def __init__(self, IA):
+    def __init__(self, double[:, :] IA):
         """Initialises the summed area table for an input array IA
 
         Arguments:
@@ -15,10 +17,14 @@ class SummedAreaTable():
         """
 
         # sum the rows and then the columns
-        self.SAT = IA.cumsum(axis=1).cumsum(axis=0)
-        self.img_dim = np.shape(IA)
+        self.SAT = np.cumsum(np.cumsum(IA, axis=1), axis=0)
+        self.img_dim[0] = np.shape(IA)[0]
+        self.img_dim[1] = np.shape(IA)[1]
 
-    def get_area_sum(self, left, right, bottom, top):
+
+    def get_area_sum(self, 
+                     int left, int right, 
+                     int bottom, int top):
         """Gets the sum of the region defined by left/right/bottom/top
 
         The sum is inclusive of all pixels defined by l:r:b:t
@@ -63,6 +69,7 @@ class SummedAreaTable():
         #
         # also note that if A or C are on the first column, then they should
         # be 0 in the SAT, likewise if C or D are below the first row
+        cdef double A, B, C, D
         A = self.SAT[top, left-1] if left > 0 else 0
         B = self.SAT[top, right]
         C = self.SAT[bottom-1, left-1] if left > 0 and bottom > 0 else 0
@@ -77,7 +84,7 @@ class SummedAreaTable():
         """
         return self.SAT[-1, -1]
 
-    def fixed_filter_convolution(self, filt_size):
+    def fixed_filter_convolution(self, int filt_size):
         """Gets the effective unity weighted fixed convolution of a filter over
         the whole domain. 
 
@@ -95,7 +102,7 @@ class SummedAreaTable():
         if not filt_size % 2:
             raise ValueError("The filter size must be odd")
 
-        rad = int((filt_size - 1) / 2)
+        cdef int rad = int((filt_size - 1) / 2)
 
         # using pad in this way shifts the elements of the array, and fills in
         # to the correct size, using the edge value as the fill.

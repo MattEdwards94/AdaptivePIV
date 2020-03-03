@@ -805,12 +805,12 @@ if __name__ == '__main__':
 
     start = time.time()
     for i in range(n_repeats):
-        points = AIS(pdf, mask, n_points=1000)
+        points = ais_module.AIS(pdf, mask, n_points=1000)
     end = time.time()
     print((end-start)/n_repeats)
 
     start = time.time()
     for i in range(n_repeats):
-        points = ais_module.AIS(pdf, mask, n_points=1000)
+        points = AIS(pdf, mask, n_points=1000)
     end = time.time()
     print((end-start)/n_repeats)
