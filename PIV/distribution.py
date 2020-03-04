@@ -4,6 +4,7 @@ import PIV.utilities as utilities
 from PIV.utilities import vprint
 import PIV.corr_window as corr_window
 from scipy import interpolate as interp
+from scipy.spatial import Delaunay, ConvexHull
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import random
@@ -771,6 +772,92 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
                 Q.update_available_range(P)
 
     return out_list
+
+
+def pdf_transform(pdf, mask, n_points, smoothing=True):
+    """
+    Create a 2D distribution of points using the pdf transform method from
+    Raf
+
+    Args:
+        pdf (ndarray): The probability density function which defines the local
+                       relative density
+        mask (ndarray): Binary mask indicating whether a region should or should
+                        not have a point placed in
+        n_points (int): Approximate number of points to place in the domain
+        smoothing (bool): Whether to apply laplacian smoothing or not  
+
+    """
+
+    points_pdf[ind, 0]
+
+    # get the possible locations of the windows in x and y
+    dim = np.shape(pdf)
+    y_pos, x_pos = np.arange(dim[0]), np.arange(dim[1])
+    x, y = [], []
+
+    # normalise the pdf between 0 and 1
+    pdf /= np.sum(pdf)
+
+    # get the sum and the normalised cumulative sum of the pdf along each row
+    m = np.sum(pdf, axis=1)
+    M = np.cumsum(m) / np.sum(m)
+
+    # now evenly space points in this range
+    prob_y = np.linspace(np.min(M)+1e-9, np.max(M)-1e-9, n_points)
+    q_y = interp.interp1d(M, y_pos)(prob_y)
+    m_q = interp.interp1d(y_pos, m)(q_y)
+
+    # Calculate x-positions
+    for n in range(n_points):
+        p_xq = pdf[int(np.ceil(q_y[n])), :]
+        c_xq = p_xq / m_q[n]
+        C = np.cumsum(c_xq)/np.sum(c_xq)
+        prob_x = min(C) + np.random.uniform()*(max(C)-min(C))
+        q_x = min(dim[1], max(1, interp.interp1d(C, x_pos)(prob_x)))
+
+        x.append(min(dim[1], max(1, np.round(q_x))))
+        y.append(min(dim[0], max(1, np.round(q_y[n]))))
+
+    out_list = np.unique(np.array([x, y]), axis=1).T
+
+    if smoothing:
+        out_list = laplacian_smoothing(out_list)
+
+    mask_val = mask[out_list[:, 0], out_list[:, 1]]
+    out_list = out_list[mask_val == 1]
+
+    return out_list
+
+
+def laplacian_smoothing(coordinates):
+    """
+    Smooths the input coordinates using laplacian smoothing
+
+    Args:
+        coordinates (ndarray): Contains a list_like of coordinate locations
+    """
+
+    # calculate the delaunay triangulation
+    tri = Delaunay(coordinates)
+
+    # get list of neighbouring points
+    indices, indptr = tri.vertex_neighbor_vertices
+
+    # initialise output list
+    xy_out = np.empty_like(coordinates)
+
+    hull = ConvexHull(coordinates)
+    ind = np.unique(hull.simplices)
+
+    for k in range(len(indices)-1):
+        if k in ind:
+            xy_out[k, :] = coordinates[k, :]
+        else:
+            xy_neighbs = coordinates[indptr[indices[k]:indices[k+1]], :]
+            xy_out[k, :] = np.average(xy_neighbs, axis=0)
+
+    return xy_out
 
 
 if __name__ == '__main__':
