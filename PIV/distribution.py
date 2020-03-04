@@ -632,13 +632,13 @@ class Disk():
 
     def change_radius(self, Q, angle, K, pdf_sat, mask_sat):
         """
-        Changes the disks radius such that it contains the desired amount of 
+        Changes the disks radius such that it contains the desired amount of
         underlying pdf
 
         Args:
             Q (Disk): The central disk. The current disk will be varied in size
                       while maintaining contact with the central disk
-            angle (float): Random angle along which the new disk is varied in 
+            angle (float): Random angle along which the new disk is varied in
                            size. In radians
             K (float): The amount of the underlying pdf to contain
             pdf_sat (SummedAreaTable): SAT representing the pdf function
@@ -658,7 +658,7 @@ class Disk():
             count += 1
 
 
-def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
+def AIS_py(pdf, mask, n_points, bf_refine=1, ex_points=None):
     """
     Distributes approximately n_points samples with a local density similar to
     that described by the pdf. Points will not be placed in the masked region.
@@ -771,6 +771,38 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
                 Q.update_available_range(P)
 
     return out_list
+
+
+def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
+    """
+    Distributes approximately n_points samples with a local density similar to
+    that described by the pdf. Points will not be placed in the masked region.
+
+    Args:
+        pdf (ndarray): Probability density function describing the local target
+                       target density of the sample distribution
+        mask (ndarray): Binary mask indicating where points should not be placed
+                        A mask value of 0 indicates that points should ne be
+                        placed here.
+                        Must have the same dimensions as the input pdf
+        n_points (int): Approximate number of samples to place in the domain
+        bf_refine (int, optional): Ratio of number of pixels in the disk
+                                   buffer to the number of pixels in the domain.
+                                   Allows for more precise evaluation of disk
+                                   overlap at the expense of computational cost.
+                                   Defaults to 1.
+        ex_points (2D list int, optional): List of coordinates to seed the
+                                           distribution process with. Should
+                                           be a 2D array_like object (i.e. a
+                                           list or tuple of lists or tuples
+                                           containing the x and y location,
+                                           alternatively, a 2D numpy array).
+                                           If no seed points are given, the
+                                           seed point is randomly chosen.
+                                           Defaults to None.
+    """
+
+    return ais_module.AIS(pdf, mask, n_points, bf_refine, ex_points)
 
 
 if __name__ == '__main__':
