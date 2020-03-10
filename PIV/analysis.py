@@ -457,6 +457,11 @@ def structured_adaptive_analysis(img, settings):
                         'AdaptStructSettings()'
 
     """
+
+    # set the verbosity level
+    prev_verb = PIV.utilities._verbosity
+    PIV.utilities._verbosity = settings.verbosity
+
     # For now, lets forget about auto spacing - we will consider this later
     if 'auto' in [settings.init_spacing, settings.final_spacing]:
         raise NotImplementedError("Auto spacing is not implemented yet")
@@ -468,16 +473,16 @@ def structured_adaptive_analysis(img, settings):
                                  P_target=settings.sd_P_target)
 
     for _iter in range(1, settings.n_iter_main+1):
-        print("Starting main iteration, {}".format(iter_))
+        vprint(BASIC, "Starting main iteration, {}".format(iter_))
 
-        print("Creating sampling grid")
+        vprint(BASIC, "Creating sampling grid")
         init_h, fin_h = settings.init_spacing, settings.final_spacing
         h = fin_h + ((_iter-1) / (settings.n_iter_main - 1)) * (fin_h - init_h)
-        print(f"  sample spacing: {h}")
+        vprint(BASIC, f"  sample spacing: {h}")
         xv, yv = (np.arange(0, img.n_cols, h),
                   np.arange(0, img.n_rows, h))
         xx, yy = np.meshgrid(xv, yv)
-        print("{} windows".format(len(xx.ravel())))
+        vprint(BASIC, "{} windows".format(len(xx.ravel())))
 
         # correlate using adaptive initial window size.
         if _iter == 1:
@@ -495,12 +500,12 @@ def structured_adaptive_analysis(img, settings):
                 dist = distribution.Distribution(cw_list)
 
                 # analyse the windows
-                print("Analysing first iteration with AIW")
+                vprint(BASIC, "Analysing first iteration with AIW")
                 dist.AIW(img_def, dp)
 
                 # need to store the actual initial WS for subsequent iterations
                 ws_first_iter = dist.interp_WS(img_def.mask)
-                # print(ws_first_iter)
+                # vprint(BASIC, ws_first_iter)
                 fig = plt.figure(figsize=(20, 10))
             else:
                 # just create and correlate the windows
@@ -510,19 +515,19 @@ def structured_adaptive_analysis(img, settings):
                 dist = distribution.Distribution(cw_list)
 
                 ws_first_iter = np.ones(img_def.dim) * settings.init_WS
-                print("Analysing first iteration with uniform window size")
+                vprint(BASIC, "Analysing first iteration with uniform window size")
                 dist.correlate_all_windows(img_def, dp)
 
             if settings.vec_val is not None:
-                print("Validate vectors")
+                vprint(BASIC, "Validate vectors")
                 dist.validation_NMT_8NN()
 
-            print("Interpolating")
+            vprint(BASIC, "Interpolating")
             u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
             dp = dense_predictor.DensePredictor(u, v, img_def.mask)
             # dp.plot_displacement_field()
 
-            print("Deforming image")
+            vprint(BASIC, "Deforming image")
             img_def = img.deform_image(dp)
 
         else:
@@ -542,32 +547,35 @@ def structured_adaptive_analysis(img, settings):
             dist.correlate_all_windows(img_def, dp)
 
             if settings.vec_val is not None:
-                print("Validate vectors")
+                vprint(BASIC, "Validate vectors")
                 dist.validation_NMT_8NN()
 
-            print("Interpolating")
+            vprint(BASIC, "Interpolating")
             u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
             dp = dense_predictor.DensePredictor(u, v, img_def.mask)
 
-            print("Deforming image")
+            vprint(BASIC, "Deforming image")
             img_def = img.deform_image(dp)
 
-    print("Refinement iterations")
+    vprint(BASIC, "Refinement iterations")
     for _iter in range(1, settings.n_iter_ref + 1):
 
-        print("Correlating all windows")
+        vprint(BASIC, "Correlating all windows")
         dist.correlate_all_windows(img_def, dp)
 
         if settings.vec_val is not None:
-            print("validate vectors")
+            vprint(BASIC, "validate vectors")
             dist.validation_NMT_8NN()
 
-        print("Interpolating")
+        vprint(BASIC, "Interpolating")
         u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
         dp = PIV.DensePredictor(u, v, img_def.mask)
 
-        print("Deforming image")
+        vprint(BASIC, "Deforming image")
         img_def = img.deform_image(dp)
+
+    # reset verbosity
+    PIV.utilities._verbosity = prev_verb
 
     return dp
 
