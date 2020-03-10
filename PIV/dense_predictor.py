@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import PIV.utilities as utils
 import scipy.io
+import h5py
 
 
 class DensePredictor:
@@ -113,7 +114,12 @@ class DensePredictor:
             raise ValueError("No displacement field "
                              "defined for flowtype{}".format(flowtype))
         else:
-            uv = scipy.io.loadmat(true_filename)
+            try:
+                uv = scipy.io.loadmat(true_filename)
+            except NotImplementedError:
+                uvbf = h5py.File(true_filename)
+                uv = {"uTrue": np.transpose(uvbf["uTrue"]),
+                      "vTrue": np.transpose(uvbf["vTrue"])}
 
         mask = piv_image.load_mask(flowtype)
 
