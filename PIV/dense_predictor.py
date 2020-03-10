@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import PIV.utilities as utils
+import scipy.io
 
 
 class DensePredictor:
@@ -64,6 +65,61 @@ class DensePredictor:
         self.u_sat = utils.SummedAreaTable(self.u)
         self.v_sat = utils.SummedAreaTable(self.v)
         self.mask_sat = utils.SummedAreaTable(self.mask)
+
+    @staticmethod
+    def from_dimensions(dim, value=None):
+        """Provides a mechanism to initialise a densepredictor from just the 
+        dimesions
+
+        Arguments:
+            dim {tuple, int} -- The height and width, respectively, of the 
+                                desired denspredictor
+            value {tuple, float} -- The u and v values, respectively, to 
+                                    initialise the displacement field to. 
+                                    By default sets the values to 0 everywhere.
+
+        Returns:
+            DensePredictor 
+        """
+
+        if value is None:
+            value = (0, 0)
+
+        u, v = np.ones(dim)*value[0], np.ones(dim)*value[1]
+        dp_out = DensePredictor(u, v)
+
+        return dp_out
+
+    @staticmethod
+    def load_true(flowtype):
+        """Loads the true displacement field for a given flow type
+
+
+        Arguments:
+            flowtype {int} -- Integer value representing the flow 'id' as per
+                              index.csv. 
+
+        Returns: 
+            DensePredictor
+        """
+
+        import PIV.piv_image as piv_image
+        import PIV.image_info as im_info
+
+        info = im_info.ImageInfo(flowtype)
+        true_filename = info.vel_field_fname
+
+        if true_filename == None:
+            raise ValueError("No displacement field "
+                             "defined for flowtype{}".format(flowtype))
+        else:
+            uv = scipy.io.loadmat(true_filename)
+
+        mask = piv_image.load_mask(flowtype)
+
+        dp_out = DensePredictor(uv["u"], uv["v"], mask)
+
+        return dp_out
 
     def get_region(self, x, y, rad, truncate=True):
         """

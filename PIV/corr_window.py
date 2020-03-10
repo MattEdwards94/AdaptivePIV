@@ -253,9 +253,13 @@ class CorrWindow:
         corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
         # find the subpixel displacement from the correlation map
-        self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap(
-            corrmap, self.WS, self.rad)
-        # print(f"u: {self.u}, v: {self.v}, SNR: {self.SNR}")
+        try:
+            self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap(
+                corrmap, self.WS, self.rad)
+        except ZeroDivisionError:
+            # happens if all values around the peak are the same value.
+            self.u, self.v, self.SNR = 0, 0, 1
+            return self.u, self.v, self.SNR
 
         # combine displacement with predictor
         u_avg, v_avg = dp.get_local_avg_disp(self.x, self.y, self.rad)
@@ -269,29 +273,28 @@ class CorrWindow:
         """
         return np.sqrt(self.u * self.u + self.v * self.v)
 
+    def plot_corrmap_surface(self, img):
+        """Plots a 3D surface of the correlation map and it's values
+        """
 
-def plot_corrmap_surface(self, img):
-    """Plots a 3D surface of the correlation map and it's values
-    """
+        # load the image and mask values and perform the cross correlation
+        wsa, wsb, mask = self.prepare_correlation_windows(img)
 
-    # load the image and mask values and perform the cross correlation
-    wsa, wsb, mask = self.prepare_correlation_windows(img)
+        corrmap = calculate_correlation_map(wsa, wsb, self.WS, self.rad)
 
-    corrmap = calc_corrmap_inline(wsa, wsb, self.WS, self.rad)
+        # find the subpixel displacement from the correlation map
+        # self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap_opt(
+        #     corrmap, self.WS, self.rad)
 
-    # find the subpixel displacement from the correlation map
-    # self.u, self.v, self.SNR = cyth_corr_window.get_disp_from_corrmap_opt(
-    #     corrmap, self.WS, self.rad)
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    xx, yy = np.meshgrid(np.arange(-self.rad, self.rad+1, 1),
-                         np.arange(-self.rad, self.rad+1, 1))
-    surf = ax.plot_surface(xx, yy, corrmap, cmap='viridis')
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    plt.show()
+        xx, yy = np.meshgrid(np.arange(-self.rad, self.rad+1, 1),
+                             np.arange(-self.rad, self.rad+1, 1))
+        surf = ax.plot_surface(xx, yy, corrmap, cmap='viridis')
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        plt.show()
 
 
 def calculate_correlation_map(wsa, wsb, WS, rad):

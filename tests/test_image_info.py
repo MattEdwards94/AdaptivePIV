@@ -15,7 +15,7 @@ def test_initialisation():
     assert im_info.folder == 'vArray2x2'
     assert im_info.filename == info[3]
     assert im_info.mask_fname == info[4]
-    assert im_info.vel_field_fname == info[5]
+    assert im_info._vel_field_fname == info[5]
     assert im_info.img_dim_text == info[6]
     assert im_info.n_images == int(info[7])
     assert im_info.is_synthetic == info[8]

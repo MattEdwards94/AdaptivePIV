@@ -7,6 +7,9 @@ import PIV.dense_predictor as dense_predictor
 import PIV.ensemble_solution as es
 import PIV.multiGrid as mg
 import PIV
+from PIV.utilities import vprint
+
+ESSENTIAL, BASIC, TERSE = 1, 2, 3
 
 
 def ensemble_widim(flowtype, im_start, im_stop, settings):
@@ -95,62 +98,69 @@ def widim(img, settings):
                          'widim_settings()'
     """
 
+    # set the verbosity level
+    prev_verb = PIV.utilities._verbosity
+    PIV.utilities._verbosity = settings.verbosity
+
     img_def = img
     dp = PIV.DensePredictor(
         np.zeros(img.dim), np.zeros(img.dim), img.mask)
 
     # main iterations
     for _iter in range(1, settings.n_iter_main + 1):
-        print("Starting main iteration, {}".format(_iter))
+        vprint(BASIC, "Starting main iteration, {}".format(_iter))
 
         # calculate spacing and create sample grid
-        print("Calculating WS and spacing")
+        vprint(BASIC, "Calculating WS and spacing")
         WS = WS_for_iter(_iter, settings)
-        print("WS: {}".format(WS))
+        vprint(BASIC, "WS: {}".format(WS))
         h = max(1, math.floor((1 - settings.WOR) * WS))
-        print(h)
+        vprint(BASIC, h)
 
-        print("Creating grid and windows")
+        vprint(BASIC, "Creating grid and windows")
         xv, yv = (np.arange(0, img.n_cols, h),
                   np.arange(0, img.n_rows, h))
         xx, yy = np.meshgrid(xv, yv)
         ws_grid = np.ones_like(xx) * WS
-        print("{} windows".format(len(xx.ravel())))
+        vprint(BASIC, "{} windows".format(len(xx.ravel())))
 
         # create distribution of correlation windows
         dist = PIV.Distribution.from_locations(xx, yy, ws_grid)
 
-        print("Correlating all windows")
+        vprint(BASIC, "Correlating all windows")
         dist.correlate_all_windows(img_def, dp)
 
         if settings.vec_val is not None:
-            print("Validate vectors")
+            vprint(BASIC, "Validate vectors")
             dist.validation_NMT_8NN()
 
-        print("Interpolating")
+        vprint(BASIC, "Interpolating")
         u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
         dp = PIV.DensePredictor(u, v, img_def.mask)
 
-        print("Deforming image")
+        vprint(BASIC, "Deforming image")
         img_def = img.deform_image(dp)
 
-    print("Starting refinement iterations")
+    vprint(BASIC, "Starting refinement iterations")
 
     for _iter in range(1, settings.n_iter_ref + 1):
 
-        print("Correlating all windows")
+        vprint(BASIC, "Correlating all windows")
         dist.correlate_all_windows(img_def, dp)
 
         if settings.vec_val is not None:
-            print("validate vectors")
+            vprint(BASIC, "validate vectors")
             dist.validation_NMT_8NN()
 
-        print("Interpolating")
+        vprint(BASIC, "Interpolating")
         u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
         dp = PIV.DensePredictor(u, v, img_def.mask)
 
-        print("Deforming image")
+        vprint(2, "Deforming image")
         img_def = img.deform_image(dp)
+
+    # reset verbosity
+    PIV.utilities._verbosity = prev_verb
 
     return dp
 
@@ -204,7 +214,8 @@ class WidimSettings():
 
     def __init__(self, init_WS=97, final_WS=33, WOR=0.5,
                  n_iter_main=3, n_iter_ref=2,
-                 vec_val='NMT', interp='struc_cub'):
+                 vec_val='NMT', interp='struc_cub',
+                 verbosity=2):
         """
 
         Args:
@@ -239,6 +250,7 @@ class WidimSettings():
         self.n_iter_ref = n_iter_ref
         self.vec_val = vec_val
         self.interp = interp
+        self.verbosity = verbosity
 
     def __eq__(self, other):
         """
@@ -868,5 +880,5 @@ class AdaptStructSettings():
 
 if __name__ == '__main__':
     img = PIV.PIVImage.from_flowtype(22, 1)
-
-    multi_grid_analysis(img)
+    sol = widim(img, WidimSettings())
+    # multi_grid_analysis(img)

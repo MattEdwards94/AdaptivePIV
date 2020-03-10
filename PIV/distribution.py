@@ -1,10 +1,15 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import PIV.utilities as utilities
+from PIV.utilities import vprint
 import PIV.corr_window as corr_window
 from scipy import interpolate as interp
+from scipy.spatial import Delaunay, ConvexHull
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import random
+import ais_module
+import time
 
 
 class Distribution:
@@ -58,10 +63,10 @@ class Distribution:
     @staticmethod
     def from_locations(x, y, WS):
         """
-        Creates a distribution of CorrWindow objects, made for each 
+        Creates a distribution of CorrWindow objects, made for each
         item in x, y and WS
 
-        Inputs are unrolled, using np.ravel() into a one dimensional array 
+        Inputs are unrolled, using np.ravel() into a one dimensional array
         before creating any CorrWindows which assumes row-major indexing.
 
         Args:
@@ -104,7 +109,7 @@ class Distribution:
 
     def get_all_xy(self):
         """
-        Returns a (N, 2) array of all the stored locations where N is the 
+        Returns a (N, 2) array of all the stored locations where N is the
         total number of corr windows
 
         Returns:
@@ -114,7 +119,7 @@ class Distribution:
 
     def get_unmasked_xy(self):
         """
-        Returns a (N, 2) array of all unmasked stored locations where N is the 
+        Returns a (N, 2) array of all unmasked stored locations where N is the
         number of unmasked CorrWindows
 
         If "is_masked" is not set then an error is raised.
@@ -142,7 +147,7 @@ class Distribution:
 
     def get_unmasked_uv(self):
         """
-        Returns a (N, 2) array of all unmasked stored vectors where N is the 
+        Returns a (N, 2) array of all unmasked stored vectors where N is the
         number of unmasked CorrWindows
 
         If "is_masked" is not set then an error is raised.
@@ -170,7 +175,7 @@ class Distribution:
 
     def get_unmasked_WS(self):
         """
-        Returns a (N, 2) array of all unmasked stored WS's where N is the 
+        Returns a (N, 2) array of all unmasked stored WS's where N is the
         number of unmasked CorrWindows
 
         If "is_masked" is not set then an error is raised.
@@ -227,9 +232,9 @@ class Distribution:
         flag = norm > threshold
         invalid = np.sum(flag)
         try:
-            print(f"  {invalid}/{self.n_windows()} vectors replaced")
+            vprint(2, f"  {invalid}/{self.n_windows()} vectors replaced")
         except:
-            print(f"  {invalid}/{self.n_windows} vectors replaced")
+            vprint(2, f"  {invalid}/{self.n_windows} vectors replaced")
 
         # replacement
         u, v = outlier_replacement(flag, u, v, nb_ind)
@@ -471,26 +476,547 @@ def outlier_replacement(flag, u, v, nb_ind):
     return u, v
 
 
+class Disk():
+    """
+    Class for adaptive incremental stippling to provide functionality for
+    determining whether a disk is valid or not
+    """
+
+    def __init__(self, x, y, r):
+        """
+        Initialise a Disk with a specific location and radius
+
+        Args:
+            x (int): Horizontal location in the domain in pixels
+            y (int): Vertical location in the domain in pixels
+            r (float): Radius of the disk
+        """
+
+        self.x, self.y = x, y
+        self.r = r
+        # a list of arcs
+        self.avail_range = [[0, 2*np.pi]]
+
+    def is_range_available(self):
+        """
+        Returns whether or not there is space around the perimeter of the disk
+        to place another disk
+        """
+        return len(self.avail_range) > 0
+
+    def random_avail_angle(self):
+        """
+        Returns a random angle from within the range of available arcs, as
+        defined by self.avail_range
+        """
+        rand_arc = random.choice(self.avail_range)
+        return np.random.uniform(rand_arc[0], rand_arc[1])
+
+    def overlaps_in_buffer(self, buffer, bf_refine):
+        """
+        Determines whether the current disk would overlap any existing disk in
+        the buffer.
+
+        To improve the accuracy of whether a disk overlaps of not, the buffer
+        may have been 'refined', that is, multiple pixels in the buffer_array
+        may refer to a single pixel in the 'actual' buffer.
+
+        Args:
+            buffer (ndarray): boolean array indicating where disks already exist
+            bf_refine (int): Ratio of number of pixels in the buffer array,
+                             to the number of pixels in the domain. Effectively,
+                             shape(buffer) = bf_refine*(dim_y, dim_x)
+        """
+
+        if int(bf_refine) != bf_refine:
+            raise ValueError("bf_refine must be an integer")
+
+        # get the properties of the disk in the buffer array
+        x_bf, y_bf = self.x*bf_refine, self.y*bf_refine
+        r_bf = self.r*bf_refine
+
+        n_rows_bf, n_cols_bf = np.shape(buffer)*bf_refine
+
+        # get the coordinates of the square of size 2r x 2r
+        l = int(max(0, np.floor(x_bf - r_bf)))
+        r = int(min(n_cols_bf, np.ceil(x_bf + r_bf) + 1))
+        b = int(max(0, np.floor(y_bf - r_bf)))
+        t = int(min(n_rows_bf, np.ceil(y_bf + r_bf) + 1))
+
+        # select the points in buffer which are within the radius of the disk
+        # if any of these points are unity, then the disk overlaps
+        xx, yy = (np.arange(l, r)-x_bf)**2, (np.arange(b, t)-y_bf)**2
+        return np.any(buffer[b:t, l:r][xx + yy[:, np.newaxis] <= r_bf**2])
+
+    def update_available_range(self, other_disk):
+        """
+        Adjusts the available range to reflect the presence of a new disk
+
+        Args:
+            other_disk (Disk): The new disk being added
+        """
+
+        # work out angles
+        cos_beta = max(-1, min(1, (self.r + other_disk.r)/(4*other_disk.r)))
+        beta = np.arccos(cos_beta)
+
+        if beta < 1e-3:
+            # if beta is too small, then break out early.
+            return
+
+        dx, dy = other_disk.x - self.x, other_disk.y - self.y
+        dist = np.sqrt(dx**2 + dy**2)
+        dx, dy = dx/dist, dy/dist
+        alpha = np.arctan2(dy, dx)
+
+        # define 2 pi for simplicity later
+        two_pi = np.pi*2
+
+        if alpha < 0:
+            alpha += two_pi
+
+        clippers = []
+        _from, to = alpha - beta, alpha + beta
+
+        if _from >= 0 and to <= two_pi:
+            # simple case, from and to is entirely within 0 and 2pi
+            clippers.append([_from, to])
+        else:
+            # clipper crosses 0, so need to split into two clippings
+            if _from < 0:
+                if to > 0:
+                    # if to == 2pi, then we only need one clipper
+                    clippers.append([0, to])
+                clippers.append([_from + two_pi, two_pi])
+
+            if to > two_pi:
+                if _from < two_pi:
+                    # see above comment
+                    clippers.append([_from, two_pi])
+                clippers.append([0, to - two_pi])
+
+        remaining = []
+        for clipper in clippers:
+            for arc in self.avail_range:
+                if arc[0] >= clipper[0] and arc[1] <= clipper[1]:
+                    # arc is completely culled, remove
+                    continue
+                elif arc[1] < clipper[0] or arc[0] > clipper[1]:
+                    # untouched
+                    remaining.append(arc)
+                elif (arc[0] <= clipper[0] and
+                      arc[1] >= clipper[0] and
+                      arc[1] <= clipper[1]):
+                    # if the clipper starts within this arc, and the arc ends
+                    # within the clipper
+                    _from, to = arc[0], clipper[0]
+                    remaining.append([_from, to])
+                elif (arc[0] >= clipper[0] and
+                      arc[0] <= clipper[1] and
+                      arc[1] >= clipper[1]):
+                    # if the arc starts within the clipper, and the arc ends
+                    # outside the clipper
+                    _from, to = clipper[1], arc[1]
+                    remaining.append([_from, to])
+                else:
+                    # clipper is entirely in the arc, split
+                    _from, to = arc[0], clipper[0]
+                    remaining.append([_from, to])
+                    _from, to = clipper[1], arc[1]
+                    remaining.append([_from, to])
+
+        self.avail_range = remaining
+
+    def approximate_local_density(self, pdf_sat, mask_sat):
+        """
+        Returns an estimate of the local pdf density around the disk.
+
+        The pdf is summed in a square centred on the disk with linear edges
+        equal the the Disk's diameter
+
+        Args:
+            pdf_sat (SummedAreaTable): The pdf as a summed area table
+            mask_sat (SummedAreaTable): The mask as a summed area table
+        """
+
+        if self.r < 1:
+            density = pdf_sat.get_area_sum(self.x, self.x, self.y, self.y)
+        else:
+            l = int(max(0, np.floor(self.x - self.r)))
+            r = int(min(pdf_sat.img_dim[1], np.ceil(self.x + self.r)))
+            b = int(max(0, np.floor(self.y - self.r)))
+            t = int(min(pdf_sat.img_dim[0], np.ceil(self.y + self.r)))
+
+            pdf_val = pdf_sat.get_area_sum(l, r, b, t)
+            mask_val = mask_sat.get_area_sum(l, r, b, t)
+            # scale according to how much of the area was masked
+            # area of square / non-masked area
+            # also scale according to area of cirle in area of square
+            # density = pdf_val * (4*self.r**2) / mask_val) * np.pi / 4
+            density = pdf_val * self.r**2 * np.pi / mask_val
+
+        if density == 0:
+            density += 1e-6
+
+        return density
+
+    def draw_onto_buffer(self, buffer, bf_refine):
+        """
+        Draws a binary representation of the disk onto the buffer.
+
+        Pixels which lie within disk.r of the disk centre will be set to 1 in the
+        buffer
+
+        Args:
+            buffer (ndarray): Current disk buffer with ones indicating the
+                              location of existing disks.
+                              Will be modified in place
+            disk (Disk): The disk to add to the buffer
+            bf_refine (int, optional): Ratio of number of pixels in the disk
+                                       buffer to the number of pixels in the
+                                       domain. Allows for more precise
+                                       evaluation of disk overlap at the
+                                       expense of computational cost.
+                                       Defaults to 1.
+        """
+
+        if int(bf_refine) != bf_refine:
+            raise ValueError("bf_refine must be an integer")
+
+        # get the properties of the disk in the buffer array
+        x_bf, y_bf = self.x*bf_refine, self.y*bf_refine
+        r_bf = self.r*bf_refine
+
+        n_rows_bf, n_cols_bf = np.shape(buffer)*bf_refine
+
+        # get the coordinates of the square of size 2r x 2r
+        l = int(max(0, np.floor(x_bf - r_bf)))
+        r = int(min(n_cols_bf, np.ceil(x_bf + r_bf)))
+        b = int(max(0, np.floor(y_bf - r_bf)))
+        t = int(min(n_rows_bf, np.ceil(y_bf + r_bf)))
+
+        # get dist squared to center
+        xx, yy = (np.arange(l, r)-x_bf)**2, (np.arange(b, t)-y_bf)**2
+
+        new_disk = np.zeros((t-b, r-l))
+        new_disk[xx + yy[:, np.newaxis] <= r_bf**2] = 1
+
+        buffer[b:t, l:r] = new_disk
+
+    def change_radius(self, Q, angle, K, pdf_sat, mask_sat):
+        """
+        Changes the disks radius such that it contains the desired amount of
+        underlying pdf
+
+        Args:
+            Q (Disk): The central disk. The current disk will be varied in size
+                      while maintaining contact with the central disk
+            angle (float): Random angle along which the new disk is varied in
+                           size. In radians
+            K (float): The amount of the underlying pdf to contain
+            pdf_sat (SummedAreaTable): SAT representing the pdf function
+        """
+        dens = self.approximate_local_density(pdf_sat, mask_sat)
+        radius_ratio = np.sqrt(K / dens)
+        eps, count, limit = 0.001, 0, 13
+        n_rows, n_cols = pdf_sat.img_dim
+
+        while abs(radius_ratio-1) > eps and count < limit:
+            rn = max(0.5, self.r*radius_ratio)
+            self.x = min(max(0, round(Q.x + (rn+Q.r)*np.cos(angle))), n_cols-1)
+            self.y = min(max(0, round(Q.y + (rn+Q.r)*np.sin(angle))), n_rows-1)
+            self.r = rn
+            dens = self.approximate_local_density(pdf_sat, mask_sat)
+            radius_ratio = np.sqrt(K/dens)
+            count += 1
+
+
+def AIS_py(pdf, mask, n_points, bf_refine=1, ex_points=None):
+    """
+    Distributes approximately n_points samples with a local density similar to
+    that described by the pdf. Points will not be placed in the masked region.
+
+    Args:
+        pdf (ndarray): Probability density function describing the local target
+                       target density of the sample distribution
+        mask (ndarray): Binary mask indicating where points should not be placed
+                        A mask value of 0 indicates that points should ne be
+                        placed here.
+                        Must have the same dimensions as the input pdf
+        n_points (int): Approximate number of samples to place in the domain
+        bf_refine (int, optional): Ratio of number of pixels in the disk
+                                   buffer to the number of pixels in the domain.
+                                   Allows for more precise evaluation of disk
+                                   overlap at the expense of computational cost.
+                                   Defaults to 1.
+        ex_points (2D list int, optional): List of coordinates to seed the
+                                           distribution process with. Should
+                                           be a 2D array_like object (i.e. a
+                                           list or tuple of lists or tuples
+                                           containing the x and y location,
+                                           alternatively, a 2D numpy array).
+                                           If no seed points are given, the
+                                           seed point is randomly chosen.
+                                           Defaults to None.
+    """
+
+    if not np.any(mask):
+        raise ValueError("Mask can't be all 0")
+
+    n_rows, n_cols = np.shape(pdf)
+
+    # initialise the queue, output list, and the disk buffer
+    q, out_list, disk_buf = [], [], np.zeros((n_rows, n_cols)*bf_refine)
+
+    pdf *= mask
+    # create summed area table for pdf
+    pdf_sat = utilities.SummedAreaTable(pdf)
+    mask_sat = utilities.SummedAreaTable(mask)
+
+    # determine the initial estimate for r1
+    K = pdf_sat.get_total_sum() / n_points
+    r1 = np.sqrt(np.size(pdf)/(np.pi*n_points))
+
+    # initialise AIS
+    if ex_points is None:
+        # create a seed point
+        while True:
+            xr, yr = np.random.randint(0, n_cols), np.random.randint(0, n_rows)
+            if mask[yr, xr]:  # if not masked
+                break
+
+        D = Disk(xr, yr, r1)
+        dens = D.approximate_local_density(pdf_sat, mask_sat)
+        ratioR = np.sqrt(K/dens)
+        eps, count, limit = 0.001, 0, 20
+
+        while np.abs(ratioR-1) > eps:
+            D.r = max(0.5, D.r*ratioR)
+            dens = D.approximate_local_density(pdf_sat, mask_sat)
+            ratioR = np.sqrt(K/dens)
+            count += 1
+            if count > limit:
+                break
+
+        # Add the disk to the queue, and add it to the final points list
+        q.append(D)
+        out_list.append([D.x, D.y])
+
+        # draw the disk onto the buffer, note that disk_buf is updated inplace
+        D.draw_onto_buffer(disk_buf, bf_refine)
+
+    else:
+        for point in ex_points:
+            D = Disk(point[0], point[1], r1*0.25)
+            q.append(D)
+            D.draw_onto_buffer(disk_buf, bf_refine)
+            out_list.append([D.x, D.y])
+
+    # main AIS loop
+    while len(q) > 0:
+        # get the last added disk
+        Q = q.pop()
+        attempts, limit = 0, 20
+
+        while Q.is_range_available() and attempts < limit:
+            attempts += 1
+            # create disk at random angle with init radius r1
+            # checking it isn't masked or out of the domain
+            alpha = Q.random_avail_angle()
+            xn = int(np.round(Q.x + (Q.r+r1)*np.cos(alpha)))
+            yn = int(np.round(Q.y + (Q.r+r1)*np.sin(alpha)))
+            if (yn >= n_rows or xn >= n_cols or
+                yn < 0 or xn < 0 or
+                    mask[yn, xn] == 0):
+                continue
+            else:
+                P = Disk(xn, yn, r1)
+
+            P.change_radius(Q, alpha, K, pdf_sat, mask_sat)
+
+            if ((P.x >= 0 and P.x < n_cols) and (P.y >= 0 and P.y < n_rows)
+                    and not P.overlaps_in_buffer(disk_buf, bf_refine)):
+                # point is valid, accept it
+                q.append(P)
+                out_list.append([P.x, P.y])
+
+                P.draw_onto_buffer(disk_buf, bf_refine)
+                Q.update_available_range(P)
+
+    return out_list
+
+
+def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
+    """
+    Distributes approximately n_points samples with a local density similar to
+    that described by the pdf. Points will not be placed in the masked region.
+
+    Args:
+        pdf (ndarray): Probability density function describing the local target
+                       target density of the sample distribution
+        mask (ndarray): Binary mask indicating where points should not be placed
+                        A mask value of 0 indicates that points should ne be
+                        placed here.
+                        Must have the same dimensions as the input pdf
+        n_points (int): Approximate number of samples to place in the domain
+        bf_refine (int, optional): Ratio of number of pixels in the disk
+                                   buffer to the number of pixels in the domain.
+                                   Allows for more precise evaluation of disk
+                                   overlap at the expense of computational cost.
+                                   Defaults to 1.
+        ex_points (2D list int, optional): List of coordinates to seed the
+                                           distribution process with. Should
+                                           be a 2D array_like object (i.e. a
+                                           list or tuple of lists or tuples
+                                           containing the x and y location,
+                                           alternatively, a 2D numpy array).
+                                           If no seed points are given, the
+                                           seed point is randomly chosen.
+                                           Defaults to None.
+    """
+
+    return ais_module.AIS(pdf, mask, n_points, bf_refine, ex_points)
+
+
+def pdf_transform(pdf, mask, n_points, smoothing=True):
+    """
+    Create a 2D distribution of points using the pdf transform method from
+    Raf
+
+    Args:
+        pdf (ndarray): The probability density function which defines the local
+                       relative density
+        mask (ndarray): Binary mask indicating whether a region should or should
+                        not have a point placed in
+        n_points (int): Approximate number of points to place in the domain
+        smoothing (bool): Whether to apply laplacian smoothing or not  
+
+    """
+
+    points_pdf[ind, 0]
+
+    # get the possible locations of the windows in x and y
+    dim = np.shape(pdf)
+    y_pos, x_pos = np.arange(dim[0]), np.arange(dim[1])
+    x, y = [], []
+
+    # normalise the pdf between 0 and 1
+    pdf /= np.sum(pdf)
+
+    # get the sum and the normalised cumulative sum of the pdf along each row
+    m = np.sum(pdf, axis=1)
+    M = np.cumsum(m) / np.sum(m)
+
+    # now evenly space points in this range
+    prob_y = np.linspace(np.min(M)+1e-9, np.max(M)-1e-9, n_points)
+    q_y = interp.interp1d(M, y_pos)(prob_y)
+    m_q = interp.interp1d(y_pos, m)(q_y)
+
+    # Calculate x-positions
+    for n in range(n_points):
+        p_xq = pdf[int(np.ceil(q_y[n])), :]
+        c_xq = p_xq / m_q[n]
+        C = np.cumsum(c_xq)/np.sum(c_xq)
+        prob_x = min(C) + np.random.uniform()*(max(C)-min(C))
+        q_x = min(dim[1], max(1, interp.interp1d(C, x_pos)(prob_x)))
+
+        x.append(min(dim[1], max(1, np.round(q_x))))
+        y.append(min(dim[0], max(1, np.round(q_y[n]))))
+
+    out_list = np.unique(np.array([x, y]), axis=1).T
+
+    if smoothing:
+        out_list = laplacian_smoothing(out_list)
+
+    mask_val = mask[out_list[:, 0], out_list[:, 1]]
+    out_list = out_list[mask_val == 1]
+
+    return out_list
+
+
+def laplacian_smoothing(coordinates):
+    """
+    Smooths the input coordinates using laplacian smoothing
+
+    Args:
+        coordinates (ndarray): Contains a list_like of coordinate locations
+    """
+
+    # calculate the delaunay triangulation
+    tri = Delaunay(coordinates)
+
+    # get list of neighbouring points
+    indices, indptr = tri.vertex_neighbor_vertices
+
+    # initialise output list
+    xy_out = np.empty_like(coordinates)
+
+    hull = ConvexHull(coordinates)
+    ind = np.unique(hull.simplices)
+
+    for k in range(len(indices)-1):
+        if k in ind:
+            xy_out[k, :] = coordinates[k, :]
+        else:
+            xy_neighbs = coordinates[indptr[indices[k]:indices[k+1]], :]
+            xy_out[k, :] = np.average(xy_neighbs, axis=0)
+
+    return xy_out
+
+
 if __name__ == '__main__':
 
-    # create meshgrid
-    strt, fin, step = 1, 31 + 1, 10
-    x = np.arange(strt, fin, step)
-    y = np.arange(strt, fin + 5, step / 2)
-    xx, yy = np.meshgrid(x, y)
-    U = np.exp(-(2 * xx / 101)**2 - (yy / (2 * 101))**2)
+    # # create meshgrid
+    # strt, fin, step = 1, 31 + 1, 10
+    # x = np.arange(strt, fin, step)
+    # y = np.arange(strt, fin + 5, step / 2)
+    # xx, yy = np.meshgrid(x, y)
+    # U = np.exp(-(2 * xx / 101)**2 - (yy / (2 * 101))**2)
 
-    # interpolate U on x and y
-    vals = interp.interp2d(xx[0, :], yy[:, 0], U)
+    # # interpolate U on x and y
+    # vals = interp.interp2d(xx[0, :], yy[:, 0], U)
 
-    xe = np.arange(strt, fin, 1)
-    ye = np.arange(strt, fin, 1)
-    xxe, yye = np.meshgrid(xe, ye)
-    u_int = vals(xxe.ravel(), yye.ravel())
+    # xe = np.arange(strt, fin, 1)
+    # ye = np.arange(strt, fin, 1)
+    # xxe, yye = np.meshgrid(xe, ye)
+    # u_int = vals(xxe.ravel(), yye.ravel())
 
-    fig, ax = plt.subplots(nrows=1, ncols=2, subplot_kw={'projection': '3d'})
-    ax[0].plot_wireframe(xx, yy, U, color='b')
-    ax[0].plot_wireframe(yye.ravel(), xxe.ravel(), u_int, color='r')
+    # fig, ax = plt.subplots(nrows=1, ncols=2, subplot_kw={'projection': '3d'})
+    # ax[0].plot_wireframe(xx, yy, U, color='b')
+    # ax[0].plot_wireframe(yye.ravel(), xxe.ravel(), u_int, color='r')
 
-    # ax[1].plot(x, U[0, :], 'ro-', xe, u_int[0, :], 'b-')
-    plt.show()
+    # # ax[1].plot(x, U[0, :], 'ro-', xe, u_int[0, :], 'b-')
+    # plt.show()
+
+    import cProfile
+    import pstats
+
+    def run_code(func, pdf, mask, n_points, n_repeats):
+        for i in range(n_repeats):
+            func(pdf, mask, n_points)
+
+    pdf = np.arange(1000)[:, np.newaxis] * np.ones((1000, 1000))
+    pdf /= np.sum(pdf)
+    mask = np.ones((1000, 1000))
+    n_repeats, n_points = 3, 1000
+
+    cProfile.runctx('run_code(ais_module.AIS, pdf, mask, n_points, n_repeats)',
+                    globals(), locals(), 'restats')
+    p = pstats.Stats('restats')
+    p.strip_dirs().sort_stats('tottime').print_stats(25)
+
+    cProfile.runctx('run_code(AIS, pdf, mask, n_points, n_repeats)',
+                    globals(), locals(), 'restats')
+    p = pstats.Stats('restats')
+    p.strip_dirs().sort_stats('tottime').print_stats(25)
+    # start = time.time()
+    # for i in range(n_repeats):
+    #     points = ais_module.AIS(pdf, mask, n_points=1000)
+    # end = time.time()
+    # print((end-start)/n_repeats)
+
+    # start = time.time()
+    # for i in range(n_repeats):
+    #     points = AIS(pdf, mask, n_points=1000)
+    # end = time.time()
+    # print((end-start)/n_repeats)

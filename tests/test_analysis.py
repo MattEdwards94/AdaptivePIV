@@ -1,6 +1,7 @@
 import PIV.image_info as imi
 import PIV.piv_image as piv_image
 import PIV.analysis as analysis
+import PIV.utilities
 import pytest
 
 
@@ -540,3 +541,29 @@ def test_AdaptStruct_final_spacing_string():
     # check error is raised otherwise
     with pytest.raises(ValueError):
         analysis.AdaptStructSettings(final_spacing='Not_auto')
+
+        
+@pytest.mark.slow
+def test_utilities_verbosity_after_analysis():
+    """We set the module level variable in utilities to some value, 
+    check that this is reset to None after use
+    """
+
+    settings = analysis.WidimSettings(verbosity=2)
+
+    # overwrite utilities.root_path() such that we look in the data folder
+    # instead of the main folder
+    import PIV.utilities
+
+    def replace_func():
+        return "./PIV/data/"
+    old = PIV.utilities.root_path
+    PIV.utilities.root_path = replace_func
+
+    img = piv_image.PIVImage.from_flowtype(1, 1)
+    analysis.widim(img, settings)
+
+    PIV.utilities.root_path = old
+
+    print(PIV.utilities._verbosity)
+    assert PIV.utilities._verbosity is 4
