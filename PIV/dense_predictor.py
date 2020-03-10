@@ -442,7 +442,9 @@ class DensePredictor:
         """
         return np.sqrt(self.u * self.u + self.v * self.v)
 
-    def plot_displacement_field(self, ax=None, spacing=16, **kwargs):
+    def plot_displacement_field(self, ax=None, spacing=16,
+                                title='displacement', show_mask=True,
+                                **kwargs):
         """
         Plots the displacement field
 
@@ -460,11 +462,14 @@ class DensePredictor:
         if ax is None:
             fig, ax = plt.subplots()
 
-        if np.sum(self.mask) != np.prod(self.dim):
+        if np.sum(self.mask) != np.prod(self.dim) and show_mask is True:
             ax.imshow(self.mask)
 
         ax.quiver(xv, yv, u, v, **kwargs)
-        ax.set_title("displacement")
+        if title is not None:
+            ax.set_title(title)
+
+        return ax
 
     def plot_u_magnitude(self, ax=None, **kwargs):
         """Plot the horizontal component of the velocity field as a contour
