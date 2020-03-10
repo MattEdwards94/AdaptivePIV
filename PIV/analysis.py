@@ -445,6 +445,7 @@ class WidimSettings():
 
         self._interp = value
 
+
 def structured_adaptive_analysis(img, settings):
     """
     Analyses the PIV image using a structured grid, but allowing for 
@@ -496,7 +497,6 @@ def structured_adaptive_analysis(img, settings):
                 # analyse the windows
                 print("Analysing first iteration with AIW")
                 dist.AIW(img_def, dp)
-                
 
                 # need to store the actual initial WS for subsequent iterations
                 ws_first_iter = dist.interp_WS(img_def.mask)
@@ -555,16 +555,21 @@ def structured_adaptive_analysis(img, settings):
     print("Refinement iterations")
     for _iter in range(1, settings.n_iter_ref + 1):
 
-        # create correlation windows
-        cw_list = corr_window.corrWindow_list(xx.ravel(), yy.ravel(), ws_seed)
-        dist = distribution.Distribution(cw_list)
+        print("Correlating all windows")
+        dist.correlate_all_windows(img_def, dp)
 
-        # correlate using adaptive initial window size.
-        dist.AIW(img)
+        if settings.vec_val is not None:
+            print("validate vectors")
+            dist.validation_NMT_8NN()
 
-        # if
+        print("Interpolating")
+        u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+        dp = PIV.DensePredictor(u, v, img_def.mask)
 
-        # ~~~~ Create sampling grid ~~~~ #
+        print("Deforming image")
+        img_def = img.deform_image(dp)
+
+    return dp
 
 
 class AdaptStructSettings():
