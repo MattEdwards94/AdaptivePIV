@@ -462,6 +462,10 @@ def structured_adaptive_analysis(img, settings):
     prev_verb = PIV.utilities._verbosity
     PIV.utilities._verbosity = settings.verbosity
 
+    img_def = img
+    dp = dense_predictor.DensePredictor(
+        np.zeros(img.dim), np.zeros(img.dim), img.mask)
+
     # For now, lets forget about auto spacing - we will consider this later
     if 'auto' in [settings.init_spacing, settings.final_spacing]:
         raise NotImplementedError("Auto spacing is not implemented yet")
@@ -469,15 +473,28 @@ def structured_adaptive_analysis(img, settings):
     # if one of init/final WS/spacing are auto, we will need the seeding info
     if 'auto' in [settings.init_WS, settings.final_WS,
                   settings.init_spacing, settings.final_spacing]:
-        img.calc_seeding_density(method=settings.part_detect,
-                                 P_target=settings.sd_P_target)
+        img.calc_seed_density(method=settings.part_detect,
+                              P_target=settings.sd_P_target)
+        min_sd = np.minimum(img.sd_IA, img.sd_IB)
+        min_sd[min_sd == 0] = 0.0021
+
+    if settings.final_WS == 'auto':
+        # get WS based on seeding only.
+        ws_final = utilities.round_to_odd(np.sqrt(settings.target_fin_NI /
+                                                  min_sd))
+    else:
+        ws_final = settings.final_WS * np.ones(img_def.dim)
 
     for _iter in range(1, settings.n_iter_main+1):
-        vprint(BASIC, "Starting main iteration, {}".format(iter_))
+        vprint(BASIC, "Starting main iteration, {}".format(_iter))
 
         vprint(BASIC, "Creating sampling grid")
         init_h, fin_h = settings.init_spacing, settings.final_spacing
-        h = fin_h + ((_iter-1) / (settings.n_iter_main - 1)) * (fin_h - init_h)
+        if settings.n_iter_main == 1:
+            h = init_h
+        else:
+            h = fin_h + ((_iter-1) / (settings.n_iter_main - 1)) * \
+                (fin_h - init_h)
         vprint(BASIC, f"  sample spacing: {h}")
         xv, yv = (np.arange(0, img.n_cols, h),
                   np.arange(0, img.n_rows, h))
@@ -494,10 +511,9 @@ def structured_adaptive_analysis(img, settings):
                 ws_seed_init[np.isnan(ws_seed_init)] = 97
 
                 # create correlation windows
-                cw_list = corr_window.corrWindow_list(xx,
-                                                      yy,
-                                                      ws_seed_init)
-                dist = distribution.Distribution(cw_list)
+                dist = distribution.Distribution.from_locations(xx,
+                                                                yy,
+                                                                ws_seed_init)
 
                 # analyse the windows
                 vprint(BASIC, "Analysing first iteration with AIW")
@@ -506,13 +522,12 @@ def structured_adaptive_analysis(img, settings):
                 # need to store the actual initial WS for subsequent iterations
                 ws_first_iter = dist.interp_WS(img_def.mask)
                 # vprint(BASIC, ws_first_iter)
-                fig = plt.figure(figsize=(20, 10))
+                # fig = plt.figure(figsize=(20, 10))
             else:
                 # just create and correlate the windows
-                cw_list = corr_window.corrWindow_list(xx.ravel(),
-                                                      yy.ravel(),
-                                                      settings.init_WS)
-                dist = distribution.Distribution(cw_list)
+                dist = distribution.Distribution.from_locations(xx,
+                                                                yy,
+                                                                settings.init_WS)
 
                 ws_first_iter = np.ones(img_def.dim) * settings.init_WS
                 vprint(BASIC, "Analysing first iteration with uniform window size")
@@ -538,10 +553,7 @@ def structured_adaptive_analysis(img, settings):
             ws[np.isnan(ws)] = 5
 
             # create correlation windows
-            cw_list = corr_window.corrWindow_list(xx.ravel(),
-                                                  yy.ravel(),
-                                                  ws)
-            dist = distribution.Distribution(cw_list)
+            dist = distribution.Distribution.from_locations(xx, yy, ws)
 
             # correlate windows
             dist.correlate_all_windows(img_def, dp)
@@ -577,7 +589,7 @@ def structured_adaptive_analysis(img, settings):
     # reset verbosity
     PIV.utilities._verbosity = prev_verb
 
-    return dp
+    return dp, ws_first_iter
 
 
 class AdaptStructSettings():
@@ -595,7 +607,10 @@ class AdaptStructSettings():
                  vec_val='NMT',
                  interp='struc_cub',
                  part_detect='simple',
-                 sd_P_target=20):
+                 sd_P_target=20,
+                 target_init_NI=20,
+                 target_fin_NI=8,
+                 verbosity=2):
         """
 
         Args:
@@ -651,6 +666,23 @@ class AdaptStructSettings():
                                          default = 20
                                          Refer to piv_image.calc_seeding_density
                                          for more information
+            target_init_NI (int, optional): The number of particles to target 
+                                            per correlation window in the first
+                                            iteration.
+                                            Considering AIW, it is possible the 
+                                            resulting window will be 
+                                            significantly larger depending on 
+                                            the underlying displacement.
+                                            default = 20.
+            target_fin_NI (int, optional): The number of particles to target 
+                                           per correlation window in the last
+                                           iteration.
+                                           Unlike the initial target, the final
+                                           WS should contain approximately this
+                                           many particles, depending on the 
+                                           accuracy of particle detection and
+                                           seeding density estimation 
+                                           default = 8.
         """
 
         self.init_WS = init_WS
@@ -663,6 +695,9 @@ class AdaptStructSettings():
         self.interp = interp
         self.part_detect = part_detect
         self.sd_P_target = sd_P_target
+        self.target_init_NI = target_init_NI
+        self.target_fin_NI = target_fin_NI
+        self.verbosity = verbosity
 
     def __eq__(self, other):
         """
