@@ -117,7 +117,10 @@ class DensePredictor:
 
         mask = piv_image.load_mask(flowtype)
 
-        dp_out = DensePredictor(uv["u"], uv["v"], mask)
+        try:
+            dp_out = DensePredictor(uv["u"], uv["v"], mask)
+        except KeyError:
+            dp_out = DensePredictor(uv["uTrue"], uv["vTrue"], mask)
 
         return dp_out
 
