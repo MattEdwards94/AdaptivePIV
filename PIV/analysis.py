@@ -446,7 +446,7 @@ class WidimSettings():
         self._interp = value
 
 
-def structured_adaptive_analysis(img, settings):
+def structured_adaptive_analysis(img, settings, **kwargs):
     """
     Analyses the PIV image using a structured grid, but allowing for 
     adaptively sized windows
@@ -517,7 +517,7 @@ def structured_adaptive_analysis(img, settings):
 
                 # analyse the windows
                 vprint(BASIC, "Analysing first iteration with AIW")
-                dist.AIW(img_def, dp)
+                dist.AIW(img_def, dp, **kwargs)
 
                 # need to store the actual initial WS for subsequent iterations
                 ws_first_iter = dist.interp_WS(img_def.mask)
