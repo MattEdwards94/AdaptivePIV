@@ -215,7 +215,7 @@ class CorrWindow:
 
         return u, v, SNR
 
-    def correlate(self, img, dp):
+    def correlate(self, img, dp=None):
         """
         Correlates the img at the location specified by self.x, self.y with a
         window of size self.WS
@@ -223,7 +223,9 @@ class CorrWindow:
         Args:
             img (PIVImage): The image intensities with which to be correlated
             dp (DensePredictor): The underlying densepredictor if the image has
-                                 previously been deformed
+                                 previously been deformed. If no densepredictor
+                                 is given then it will be assumed the dp is 
+                                 all zeros.
 
          Returns:
             u: The displacement in the u direction, i.e. the horizontal
@@ -262,11 +264,13 @@ class CorrWindow:
             return self.u, self.v, self.SNR
 
         # combine displacement with predictor
-        u_avg, v_avg = dp.get_local_avg_disp(self.x, self.y, self.rad)
-        self.u += u_avg
-        self.v += v_avg
-
-        return self.u, self.v, self.SNR
+        if dp is None:
+            return self.u, self.v, self.SNR
+        else:
+            u_avg, v_avg = dp.get_local_avg_disp(self.x, self.y, self.rad)
+            self.u += u_avg
+            self.v += v_avg
+            return self.u, self.v, self.SNR
 
     def plot_corrmap_surface(self, img):
         """Plots a 3D surface of the correlation map and it's values

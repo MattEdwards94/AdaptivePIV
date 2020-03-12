@@ -821,8 +821,6 @@ def pdf_transform(pdf, mask, n_points, smoothing=True):
 
     """
 
-    points_pdf[ind, 0]
-
     # get the possible locations of the windows in x and y
     dim = np.shape(pdf)
     y_pos, x_pos = np.arange(dim[0]), np.arange(dim[1])
@@ -848,10 +846,10 @@ def pdf_transform(pdf, mask, n_points, smoothing=True):
         prob_x = min(C) + np.random.uniform()*(max(C)-min(C))
         q_x = min(dim[1], max(1, interp.interp1d(C, x_pos)(prob_x)))
 
-        x.append(min(dim[1], max(1, np.round(q_x))))
-        y.append(min(dim[0], max(1, np.round(q_y[n]))))
+        x.append(min(dim[1]-1, max(0, np.round(q_x))))
+        y.append(min(dim[0]-1, max(0, np.round(q_y[n]))))
 
-    out_list = np.unique(np.array([x, y]), axis=1).T
+    out_list = np.unique(np.array([x, y]), axis=1).T.astype(int)
 
     if smoothing:
         out_list = laplacian_smoothing(out_list)

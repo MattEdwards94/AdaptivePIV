@@ -630,3 +630,29 @@ def test_flag_initialised_to_none():
     cw = corr_window.CorrWindow(x, y, WS)
 
     assert np.isnan(cw.flag)
+
+
+def test_correlate_without_densepred(mock_image):
+    """
+    Checks that the correlation does not require a densepredictor, and that
+    the output is the same as if a dp with zeros was passed
+    """
+
+    # create correlation window
+    x = 50
+    y = 50
+    WS = 33
+    cw = corr_window.CorrWindow(x, y, WS)
+
+    # expected correlate with zeros densepredictor
+    u_zeros = np.zeros((100, 100))
+    v_zeros = np.zeros((100, 100))
+    dp_zeros = dense_predictor.DensePredictor(u_zeros, v_zeros)
+    u1, v1, snr1 = cw.correlate(mock_image, dp_zeros)
+
+    # correlate with no densepredictor
+    u2, v2, snr2 = cw.correlate(mock_image)
+
+    assert u1 == u2
+    assert v1 == v2
+    assert snr1 == snr2
