@@ -81,6 +81,8 @@ class PIVImage:
         self.n_cols = np.shape(IA)[1]
         self.dim = (self.n_rows, self.n_cols)
         self.is_filtered = False
+        self.part_loc_IA, self.part_loc_IB = None, None
+        self.sd_IA, self.sd_IB = None, None
 
     @staticmethod
     def from_flowtype(flowtype, im_number):
@@ -327,6 +329,33 @@ class PIVImage:
         fig = plt.figure()
         ax = fig.add_subplot(111)
         im = ax.imshow(self.mask)
+
+    def calc_seed_density(self, method='simple', P_target=20):
+        """
+        Wrapper to calculate the seeding density for the current images
+        stores the particle locations in self.part_loc_IA/IB
+        stores the seeding densities in self.sd_IA/IB
+
+        Args:
+            method (str, optional): Particle detection method to use.
+                                    Defaults to 'simple'.
+            P_target (int, optional): Number of particles to target per kernel
+                                    when calculating the seeding density.
+                                    Defaults to 20.
+        """
+        (sd_a,
+         particles_a) = calc_seeding_density(self.IA, self.mask,
+                                             method=method,
+                                             filt_target_NI=P_target,
+                                             return_part_locations=True)
+        (sd_b,
+         particles_b) = calc_seeding_density(self.IB, self.mask,
+                                             method=method,
+                                             filt_target_NI=P_target,
+                                             return_part_locations=True)
+
+        self.part_loc_IA, self.part_loc_IB = particles_a, particles_b
+        self.sd_IA, self.sd_IB = sd_a, sd_b
 
 
 def load_images(flowtype, im_number):
@@ -964,7 +993,8 @@ def detect_particles_max_filter(img, mask=None):
 
 def calc_seeding_density(IA, mask=None,
                          method='simple',
-                         filt_target_NI=20):
+                         filt_target_NI=20,
+                         return_part_locations=False):
     """
     Detects particles in the image IA, using the method defined by 
     'detection_mode', and returns the approximate seeding density over 
@@ -977,19 +1007,22 @@ def calc_seeding_density(IA, mask=None,
         mask (binary ndarray): Indicates with 0/false the locations with a mask
         detection_mode (string): The method to use to detect particle images
                                  'simple': maximum filter + otsu threshold
-        filt_target_NI (int): The target number of particles to be contained
-                              in the convolution filter, such that we have
-                              good reliability of the seeding density 
-                              calculation. 
-                              default 15
+        filt_target_NI (int, optional): The target number of particles to be 
+                                        contained in the convolution filter, 
+                                        such that we have good reliability of 
+                                        the seeding density calculation. 
+                                        default 20
+        return_part_locatiosn (bool, optional): If True, will also return the 
+                                                locations of the particles as
+                                                a boolean array                            
 
     Returns:
         seed_dens (ndarray): seeding density over the domain in particles
                              per pixel
-    """
+        part_locations (ndarray): The locations of the particles over the 
+                                  domain, if requested
 
-    # detect particles
-    part_locations = detect_particles(IA, mask)
+    """
 
     # create invisible mask if one is not already defined
     if mask is None:
@@ -1004,9 +1037,12 @@ def calc_seeding_density(IA, mask=None,
     mean_sd = np.sum(part_locations) / np.sum(mask)
     filter_size = utils.round_to_odd(np.ceil(np.sqrt(filt_target_NI
                                                      / mean_sd)))
-    print(filter_size)
 
-    return calculate_local_mean_value(part_locations, mask, filter_size)
+    if return_part_locations:
+        return (calculate_local_mean_value(part_locations, mask, filter_size),
+                part_locations)
+    else:
+        return calculate_local_mean_value(part_locations, mask, filter_size)
 
 
 def calculate_local_mean_value(IA, mask=None, filter_size=None):

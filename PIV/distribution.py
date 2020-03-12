@@ -23,6 +23,7 @@ class Distribution:
                                                           windows to initialise
                                                           the distribution with
         """
+
         # if there is nothing passed, then initialise empty list
         if init_locations is None:
             self.windows = []
@@ -76,6 +77,8 @@ class Distribution:
         Returns:
             Distribution: Distribution object containing the specified locations
         """
+
+        x, y, WS = np.array(x), np.array(y), np.array(WS)
 
         cwList = list(map(corr_window.CorrWindow,
                           x.ravel(),
@@ -335,6 +338,93 @@ class Distribution:
                   uv[:, 0],
                   uv[:, 1])
         plt.show()
+
+    def AIW(self, img, dp,
+            step_size=6, SNR_thr=1.4,
+            max_WS=117, store_hist=True):
+        """
+        Analyses the contained distribution using Adaptive Initial Window sizing. 
+        Correlates the windows and stores the results inside the class, as it
+        would for correlate_all_windows
+
+        Args:
+            img (PIVImage): PIVImage object containing the images to be analysed
+            NI_target (int, optional): The number of particles to target for 
+                                       each correlation window. 
+                                       Defaults to 25.
+            step_size (int, optional): If a correlation fails, the amount to 
+                                       increase the window size by. 
+                                       Must be even integer. 
+                                       Defaults to 6.
+        """
+
+        for cw in self.windows:
+            if store_hist:
+                history = np.empty((0, 4))
+            # if WS is greater than max_WS to begin, we should just correlate
+            # this indicates the seeding is extremely poor and is likely to
+            # yield a poor correlation
+            if cw.WS >= max_WS:
+                cw.correlate(img, dp)
+                continue
+
+            while cw.WS < max_WS:
+                cw.correlate(img, dp)
+                if store_hist and cw.disp_mag() <= cw.WS*0.25:
+                    history = np.vstack((history, [cw.WS, cw.u, cw.v, cw.SNR]))
+
+                # now check validity of result
+                if cw.SNR == 0:
+                    # the location is masked
+                    break
+                elif (cw.SNR <= SNR_thr) or (cw.disp_mag() > cw.WS*0.25):
+                    # if SNR is too low, or the displacement violates 1/4 rule
+                    cw.WS += step_size
+                    if cw.WS >= max_WS:
+                        if store_hist:
+                            # only update the values if we need to
+                            ind = np.argmax(history, axis=0)
+                            (cw.WS, cw.u, cw.v, cw.SNR) = history[ind[3], :]
+                        break
+                else:
+                    # WS is ok
+                    break
+
+    def interp_WS(self, mask):
+        """Interpolates the windows sizes onto a domain with the same dimensions
+        as the mask.       
+        Assumes input is a grid with uniform spacing in each direction equal
+        to the spacing between the first and second points in each direction.
+        interpolation is linear. 
+        Extrapolation is performed via nearest neighbour
+
+        Arguments:
+            mask {ndarray} -- Array containing zeros at the locations of the 
+                              domain not to be considered. 
+
+        Returns:
+            WS {ndarray} -- the interpolated WS over the domain. 
+                            zero where the mask is zero
+        """
+
+        # the y value will be all zeros for each row, with a jump equal to the
+        # vertical spacing each row.
+        y_size = int([i for i, x in enumerate(np.diff(self.y)) if x != 0][0]
+                     + 1)
+        x_size = int(np.size(self.x) / y_size)
+
+        # now reshape the vectors
+        xv_grid = np.reshape(self.x, (x_size, y_size))
+        yv_grid = np.reshape(self.y, (x_size, y_size))
+        ws_grid = np.reshape(self.WS, (x_size, y_size))
+        # ws_grid = np.nan_to_num(ws_grid, nan=97)
+
+        f_ws_interp = interp.interp2d(xv_grid[0],
+                                      yv_grid[:, 0],
+                                      ws_grid)
+
+        return f_ws_interp(np.arange(np.shape(mask)[1]),
+                           np.arange(np.shape(mask)[0])) * mask
 
 
 def NMT_detection(u, v, nb_ind, eps=0.1):

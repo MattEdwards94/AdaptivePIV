@@ -21,7 +21,7 @@ ID,flow description,folder,filename format,mask file,vel field file,image dimens
 20,Weam flow -background,weamFlow,PreProcess/run_%05d%c.mat,maskModified.png,none,2672x3528,115,n,n
 21,PIV Chall. 4 - Micro channel,20p_per_image/PIV_chall_micro,A_%05d_%c.tif,mask.tif,none,1230x2560,600,n,n
 22,Vortex array 2x2,vArray2x2,Varray2x2_%03d%c.mat,none,Varray2x2_000v.mat,1000x1000,750,y,n
-23,Lamb Oseen,LambOseenVortex,lambOseen_%04d%c.mat,none,OneDimVarray2x2_%03d%c.mat,1000x1000,750,y,n
+23,Lamb Oseen,LambOseenVortex,lambOseen_%04d%c.mat,none,LambOseenVel.mat,1000x1000,750,y,n
 24,Gauss. smoothed w freestream,Gaussian/Freestream,gaussian_%03d%c.mat,none,velField.mat,1000x1000,750,y,n
 25,Gauss. smoothed,Gaussian,gaussian_%03d%c.mat,none,gaussianVelField.mat,1000x1000,750,y,n
 26,Gauss. smoothed w var kernel,Gaussian/varKern,gaussian_%03d%c.mat,none,velField.mat,1000x1000,750,y,n

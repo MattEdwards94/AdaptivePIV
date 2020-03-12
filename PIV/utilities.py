@@ -234,7 +234,7 @@ def round_to_odd(val):
     """
 
     # round down to nearest integer
-    bf = math.floor(val)
+    bf = np.floor(val)
 
     # if even, increment
     return bf + (1 - (bf % 2))
@@ -287,6 +287,7 @@ def plot_adjacent_images(ia, ib,
                          fig=None, figsize=(20, 10),
                          share_all=True,
                          axes_pad=0.1, share_all_axes=True,
+                         cbar_pad=None,
                          cbar_location="right", cbar_mode="single",
                          **kwargs):
     """Plots two figures nicely side by side, 
@@ -299,8 +300,10 @@ def plot_adjacent_images(ia, ib,
 
     grid = axgrid1.ImageGrid(fig, 121, nrows_ncols=(1, 2),
                              axes_pad=axes_pad, share_all=share_all,
+                             cbar_pad=cbar_pad,
                              cbar_location=cbar_location,
-                             cbar_mode=cbar_mode)
+                             cbar_mode=cbar_mode,
+                             **kwargs)
 
     ax1 = grid[0]
     im_a = ax1.imshow(ia, vmin=vminmax_a[0], vmax=vminmax_a[1], cmap=cmap_a)
@@ -308,11 +311,13 @@ def plot_adjacent_images(ia, ib,
     ax1.invert_yaxis()
 
     ax2 = grid[1]
-    ax2.imshow(ib, vmin=vminmax_b[0], vmax=vminmax_b[1], cmap=cmap_b)
+    im_b = ax2.imshow(ib, vmin=vminmax_b[0], vmax=vminmax_b[1], cmap=cmap_b)
     ax2.set_title(title_b)
     ax2.invert_yaxis()
 
     grid.cbar_axes[0].colorbar(im_a)
+    if cbar_mode == "each":
+        grid.cbar_axes[1].colorbar(im_b)
 
     return fig, ax1, ax2
 

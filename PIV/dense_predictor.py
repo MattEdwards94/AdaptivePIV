@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import PIV.utilities as utils
 import scipy.io
+import h5py
 
 
 class DensePredictor:
@@ -113,11 +114,19 @@ class DensePredictor:
             raise ValueError("No displacement field "
                              "defined for flowtype{}".format(flowtype))
         else:
-            uv = scipy.io.loadmat(true_filename)
+            try:
+                uv = scipy.io.loadmat(true_filename)
+            except NotImplementedError:
+                uvbf = h5py.File(true_filename)
+                uv = {"uTrue": np.transpose(uvbf["uTrue"]),
+                      "vTrue": np.transpose(uvbf["vTrue"])}
 
         mask = piv_image.load_mask(flowtype)
 
-        dp_out = DensePredictor(uv["u"], uv["v"], mask)
+        try:
+            dp_out = DensePredictor(uv["u"], uv["v"], mask)
+        except KeyError:
+            dp_out = DensePredictor(uv["uTrue"], uv["vTrue"], mask)
 
         return dp_out
 
@@ -433,7 +442,9 @@ class DensePredictor:
         """
         return np.sqrt(self.u * self.u + self.v * self.v)
 
-    def plot_displacement_field(self, ax=None, spacing=16, **kwargs):
+    def plot_displacement_field(self, ax=None, spacing=16,
+                                title='displacement', show_mask=True,
+                                **kwargs):
         """
         Plots the displacement field
 
@@ -451,11 +462,14 @@ class DensePredictor:
         if ax is None:
             fig, ax = plt.subplots()
 
-        if np.sum(self.mask) != np.prod(self.dim):
+        if np.sum(self.mask) != np.prod(self.dim) and show_mask is True:
             ax.imshow(self.mask)
 
         ax.quiver(xv, yv, u, v, **kwargs)
-        ax.set_title("displacement")
+        if title is not None:
+            ax.set_title(title)
+
+        return ax
 
     def plot_u_magnitude(self, ax=None, **kwargs):
         """Plot the horizontal component of the velocity field as a contour
