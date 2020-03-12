@@ -339,7 +339,7 @@ class Distribution:
                   uv[:, 1])
         plt.show()
 
-    def AIW(self, img, dp, step_size=6, SNR_thr=1.3, max_WS=245):
+    def AIW(self, img, dp, step_size=6, SNR_thr=1.4, max_WS=117):
         """
         Analyses the contained distribution using Adaptive Initial Window sizing. 
         Correlates the windows and stores the results inside the class, as it
