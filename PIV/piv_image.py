@@ -527,7 +527,8 @@ def quintic_spline_image_filter(IA):
 
 def gen_uniform_part_locations(img_dim, seed_dens,
                                d_tau_mean=2.5, d_tau_std=0.25,
-                               int_mean=0.9, int_std=0.05):
+                               int_mean=0.9, int_std=0.05,
+                               **kwargs):
     """Generates a uniform distribution of particle images, with 
     diameter and intensity drawn from a normal distribution
 
@@ -582,7 +583,8 @@ def gen_uniform_part_locations(img_dim, seed_dens,
 def gen_part_locations_quasi_linear(img_dim, min_seed_dens, max_seed_dens,
                                     n_strips=20,
                                     d_tau_mean=2.5, d_tau_std=0.25,
-                                    int_mean=0.9, int_std=0.05):
+                                    int_mean=0.9, int_std=0.05,
+                                    **kwargs):
     """Generates particle images with a seeding density that quasi linearly 
     decreases from minimum to maximum from left to right. 
 
