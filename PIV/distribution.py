@@ -357,6 +357,10 @@ class Distribution:
         """
 
         for cw in self.windows:
+            if cw.WS >= max_WS:
+                cw.correlate(img, dp)
+                continue
+
             while cw.WS < max_WS:
                 cw.correlate(img, dp)
                 # now check validity of result
