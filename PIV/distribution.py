@@ -339,7 +339,9 @@ class Distribution:
                   uv[:, 1])
         plt.show()
 
-    def AIW(self, img, dp, step_size=6, SNR_thr=1.4, max_WS=117):
+    def AIW(self, img, dp,
+            step_size=6, SNR_thr=1.4,
+            max_WS=117, store_hist=True):
         """
         Analyses the contained distribution using Adaptive Initial Window sizing. 
         Correlates the windows and stores the results inside the class, as it
@@ -357,12 +359,20 @@ class Distribution:
         """
 
         for cw in self.windows:
+            if store_hist:
+                history = np.empty((0, 4))
+            # if WS is greater than max_WS to begin, we should just correlate
+            # this indicates the seeding is extremely poor and is likely to
+            # yield a poor correlation
             if cw.WS >= max_WS:
                 cw.correlate(img, dp)
                 continue
 
             while cw.WS < max_WS:
                 cw.correlate(img, dp)
+                if store_hist and cw.disp_mag() <= cw.WS*0.25:
+                    history = np.vstack((history, [cw.WS, cw.u, cw.v, cw.SNR]))
+
                 # now check validity of result
                 if cw.SNR == 0:
                     # the location is masked
@@ -370,7 +380,11 @@ class Distribution:
                 elif (cw.SNR <= SNR_thr) or (cw.disp_mag() > cw.WS*0.25):
                     # if SNR is too low, or the displacement violates 1/4 rule
                     cw.WS += step_size
-                    if cw.WS > max_WS:
+                    if cw.WS >= max_WS:
+                        if store_hist:
+                            # only update the values if we need to
+                            ind = np.argmax(history, axis=0)
+                            (cw.WS, cw.u, cw.v, cw.SNR) = history[ind[3], :]
                         break
                 else:
                     # WS is ok
