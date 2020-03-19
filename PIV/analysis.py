@@ -472,7 +472,7 @@ class WidimSettings():
 
 def structured_adaptive_analysis(img, settings, **kwargs):
     """
-    Analyses the PIV image using a structured grid, but allowing for 
+    Analyses the PIV image using a structured grid, but allowing for
     adaptively sized windows
 
     Args:
@@ -638,30 +638,30 @@ class AdaptStructSettings():
         """
 
         Args:
-            init_WS (int/str, optional): Initial window size, if numeric, 
+            init_WS (int/str, optional): Initial window size, if numeric,
                                          must be odd and
                                          5 <= init_WS <= 245
                                          Otheriwse 'auto', where the window
-                                         size will be calculated using the 
-                                         adaptive initial window routine. 
+                                         size will be calculated using the
+                                         adaptive initial window routine.
                                          Default 'auto'.
             final_WS (int/str, optional): Final window size, must be odd and
                                           5 <= final_WS <= 245
                                           Otheriwse 'auto', where the window
-                                          size will be calculated according to 
+                                          size will be calculated according to
                                           the seeding density
-            init_spacing (int/str, optional): The initial spacing between 
+            init_spacing (int/str, optional): The initial spacing between
                                               samples, in px. The spacing will
-                                              decline linearly from init to 
+                                              decline linearly from init to
                                               final over the first n_iter_main
-                                              where possible. 
+                                              where possible.
                                               Must be x >= 2.
                                               Alternatively 'Auto' to calculate
                                               based on the number of particles
-            final_spacing (int/str, optional): The final spacing between 
-                                               corr windows, in px. 
-                                               If only one iteration is 
-                                               requested, the initial grid 
+            final_spacing (int/str, optional): The final spacing between
+                                               corr windows, in px.
+                                               If only one iteration is
+                                               requested, the initial grid
                                                spacing will be used.
                                                Must be x >= 2
                                                Alternatively 'Auto' to calculate
@@ -685,27 +685,27 @@ class AdaptStructSettings():
                                     Default: 'struc_cub'
             part_detect (str, optional): The type of particle detection to use
             sd_P_target (int, optional): The number of particles to target per
-                                         kernel when estimating the seeding 
-                                         density. 
+                                         kernel when estimating the seeding
+                                         density.
                                          default = 20
                                          Refer to piv_image.calc_seeding_density
                                          for more information
-            target_init_NI (int, optional): The number of particles to target 
+            target_init_NI (int, optional): The number of particles to target
                                             per correlation window in the first
                                             iteration.
-                                            Considering AIW, it is possible the 
-                                            resulting window will be 
-                                            significantly larger depending on 
+                                            Considering AIW, it is possible the
+                                            resulting window will be
+                                            significantly larger depending on
                                             the underlying displacement.
                                             default = 20.
-            target_fin_NI (int, optional): The number of particles to target 
+            target_fin_NI (int, optional): The number of particles to target
                                            per correlation window in the last
                                            iteration.
                                            Unlike the initial target, the final
                                            WS should contain approximately this
-                                           many particles, depending on the 
+                                           many particles, depending on the
                                            accuracy of particle detection and
-                                           seeding density estimation 
+                                           seeding density estimation
                                            default = 8.
         """
 
@@ -968,35 +968,35 @@ class AdaptSettings():
 
         Parameters
         ----------
-        init_WS : int or str, optional 
+        init_WS : int or str, optional
             Initial window size, if numeric, must be odd and 5 <= init_WS <= 245
-            Otheriwse 'auto', where the window size will be calculated using the 
-            adaptive initial window routine. 
+            Otheriwse 'auto', where the window size will be calculated using the
+            adaptive initial window routine.
             Default 'auto'.
         final_WS : int or str, optional
             Final window size, must be odd and 5 <= final_WS <= 245
-            Otheriwse 'auto', where the window size will be calculated 
+            Otheriwse 'auto', where the window size will be calculated
             according to the seeding density
             Default 'auto'
         init_N_windows : int, optional
-            Initial number of windows to be used in the first iteration. 
-            The number of windows will increase linearly from init to final 
+            Initial number of windows to be used in the first iteration.
+            The number of windows will increase linearly from init to final
             (see below) over the first n_iter_main iterations.
             Default 2,500
         final_N_windows : int, optional
-            Final number of windows to have in the analysis after n_iter_main 
+            Final number of windows to have in the analysis after n_iter_main
             iterations.
             Can be more or less than init_N_windows.
             Default 10,000
         n_iter_main : int, optional
-            Number of main iterations, wherein the WS and spacing will reduce 
-            from init_WS to final_WS Must be 1 <= n_iter_main <= 10 
-            If the number of main iterations is 1 then the final_WS and 
+            Number of main iterations, wherein the WS and spacing will reduce
+            from init_WS to final_WS Must be 1 <= n_iter_main <= 10
+            If the number of main iterations is 1 then the final_WS and
             final_N_windows is ignored
             Default 3
         n_iter_ref : int, optional
-            Number of refinement iterations, where the WS and locations remain 
-            fixed, however, subsequent iterations are performed to improve 
+            Number of refinement iterations, where the WS and locations remain
+            fixed, however, subsequent iterations are performed to improve
             the solution. Must be 0 <= n_iter_ref <= 10
             Default 2
         vec_val : str, optional
@@ -1012,21 +1012,21 @@ class AdaptSettings():
             Options: 'simple', 'local_thr'
             Default: 'simple'
         sd_P_target : int, optional
-            The number of particles to target per kernel when estimating 
-            the seeding density. 
+            The number of particles to target per kernel when estimating
+            the seeding density.
             Refer to piv_image.calc_seeding_density for more information
             Default = 20
         target_init_NI : int, optional
-            The number of particles to target per correlation window in the 
-            first iteration. Considering AIW, it is possible the resulting 
-            window will be significantly larger depending on the underlying 
+            The number of particles to target per correlation window in the
+            first iteration. Considering AIW, it is possible the resulting
+            window will be significantly larger depending on the underlying
             displacement.
             Default = 20.
         target_fin_NI (int, optional
             The number of particles to target per correlation window in the last
-            iteration. Unlike the initial target, the final WS should contain 
-            approximately this many particles, depending on the accuracy of 
-            particle detection and seeding density estimation 
+            iteration. Unlike the initial target, the final WS should contain
+            approximately this many particles, depending on the accuracy of
+            particle detection and seeding density estimation
             Default = 8.
         """
 
@@ -1055,7 +1055,7 @@ class AdaptSettings():
 
         Returns
         -------
-            Bool: 
+            Bool:
                 Whether the two WidimSettings match
         """
 
@@ -1097,8 +1097,8 @@ class AdaptSettings():
         ----------
         value : int or string
             Initial window size, if numeric, must be odd and 5 <= init_WS <= 245
-            Otheriwse 'auto', where the window size will be calculated using the 
-            adaptive initial window routine.                                 
+            Otheriwse 'auto', where the window size will be calculated using the
+            adaptive initial window routine.
         """
 
         if value is None or value == 'auto':
@@ -1126,7 +1126,7 @@ class AdaptSettings():
         ----------
         value : int or str
             Final window size, must be odd and 5 <= final_WS <= 245
-            Otheriwse 'auto', where the window size will be calculated 
+            Otheriwse 'auto', where the window size will be calculated
             according to the seeding density
             Default 'auto'
         """
@@ -1155,7 +1155,7 @@ class AdaptSettings():
         Parameters
         ----------
         value : int
-            Initial number of windows to be used in the first iteration. 
+            Initial number of windows to be used in the first iteration.
         """
 
         if int(value) != value:
@@ -1192,9 +1192,9 @@ class AdaptSettings():
 
         Parameters
         ----------
-        value : int 
-            Number of main iterations, wherein the WS and spacing will reduce 
-            from init_WS to final_WS 1 <= n_iter_main <= 10 
+        value : int
+            Number of main iterations, wherein the WS and spacing will reduce
+            from init_WS to final_WS 1 <= n_iter_main <= 10
             If the number of main iterations is 1 then the final_WS is ignored
         """
         if int(value) != value:
@@ -1217,8 +1217,8 @@ class AdaptSettings():
 
         Parameters
         ----------
-        value : int 
-            Number of refinement iterations, where the WS and locations remain 
+        value : int
+            Number of refinement iterations, where the WS and locations remain
             fixed, but subsequent iterations are performed to improve the soln
             0 <= n_iter_ref <= 10
         """
@@ -1245,7 +1245,7 @@ class AdaptSettings():
 
         Parameters
         ----------
-        value : str 
+        value : str
             Type of vector validation to perform.
             Options: 'NMT', None
         """
@@ -1267,7 +1267,7 @@ class AdaptSettings():
 
         Parameters
         ----------
-        value : int 
+        value : int
             Type of interpolation to perform
             Options: 'struc_lin', 'struc_cub'
         """
