@@ -537,7 +537,7 @@ def structured_adaptive_analysis(img, settings, **kwargs):
                 # create correlation windows
                 dist = distribution.Distribution.from_locations(xx,
                                                                 yy,
-                                                                ws_seed_init)
+                                                                ws_seed_init[yy, xx])
 
                 # analyse the windows
                 vprint(BASIC, "Analysing first iteration with AIW")
