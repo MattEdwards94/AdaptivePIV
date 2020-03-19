@@ -495,3 +495,32 @@ class DensePredictor:
         fig, ax = plt.subplots()
         im = ax.imshow(self.magnitude(), **kwargs)
         ax.figure.colorbar(im)
+
+    def vorticity(self, h=None):
+        """Calculates the vorticity of the displacement field, calculated as
+
+        w = vdx - udy
+
+        Uses a central difference scheme to obtain the gradients in x and y
+        Uses forward or backwards differencing at the edges of the domain.
+
+        Parameters
+        ----------
+        h : integer, optional
+            Specificies the spacing on which to calculate the vorticity.
+            By default None
+
+        Returns
+        -------
+        vorticity: ndarray
+            The vorticity of the displacement field.
+        """
+
+        if h is None:
+            h = 1
+
+        vdx = np.gradient(self.v[::h, ::h], h, axis=1)
+        udy = np.gradient(self.u[::h, ::h], h, axis=0)
+
+        return vdx - udy
+
