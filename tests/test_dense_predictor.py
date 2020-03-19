@@ -529,7 +529,7 @@ def test_load_true_densepredictor():
     """
 
     # the flowtype for a 5 pixel horizontal flow is 39:
-    exp = dense_predictor.DensePredictor.from_dimensions((500, 500), (5, 0))
+    exp = dense_predictor.DensePredictor.from_dimensions((500, 500), (0.7, 0))
     # overwrite utilities.root_path() such that we look in the data folder
     # instead of the main folder
     import PIV.utilities

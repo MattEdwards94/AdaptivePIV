@@ -44,7 +44,7 @@ def test_ensemble_solution_init_known_disp_field():
     assert ensR.settings == settings
     assert ensR.flowtype == flowtype
     assert ensR.u is ensR.v is ensR.n_images is None
-    exp = dense_predictor.DensePredictor.from_dimensions((500, 500), (5, 0))
+    exp = dense_predictor.DensePredictor.from_dimensions((500, 500), (0.7, 0))
     assert ensR.dp_true == exp
 
 
