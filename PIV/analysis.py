@@ -950,6 +950,148 @@ class AdaptStructSettings():
         self._interp = value
 
 
+def adaptive_analysis(img, settings):
+    """Analyse the image specified by img using an adaptive analysis approach
+
+    Parameters
+    ----------
+    img : PIVImage
+        The piv image object containing the image intensities and the mask
+        information
+    settings : AdaptSettings
+        Settings class instructing how to analyse the image
+    """
+
+    # set the verbosity level
+    prev_verb = PIV.utilities._verbosity
+    PIV.utilities._verbosity = settings.verbosity
+
+    img_def = img
+    dp = dense_predictor.DensePredictor(
+        np.zeros(img.dim), np.zeros(img.dim), img.mask)
+
+    # if one of init/final WS are auto, we will need the seeding info
+    if 'auto' in [settings.init_WS, settings.final_WS]:
+        img.calc_seed_density(method=settings.part_detect,
+                              P_target=settings.sd_P_target)
+        min_sd = np.minimum(img.sd_IA, img.sd_IB)
+        # if ends up being 0, just assume it is some low value
+        min_sd[min_sd == 0] = 0.0021
+
+    if settings.final_WS == 'auto':
+        # get WS based on seeding only.
+        ws_final = utilities.round_to_odd(np.sqrt(settings.target_fin_NI /
+                                                  min_sd))
+    else:
+        ws_final = settings.final_WS * np.ones(img_def.dim)
+
+    phi = np.ones(img.dim)*img.mask
+
+    for _iter in range(1, settings.n_iter_main+1):
+        vprint(BASIC, "Starting main iteration, {}".format(_iter))
+
+        n_windows = np.floor(settings.final_N_windows *
+                             _iter/settings.n_iter_main)
+
+        vprint(BASIC, "Creating sampling distribution")
+        if settings.distribution_method == "AIS":
+            xy_dist = distribution.AIS(phi, img.mask, n_windows)
+            xx, yy = xy_dist[:, 1], xy_dist[:, 0]
+            dist = distribution.Distribution.from_locations(xy)
+        else:
+            raise NotImplementedError("Distribution method not implemented")
+
+        vprint(BASIC, "{} windows".format(len(xx)))
+
+        # correlate using adaptive initial window size.
+        if _iter == 1:
+            # if the initial WS is auto, calculate this
+            if settings.init_WS == 'auto':
+                # get WS based on seeding only.
+                ws_seed_init = utilities.round_to_odd(
+                    np.sqrt(settings.target_init_NI / min_sd))
+                ws_seed_init[np.isnan(ws_seed_init)] = 97
+
+                # create correlation windows
+                dist = distribution.Distribution.from_locations(xx, yy,
+                                                                ws_seed_init[yy, xx])
+
+                # analyse the windows
+                vprint(BASIC, "Analysing first iteration with AIW")
+                dist.AIW(img_def, dp)
+
+                # need to store the actual initial WS for subsequent iterations
+                ws_first_iter = dist.interp_WS(img_def.mask)
+            else:
+                # just create and correlate the windows
+                dist = distribution.Distribution.from_locations(xx,
+                                                                yy,
+                                                                settings.init_WS)
+
+                ws_first_iter = np.ones(img_def.dim) * settings.init_WS
+                vprint(BASIC, "Analysing first iteration with uniform window size")
+                dist.correlate_all_windows(img_def, dp)
+
+            if settings.vec_val is not None:
+                vprint(BASIC, "Validate vectors")
+                dist.validation_NMT_8NN()
+
+            vprint(BASIC, "Interpolating")
+            u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+            dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+            # dp.plot_displacement_field()
+
+            vprint(BASIC, "Deforming image")
+            img_def = img.deform_image(dp)
+
+        else:
+            # get WS for current iteration,
+            ws = ws_first_iter + ((_iter-1) / (settings.n_iter_main - 1)) * \
+                (ws_final - ws_first_iter)
+            ws = utilities.round_to_odd(ws)
+            ws[np.isnan(ws)] = 5
+            ws = ws[yy, xx]
+
+            # create correlation windows
+            dist = distribution.Distribution.from_locations(xx, yy, ws)
+
+            # correlate windows
+            dist.correlate_all_windows(img_def, dp)
+
+            if settings.vec_val is not None:
+                vprint(BASIC, "Validate vectors")
+                dist.validation_NMT_8NN()
+
+            vprint(BASIC, "Interpolating")
+            u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+            dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+
+            vprint(BASIC, "Deforming image")
+            img_def = img.deform_image(dp)
+
+    vprint(BASIC, "Refinement iterations")
+    for _iter in range(1, settings.n_iter_ref + 1):
+
+        vprint(BASIC, "Correlating all windows")
+        dist.correlate_all_windows(img_def, dp)
+
+        if settings.vec_val is not None:
+            vprint(BASIC, "validate vectors")
+            dist.validation_NMT_8NN()
+
+        vprint(BASIC, "Interpolating")
+        u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+        dp = PIV.DensePredictor(u, v, img_def.mask)
+
+        vprint(BASIC, "Deforming image")
+        img_def = img.deform_image(dp)
+
+    # reset verbosity
+    PIV.utilities._verbosity = prev_verb
+
+    return dp
+
+
 class AdaptSettings():
     """
     Class to hold the settings required for an unstructured, adaptive, analysis.
