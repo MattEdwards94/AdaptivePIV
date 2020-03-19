@@ -88,6 +88,12 @@ class EnsembleSolution():
                               np.sqrt(tot_square.v),
                               self.mask)
 
+    @property
+    def mean(self):
+        return dense_predictor.DensePredictor(self.u.mean,
+                                              self.v.mean,
+                                              self.mask)
+
     @staticmethod
     def from_file(filename):
         """Loads a previously computed solution from the .mat file
