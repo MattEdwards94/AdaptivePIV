@@ -524,3 +524,48 @@ class DensePredictor:
 
         return vdx - udy
 
+    def spatial_variance(self, kern_size=33):
+        """Calculates the so-called spatial variance of the displacement field
+
+        For each pixel, the standard deviation of both u and v are calculated 
+        over a small region of space.
+
+        Parameters
+        ----------
+        kern_size : integer
+            The region of space over which the variance of the displacement 
+            field should be obtained.
+
+        Returns
+        -------
+        u_var : ndarray
+            The variance of the horizontal displacement component
+        v_var : ndarray
+            The variance of the vertical displacement component
+
+        """
+
+        # we need to calculate the mean over the kernel for each pixel
+        # first get the sum over the kernel for each pixel
+        kern_sum_u = self.u_sat.fixed_filter_convolution(kern_size)
+        kern_sum_v = self.v_sat.fixed_filter_convolution(kern_size)
+        # get the amount of non-masked image so we can correctly calculate mean
+        area = self.mask_sat.fixed_filter_convolution(kern_size)
+
+        mn_u, mn_v = kern_sum_u/area, kern_sum_v/area
+        mn_u[~np.isfinite(mn_u)] = 0
+        mn_v[~np.isfinite(mn_v)] = 0
+
+        # now we need to get the squared deviations of each pixel to the mean
+        sq_dev_u = utils.SummedAreaTable((self.u - mn_u)**2)
+        sq_dev_v = utils.SummedAreaTable((self.v - mn_v)**2)
+
+        # get the sum over the kernel
+        sq_dev_u_sum = sq_dev_u.fixed_filter_convolution(kern_size)
+        sq_dev_v_sum = sq_dev_v.fixed_filter_convolution(kern_size)
+
+        # finally, normalise by the area
+        u_var = sq_dev_u_sum/area
+        v_var = sq_dev_v_sum/area
+
+        return u_var, v_var
