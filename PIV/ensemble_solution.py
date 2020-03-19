@@ -88,6 +88,32 @@ class EnsembleSolution():
                               np.sqrt(tot_square.v),
                               self.mask)
 
+    @staticmethod
+    def from_file(filename):
+        """Loads a previously computed solution from the .mat file
+
+        Parameters
+        ----------
+        filename : string
+            Filename for the solution to be loaded.
+        """
+
+        contents = sio.loadmat(filename)
+        out = EnsembleSolution(contents["settings"], contents["flowtype"])
+
+        out.u = utilities.MeanAndVarCalculator(contents["u"][0][0][0])
+        out.u.S = contents["u"][0][0][1]
+        out.u.N = contents["u"][0][0][2]
+
+        out.v = utilities.MeanAndVarCalculator(contents["v"][0][0][0])
+        out.v.S = contents["v"][0][0][1]
+        out.v.N = contents["v"][0][0][2]
+
+        out.n_images = contents["n_images"]
+        out.flowtype = contents["flowtype"]
+
+        return out
+
     def add_displacement_field(self, dp):
         """Adds a displacement field to the ensemble solution, updating
         statistics such as the mean, standard deviation, and number of
@@ -129,12 +155,3 @@ class EnsembleSolution():
 
     def plotting(self):
         pass
-
-
-def load_ens_results(self, filename):
-    """loads the .mat file and initialises the EnsembleSolution object
-
-    Args:
-        filename (string): Filename of the .mat file to load
-    """
-    pass
