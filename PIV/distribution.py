@@ -892,6 +892,9 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
                                            If no seed points are given, the
                                            seed point is randomly chosen.
                                            Defaults to None.
+    Returns:
+        out_list (N-by-2 ndarray): The x and y coordinates of the distribution's 
+                                samples
     """
 
     dim = np.shape(pdf)
