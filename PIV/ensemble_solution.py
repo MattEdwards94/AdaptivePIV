@@ -90,9 +90,9 @@ class EnsembleSolution():
 
     @property
     def mean(self):
-        return dense_predictor.DensePredictor(self.u.mean,
-                                              self.v.mean,
-                                              self.mask)
+        return DensePredictor(self.u.mean,
+                              self.v.mean,
+                              self.mask)
 
     @staticmethod
     def from_file(filename):
