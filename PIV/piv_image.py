@@ -997,6 +997,88 @@ def detect_particles_max_filter(img, mask=None):
     return (img == mf) & (img >= thr) & (mask == 1)
 
 
+def detect_particles_local_threshold(img, mask=None,
+                                     dyn_range_thr=3.5, rel_int_thr=0.5):
+    """Detect particles based on a maximum filter, followed by a local
+    threshold determination based on the current peak intensity value relative
+    to the surrounding intensity values
+
+    Arguments:
+        img {ndarray} -- An array containing pixel intensity values
+        mask {ndarray} -- Array containing mask values. Where the mask is 0, 
+                          no particles will be detected.
+        dyn_range_thr {float} -- The minimum ratio of particle intensity 
+                                 relative to the median of the surrounding
+                                 minimum intensity values.
+        rel_int_thr {float} -- The minimum ratio of local particle intensity to 
+                               the global maximum particle intensity.
+
+    Returns:
+        x, y {ndarray} -- 2, Nx1 arrays of particle locations in the domain.
+
+    """
+
+    if mask is None:
+        mask = np.ones_like(img)
+
+    ws, rad = 31, 15
+
+    # get peaks and troughs
+    loc_max = im_filter.maximum_filter(img, size=3)
+    loc_min = im_filter.minimum_filter(img, size=3)
+
+    # create grid over which to evaluate the median values
+    n_rows, n_cols = np.shape(img)
+    xx, yy = (np.arange(0, n_cols, 15),
+              np.arange(0, n_rows, 15))
+
+    min_med = np.empty((len(yy), len(xx)))
+    med_surr = np.empty((len(yy), len(xx)))
+
+    for i, y in enumerate(yy):
+        for j, x in enumerate(xx):
+            # ignore if masked
+            if mask[y, x] == 0:
+                min_med[i, j] = 0
+                med_surr[i, j] = 0
+                continue
+
+            # get bounds for region extraction, considering image size
+            l = int(max(0, x - rad))
+            r = int(min(n_cols, x+rad))
+            b = int(max(0, y-rad))
+            t = int(min(n_rows, y+rad))
+
+            # get median of minimum values in neighbourhood
+            neigh_min_vals = loc_min[b:t, l:r]
+            bf = img[b:t, l:r]
+            surrounding_med = np.median(neigh_min_vals[neigh_min_vals == bf])
+
+            min_med[i, j] = surrounding_med
+            med_surr[i, j] = np.median(np.abs(bf-surrounding_med))
+
+    # get list of particle locations so we can interpolate to them
+    y_part, x_part = np.where(np.logical_and(loc_max == img, mask == 1))
+    min_med_part = interp.RegularGridInterpolator((yy, xx), min_med,
+                                                  bounds_error=False,
+                                                  fill_value=None)
+    min_med_part = min_med_part((y_part, x_part))
+    med_surr_part = interp.RegularGridInterpolator((yy, xx), med_surr,
+                                                   bounds_error=False,
+                                                   fill_value=None)
+    med_surr_part = med_surr_part((y_part, x_part))
+
+    # calculate the difference from the particle intensity to the surrounding
+    # median of minimums
+    part_values = img[loc_max == img]
+    delta_int = np.abs(part_values - min_med_part)
+
+    ind = np.logical_and((delta_int / med_surr_part) >= dyn_range_thr,
+                         part_values > np.max(part_values) * rel_int_thr)
+
+    return x_part[ind], y_part[ind]
+
+
 def calc_seeding_density(IA, mask=None,
                          method='simple',
                          filt_target_NI=20,
