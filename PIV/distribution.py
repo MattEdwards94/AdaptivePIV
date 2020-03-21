@@ -278,33 +278,15 @@ class Distribution:
             if (not np.all(dim == int(dim))) or np.any(dim < 1):
                 raise ValueError("Dimensions must be positive integer")
 
-        # reshape the data onto a structured grid
         xy, uv = self.get_all_xy(), self.get_all_uv()
-        x, y, u, v = xy[:, 0], xy[:, 1], uv[:, 0], uv[:, 1]
-        x2d, y2d, u2d, v2d = utilities.auto_reshape(x, y, u, v)
 
-        # now we need to handle extrapolation
-        x, y, u, v = (utilities.lin_extrap_edges(x2d),
-                      utilities.lin_extrap_edges(y2d),
-                      utilities.lin_extrap_edges(u2d),
-                      utilities.lin_extrap_edges(v2d), )
+        if method in ["struc_lin", "struc_cub"]:
+            # reshape the data onto a structured grid
+            x, y, u, v = xy[:, 0], xy[:, 1], uv[:, 0], uv[:, 1]
+            x2d, y2d, u2d, v2d = utilities.auto_reshape(x, y, u, v)
 
-        # calculate evaluation range
-        xe = np.arange(eval_dim[1])
-        ye = np.arange(eval_dim[0])
-
-        if method == "struc_lin":
-            # interpolate using scipy
-            f_u = interp.interp2d(x[0, :], y[:, 0], u, kind='linear')
-            f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='linear')
-            u_int = f_u(xe, ye)
-            v_int = f_v(xe, ye)
-        elif method == "struc_cub":
-            # interpolate using scipy
-            f_u = interp.interp2d(x[0, :], y[:, 0], u, kind='cubic')
-            f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='cubic')
-            u_int = f_u(xe, ye)
-            v_int = f_v(xe, ye)
+            u_int, v_int = interp_disp_structured(x2d, y2d, u2d, v2d,
+                                                  eval_dim, method)
 
         return u_int, v_int
 
@@ -482,6 +464,62 @@ class Distribution:
 
         return ex_points, ex_vals
 
+
+def interp_disp_structured(x, y, u, v, eval_dim, method):
+    """Interpolates displacement values onto a pixel grid
+
+    Extrapolates values linearly beyond the convex hull of x,y 
+
+    Parameters
+    ----------
+    x : 2d array
+        Array of x coordinates of samples
+    y : 2d array
+        Array of y coordinates of samples
+    u : 2d array
+        Array of horizontal displacements
+    v : 2d array
+        Array of vertical displacements
+    eval_dim : (2 x 1) int
+        Tuple of dimensions indicating the number of pixels in each direction
+        that the displacement should be interpolated
+        Values beyond the convex hull of x, y are linearly extrapolated
+    method: str
+        Indicates how the values should be interpolated
+        Options: "struc_lin", "struc_cub"
+
+    Returns
+    -------
+    u, v : ndarray
+        Pixelwise displacement values
+    """
+
+    # now we need to handle extrapolation
+    x, y, u, v = (utilities.lin_extrap_edges(x),
+                  utilities.lin_extrap_edges(y),
+                  utilities.lin_extrap_edges(u),
+                  utilities.lin_extrap_edges(v), )
+
+    # calculate evaluation range
+    xe = np.arange(eval_dim[1])
+    ye = np.arange(eval_dim[0])
+
+    if method == "struc_lin":
+        # interpolate using scipy
+        f_u = interp.interp2d(x[0, :], y[:, 0], u, kind='linear')
+        f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='linear')
+        u_int = f_u(xe, ye)
+        v_int = f_v(xe, ye)
+    elif method == "struc_cub":
+        # interpolate using scipy
+        f_u = interp.interp2d(x[0, :], y[:, 0], u, kind='cubic')
+        f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='cubic')
+        u_int = f_u(xe, ye)
+        v_int = f_v(xe, ye)
+    else:
+        raise ValueError("Bad method")
+
+    return u_int, v_int
 
 
 def NMT_detection(u, v, nb_ind, eps=0.1):
