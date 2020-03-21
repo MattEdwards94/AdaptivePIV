@@ -5,7 +5,7 @@ from PIV.utilities import vprint
 import PIV.corr_window as corr_window
 from scipy import interpolate as interp
 import skimage.segmentation as sk_seg
-from scipy.spatial import Delaunay, ConvexHull
+from scipy.spatial import Delaunay, ConvexHull, Voronoi
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import random
@@ -426,6 +426,62 @@ class Distribution:
 
         return f_ws_interp(np.arange(np.shape(mask)[1]),
                            np.arange(np.shape(mask)[0])) * mask
+
+    def extend_convex_hull(self, dim):
+        """Extends the convex hull beyond the edge of the domain so that we 
+        don't have to extrapolate
+
+        By reflecting in x AND y, we guarantee that the whole domain will be 
+        within the convex hull of the new distribution
+
+        Parameters
+        ----------
+        dim : (int, int)
+            Dimensions of the domain in pixels
+
+        Returns
+        -------
+        ex_points : ndarray
+            The locations [x, y] of the points added beyond the domain
+        ex_vals : ndarray
+            The reflected values beyond the domain
+        """
+
+        ex_points, ex_vals = np.empty((0, 2)), np.empty((0, 2))
+        vor = Voronoi(self.get_all_xy())
+        uv = self.get_all_uv()
+
+        # loop over regions relating to each point
+        # ind is the index of the region
+        # ii is the index of the point
+        for ii, ind in enumerate(vor.point_region):
+            region = vor.regions[ind]
+            # region contains the indices of the vertices forming the region
+            # if the region is open, it will contain a -1
+            if -1 in region:
+                # if the region is open, then we need to reflect the current
+                # point in both x and y. The current point has index ii
+                x, y = vor.points[ii, :]
+                f = uv[ii, :]
+
+                # reflect in x
+                if x <= dim[1]/2:
+                    ex_points = np.append(ex_points, [[-x, y]], axis=0)
+                else:
+                    ex_points = np.append(ex_points, [[2*dim[1] - x, y]],
+                                          axis=0)
+                ex_vals = np.append(ex_vals, [uv[ii, :]], axis=0)
+
+                # reflect in y
+                if y <= dim[0]/2:
+                    ex_points = np.append(ex_points, [[x, -y]], axis=0)
+                else:
+                    ex_points = np.append(ex_points, [[x, 2*dim[0] - y]],
+                                          axis=0)
+                ex_vals = np.append(ex_vals, [uv[ii, :]], axis=0)
+
+        return ex_points, ex_vals
+
 
 
 def NMT_detection(u, v, nb_ind, eps=0.1):
