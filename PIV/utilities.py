@@ -470,5 +470,31 @@ def vprint(thr, *args, **kwargs):
         print(*args, **kwargs)
 
 
+def franke_function(x, y, max_x=1, max_y=1):
+    """Returns the Franke function for all input locations
+
+    refer to https://www.sfu.ca/~ssurjano/franke2d.html for more
+
+    Parameters
+    ----------
+    x : array_like
+        The horizontal locations of each query point
+    y : array_like
+        The vertical locations of each query point
+    max_x : int, optional
+        The term used to scale the domain in x. By default, the domain is only
+        defined between 0 and 1. Above this and values get very small very quick
+        By default 1
+    max_y : int, optional
+        The term used to scale the domain in y. By default, the domain is only
+        defined between 0 and 1. Above this and values get very small very quick
+        By default 1
+    """
+    return (.75 * np.exp(-(9 * x/max_x - 2) ** 2 / 4.0 - (9 * y/max_y - 2) ** 2 / 4.0) +
+            .75 * np.exp(-(9 * x/max_x + 1) ** 2 / 49.0 - (9 * y/max_y + 1) / 10.0) +
+            .5 * np.exp(-(9 * x/max_x - 7) ** 2 / 4.0 - (9 * y/max_y - 3) ** 2 / 4.0) -
+            .2 * np.exp(-(9 * x/max_x - 4) ** 2 - (9 * y/max_y - 7) ** 2))
+
+
 if __name__ == '__main__':
     pass
