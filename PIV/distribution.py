@@ -269,7 +269,7 @@ class Distribution:
             ValueError: if the method or evaluation dimensions are not valid
         """
         # check the input method
-        acc_options = ["struc_lin", "struc_cub"]
+        acc_options = ["struc_lin", "struc_cub", "unstruc_cub"]
         if method not in acc_options:
             raise ValueError("Method not handled")
 
@@ -287,6 +287,25 @@ class Distribution:
 
             u_int, v_int = interp_disp_structured(x2d, y2d, u2d, v2d,
                                                   eval_dim, method)
+        else:
+            # unstructured
+
+            # extend convex hull
+            ex_points, ex_vals = self.extend_convex_hull(eval_dim)
+            xy = np.append(xy, ex_points, axis=0)
+            uv = np.append(uv, ex_vals, axis=0)
+
+            f_u = interp.CloughTocher2DInterpolator(xy, uv[:, 0])
+            f_v = interp.CloughTocher2DInterpolator(xy, uv[:, 1])
+
+            xe, ye = np.meshgrid(np.arange(eval_dim[1]),
+                                 np.arange(eval_dim[0]))
+            eval_coord_list = np.array([xe.ravel(), ye.ravel()]).T
+
+            u_int, v_int = f_u(eval_coord_list), f_v(eval_coord_list)
+            u_int = u_int.reshape(np.shape(xe))
+            v_int = v_int.reshape(np.shape(xe))
+
 
         return u_int, v_int
 
