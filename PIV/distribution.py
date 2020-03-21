@@ -251,7 +251,7 @@ class Distribution:
 
         return flag
 
-    def interp_to_densepred(self, method, eval_dim):
+    def interp_to_densepred(self, method, eval_dim, inter_h=1):
         """
         Interpolates the displacement vectors held by the distribution object
         onto a pixel grid from 0 to the output dimensions
@@ -298,14 +298,17 @@ class Distribution:
             f_u = interp.CloughTocher2DInterpolator(xy, uv[:, 0])
             f_v = interp.CloughTocher2DInterpolator(xy, uv[:, 1])
 
-            xe, ye = np.meshgrid(np.arange(eval_dim[1]),
-                                 np.arange(eval_dim[0]))
+            xe, ye = np.meshgrid(np.arange(0, eval_dim[1], inter_h),
+                                 np.arange(0, eval_dim[0], inter_h))
             eval_coord_list = np.array([xe.ravel(), ye.ravel()]).T
 
             u_int, v_int = f_u(eval_coord_list), f_v(eval_coord_list)
             u_int = u_int.reshape(np.shape(xe))
             v_int = v_int.reshape(np.shape(xe))
 
+            if inter_h > 1:
+                u_int, v_int = interp_disp_structured(xe, ye, u_int, v_int,
+                                                      eval_dim, "struc_cub")
 
         return u_int, v_int
 
