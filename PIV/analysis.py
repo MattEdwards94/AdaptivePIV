@@ -1101,7 +1101,7 @@ class AdaptSettings():
                  init_WS=None, final_WS=None,
                  init_N_windows=2500, final_N_windows=10000,
                  n_iter_main=3, n_iter_ref=2,
-                 vec_val='NMT', interp='struc_cub',
+                 vec_val='NMT', interp='unstruc_cub',
                  part_detect='simple',
                  sd_P_target=20,
                  target_init_NI=20, target_fin_NI=8,
@@ -1414,7 +1414,7 @@ class AdaptSettings():
             Options: 'struc_lin', 'struc_cub'
         """
 
-        options = ['struc_lin', 'struc_cub']
+        options = ['struc_lin', 'struc_cub', 'unstruc_cub']
         if value not in options:
             raise ValueError("Interpolation method not handled")
 
