@@ -1037,7 +1037,8 @@ def adaptive_analysis(img, settings):
                 dist.validation_NMT_8NN()
 
             vprint(BASIC, "Interpolating")
-            u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+            u, v = dist.interp_to_densepred(settings.interp, img_def.dim,
+                                            inter_h=4)
             dp = dense_predictor.DensePredictor(u, v, img_def.mask)
             # dp.plot_displacement_field()
 
@@ -1063,7 +1064,8 @@ def adaptive_analysis(img, settings):
                 dist.validation_NMT_8NN()
 
             vprint(BASIC, "Interpolating")
-            u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+            u, v = dist.interp_to_densepred(settings.interp, img_def.dim,
+                                            inter_h=4)
             dp = dense_predictor.DensePredictor(u, v, img_def.mask)
 
             vprint(BASIC, "Deforming image")
@@ -1080,7 +1082,8 @@ def adaptive_analysis(img, settings):
             dist.validation_NMT_8NN()
 
         vprint(BASIC, "Interpolating")
-        u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+        u, v = dist.interp_to_densepred(settings.interp, img_def.dim,
+                                        inter_h=4)
         dp = PIV.DensePredictor(u, v, img_def.mask)
 
         vprint(BASIC, "Deforming image")
