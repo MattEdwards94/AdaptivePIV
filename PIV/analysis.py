@@ -1092,7 +1092,7 @@ def adaptive_analysis(img, settings):
     # reset verbosity
     PIV.utilities._verbosity = prev_verb
 
-    return dp
+    return dp, dist
 
 
 class AdaptSettings():
