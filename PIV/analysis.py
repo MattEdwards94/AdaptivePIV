@@ -1101,6 +1101,7 @@ class AdaptSettings():
                  init_WS=None, final_WS=None,
                  init_N_windows=2500, final_N_windows=10000,
                  n_iter_main=3, n_iter_ref=2,
+                 distribution_method='AIS',
                  vec_val='NMT', interp='unstruc_cub',
                  part_detect='simple',
                  sd_P_target=20,
@@ -1176,6 +1177,7 @@ class AdaptSettings():
         self.final_WS = final_WS
         self.init_N_windows = init_N_windows
         self.final_N_windows = final_N_windows
+        self.distribution_method = distribution_method
         self.n_iter_main = n_iter_main
         self.n_iter_ref = n_iter_ref
         self.vec_val = vec_val
