@@ -16,15 +16,26 @@ ESSENTIAL, BASIC, TERSE = 1, 2, 3
 def ensemble_widim(flowtype, im_start, im_stop, settings):
     """Analyses an ensemble of images and returns an EnsembleSolution object
 
-    Args:
-        flowtype (int): The flow type id. See image_info.all_flow_types()
-        im_start (int): The number of the first image in the series to analyse
-        im_stop (int): The number of the last image in the series to analyse
-                       Inclusive. i.e. 1-3 will analyse 1, 2, and 3
-        settings (dict): Settings to analyse the images with
+    Parameters
+    ----------
+    flowtype : int
+        The flow type id. See image_info.all_flow_types()
+    im_start : int
+        The number of the first image in the series to analyse
+    im_stop : int
+        The number of the last image in the series to analyse 
+        Inclusive. i.e. 1-3 will analyse 1, 2, and 3
+    settings : SettingsClass
+        Settings to analyse the images with. Must agree with the method
+        e.g. 
+        'widim' uses WidimSettings
+        'structured_adaptive_analysis' uses AdaptStructSettings
+        'adaptive_analysis' uses AdaptSettings
 
-    Returns:
-        EnsembleSolution: An EnsembleSolution object. See ensemble_solution.py
+    Returns
+    solution: EnsembleSolution
+        An EnsembleSolution object. 
+        See ensemble_solution.py
     """
 
     # set the verbosity level
