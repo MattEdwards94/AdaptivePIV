@@ -997,7 +997,6 @@ def adaptive_analysis(img, settings):
         if settings.distribution_method == "AIS":
             xy_dist = distribution.AIS(phi, img.mask, n_windows)
             xx, yy = xy_dist[:, 1], xy_dist[:, 0]
-            dist = distribution.Distribution.from_locations(xy)
         else:
             raise NotImplementedError("Distribution method not implemented")
 
