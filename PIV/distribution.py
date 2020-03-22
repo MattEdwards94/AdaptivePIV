@@ -395,6 +395,26 @@ class Distribution:
                     # WS is ok
                     break
 
+    def interp_WS_unstructured(self, mask):
+        """Performs nearest neighbhour interpolation to get the WS
+
+        Parameters
+        ----------
+        mask : ndarray
+            Array containing zeros at the locations of the domain 
+            not to be considered. 
+
+        Returns
+        -------
+        WS_array : ndarray
+            The interpolated WS over the domain, zero where the mask is zero
+        """
+        xe, ye = np.meshgrid(np.arange(np.shape(mask)[1]),
+                             np.arange(np.shape(mask)[0]))
+        f_ws = interp.NearestNDInterpolator(self.get_all_xy(),
+                                            self.get_all_WS())
+        return f_ws((xe.ravel(), ye.ravel())).reshape(np.shape(mask))
+
     def interp_WS(self, mask):
         """Interpolates the windows sizes onto a domain with the same dimensions
         as the mask.       

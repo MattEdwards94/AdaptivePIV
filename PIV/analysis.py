@@ -1021,7 +1021,7 @@ def adaptive_analysis(img, settings):
                 dist.AIW(img_def, dp)
 
                 # need to store the actual initial WS for subsequent iterations
-                ws_first_iter = dist.interp_WS(img_def.mask)
+                ws_first_iter = dist.interp_WS_unstructured(img_def.mask)
             else:
                 # just create and correlate the windows
                 dist = distribution.Distribution.from_locations(xx,
