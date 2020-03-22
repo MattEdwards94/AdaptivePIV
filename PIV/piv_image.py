@@ -294,16 +294,15 @@ class PIVImage:
 
         return PIVImage(IA_new, IB_new, self.mask)
 
-    def plot_images(self):
-        """Summary
+    def plot_images(self, *args, **kwargs):
+        """Plots the images side by side
+
+        See utilities.plot_adjacent_images for details on parameters
+
         """
-        plt.figure(1)
-        plt.imshow(self.IA, cmap='gray')
-        plt.title("IA")
-        plt.figure(2)
-        plt.imshow(self.IB, cmap='gray')
-        plt.title("IB")
-        plt.show()
+
+        utils.plot_adjacent_images(self.IA, self.IB, "IA", "IB",
+                                   *args, **kwargs)
 
     def plot_images_animation(self, fig=None):
         """Plots the images, flickering between A and B so you can see the 
