@@ -13,11 +13,15 @@ from PIV.utilities import vprint
 ESSENTIAL, BASIC, TERSE = 1, 2, 3
 
 
-def ensemble_widim(flowtype, im_start, im_stop, settings):
+def ensemble_analysis(method, flowtype, im_start, im_stop, settings):
     """Analyses an ensemble of images and returns an EnsembleSolution object
 
     Parameters
     ----------
+    method : function handle
+        Handle to the function which is supposed to be used for the ensemble
+        analysis. 
+        Examples: 'widim', 'structured_adaptive_analysis' or 'adaptive_analysis'
     flowtype : int
         The flow type id. See image_info.all_flow_types()
     im_start : int
@@ -46,8 +50,8 @@ def ensemble_widim(flowtype, im_start, im_stop, settings):
 
     for i in range(im_start, im_stop + 1):
         vprint(1, "Analysing image {}".format(i))
-        dp = widim(PIV.PIVImage.from_flowtype(flowtype, i),
-                   settings)
+        dp = method(PIV.PIVImage.from_flowtype(flowtype, i),
+                    settings)
         ensR.add_displacement_field(dp)
 
     # reset verbosity
