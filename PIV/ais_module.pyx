@@ -505,6 +505,25 @@ cpdef AIS(double[:, :] pdf, double[:, :] mask,
     pdf_sat = SummedAreaTable(pdf)
     mask_sat = SummedAreaTable(mask)
 
+    out_list = _AIS(pdf_sat, mask, mask_sat, n_points, bf_refine, 
+                    ex_points, q, out_list, disk_buf)
+                
+    return out_list
+
+cdef _AIS(SummedAreaTable pdf_sat, double[:, :] mask, 
+          SummedAreaTable mask_sat, int n_points, 
+          int bf_refine, double[:, :] ex_points,
+          list q, list out_list,
+          double[:, :] disk_buf):
+    """Actual AIS algorithm
+
+    Mask is passed in standalone and as a SAT, to prevent having to re-calculate
+    the SAT
+    """
+
+    cdef int n_rows, n_cols
+    n_rows, n_cols = np.shape(mask)
+
     # determine the initial estimate for r1
     cdef double K, r1
     K = pdf_sat.get_total_sum() / n_points
