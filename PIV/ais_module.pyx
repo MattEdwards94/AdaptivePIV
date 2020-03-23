@@ -462,28 +462,30 @@ cpdef AIS(double[:, :] pdf, double[:, :] mask,
     Distributes approximately n_points samples with a local density similar to
     that described by the pdf. Points will not be placed in the masked region.
 
-    Args:
-        pdf (ndarray): Probability density function describing the local target
-                       target density of the sample distribution
-        mask (ndarray): Binary mask indicating where points should not be placed
-                        A mask value of 0 indicates that points should ne be
-                        placed here.
-                        Must have the same dimensions as the input pdf
-        n_points (int): Approximate number of samples to place in the domain
-        bf_refine (int, optional): Ratio of number of pixels in the disk
-                                   buffer to the number of pixels in the domain.
-                                   Allows for more precise evaluation of disk
-                                   overlap at the expense of computational cost.
-                                   Defaults to 1.
-        ex_points (2D list int, optional): List of coordinates to seed the
-                                           distribution process with. Should
-                                           be a 2D array_like object (i.e. a
-                                           list or tuple of lists or tuples
-                                           containing the x and y location,
-                                           alternatively, a 2D numpy array).
-                                           If no seed points are given, the
-                                           seed point is randomly chosen.
-                                           Defaults to None.
+    Parameters
+    ----------
+    pdf : ndarray
+        Probability density function describing the local target target density 
+        of the sample distribution
+    mask : ndarray
+        Binary mask indicating where points should not be placed 
+        A mask value of 0 indicates that points should not be placed here.
+        Must have the same dimensions as the input pdf
+    n_points : int
+        Approximate number of samples to place in the domain
+    bf_refine : int, optional
+        Ratio of number of pixels in the disk buffer to the number of pixels 
+        in the domain.
+        Allows for more precise evaluation of disk overlap at the expense of 
+        computational cost.
+        Defaults to 1.                                
+    ex_points : 2D list int, optional
+        List of coordinates to seed the distribution process with. 
+        Should be a 2D array_like object (i.e. a list or tuple of lists or 
+        tuples containing the x and y location, alternatively, a 2D numpy 
+        array).
+        If no seed points are given, the seed point is randomly chosen.
+        Defaults to None.
     """
 
     if not np.any(mask):
