@@ -52,6 +52,8 @@ def ensemble_analysis(method, flowtype, im_start, im_stop, settings):
         vprint(1, "Analysing image {}".format(i))
         dp = method(PIV.PIVImage.from_flowtype(flowtype, i),
                     settings)
+        if type(dp) is tuple:
+            dp, dist = dp
         ensR.add_displacement_field(dp)
 
     # reset verbosity
