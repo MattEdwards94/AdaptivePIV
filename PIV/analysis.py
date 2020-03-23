@@ -999,7 +999,7 @@ def adaptive_analysis(img, settings):
         vprint(BASIC, "Creating sampling distribution")
         if settings.distribution_method == "AIS":
             xy_dist = distribution.AIS(phi, img.mask, n_windows)
-            xx, yy = xy_dist[:, 1], xy_dist[:, 0]
+            xx, yy = xy_dist[:, 0], xy_dist[:, 1]
         else:
             raise NotImplementedError("Distribution method not implemented")
 
