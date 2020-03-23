@@ -4,6 +4,7 @@ import PIV.utilities as utilities
 from PIV.utilities import vprint
 import PIV.corr_window as corr_window
 from scipy import interpolate as interp
+import skimage.segmentation as sk_seg
 from scipy.spatial import Delaunay, ConvexHull
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -893,7 +894,33 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
                                            Defaults to None.
     """
 
+    dim = np.shape(pdf)
+    mb = sk_seg.find_boundaries(mask, mode='inner')
+    # get the locations in terms of [y, x], and then switch to [x, y]
+    mask_bounds = np.argwhere(mb == True)[:, [1, 0]]
+    # get the locations of the image boundaries
+    bottom = [[x, 0] for x in range(dim[1])]
+    top = [[x, dim[0]-1] for x in range(dim[1])]
+    left = [[0, y] for y in range(dim[0])]
+    right = [[dim[1]-1, y] for y in range(dim[0])]
+    all_locs = np.concatenate((mask_bounds, left, right, top, bottom), axis=0)
+    # remove locations IN the mask
+    borders = all_locs[mask[all_locs[:, 1], all_locs[:, 0]] == True]
+    n_borders = np.shape(borders)[0]
+
+    # calculate the value of r1 - the initial disk size for AIS
+    r1 = np.sqrt(np.sum(mask, axis=None)/(np.pi * n_points))
+    # calculate how many samples to place around the borders
+    n = int(np.maximum(2, np.round(n_borders/(4*2*r1), 0)))
+
+    # place some points around these borders
+    ind = pdf_transform_1d(np.ones((n_borders, 1)), n)
+
+    ex_points = np.array(borders[ind, :]).astype(np.float64)
+
     return ais_module.AIS(pdf, mask, n_points, bf_refine, ex_points)
+
+
 def pdf_transform_1d(pdf, n_points):
     """Distributes samples according to the inverse of a one dimensional pdf
 
