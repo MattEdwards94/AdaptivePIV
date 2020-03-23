@@ -992,9 +992,11 @@ def adaptive_analysis(img, settings):
     for _iter in range(1, settings.n_iter_main+1):
         vprint(BASIC, "Starting main iteration, {}".format(_iter))
 
+        delta = settings.final_N_windows - settings.init_N_windows
+
         n_windows = (settings.init_N_windows +
-                     np.floor(settings.final_N_windows *
-                              (_iter-1)/settings.n_iter_main))
+                     np.floor(delta *
+                              (_iter-1)/(settings.n_iter_main-1)))
 
         vprint(BASIC, "Creating sampling distribution")
         if settings.distribution_method == "AIS":
