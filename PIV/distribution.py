@@ -894,6 +894,23 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
     """
 
     return ais_module.AIS(pdf, mask, n_points, bf_refine, ex_points)
+def pdf_transform_1d(pdf, n_points):
+    """Distributes samples according to the inverse of a one dimensional pdf
+
+    Parameters
+    ----------
+    pdf : list or Nx1 ndarray
+        probability density function indicating how dense the output locations
+        should be
+    n_points : int
+        How many points should be distributed along the line
+    """
+
+    # calculate the normalised cdf
+    cdf = np.cumsum(pdf) / np.sum(pdf)
+    inv_y = np.linspace(np.min(cdf)+1e-9, 1, n_points)
+    x_out = interp.interp1d(cdf, np.arange(len(pdf)))
+    return x_out(inv_y).astype(int)
 
 
 def pdf_transform(pdf, mask, n_points, smoothing=True):
