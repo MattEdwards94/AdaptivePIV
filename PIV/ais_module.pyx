@@ -457,7 +457,7 @@ cdef class Disk():
 
 
 cpdef AIS(double[:, :] pdf, double[:, :] mask, 
-          int n_points, int bf_refine=1, list ex_points=None):
+          int n_points, int bf_refine=1, double[:, :] ex_points=None):
     """
     Distributes approximately n_points samples with a local density similar to
     that described by the pdf. Points will not be placed in the masked region.
