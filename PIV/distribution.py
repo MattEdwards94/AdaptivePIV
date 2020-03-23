@@ -918,7 +918,9 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
 
     ex_points = np.array(borders[ind, :]).astype(np.float64)
 
-    return ais_module.AIS(pdf, mask, n_points, bf_refine, ex_points)
+    return np.array(ais_module.AIS(pdf.astype(np.float64),
+                                   mask.astype(np.float64),
+                                   n_points, bf_refine, ex_points))
 
 
 def pdf_transform_1d(pdf, n_points):
