@@ -911,7 +911,7 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
     # calculate the value of r1 - the initial disk size for AIS
     r1 = np.sqrt(np.sum(mask, axis=None)/(np.pi * n_points))
     # calculate how many samples to place around the borders
-    n = int(np.maximum(2, np.round(n_borders/(4*2*r1), 0)))
+    n = int(np.maximum(2, np.round(n_borders/(3*2*r1), 0)))
 
     # place some points around these borders
     ind = pdf_transform_1d(np.ones((n_borders, 1)), n)

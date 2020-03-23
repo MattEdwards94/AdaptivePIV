@@ -457,33 +457,42 @@ cdef class Disk():
 
 
 cpdef AIS(double[:, :] pdf, double[:, :] mask, 
-          int n_points, int bf_refine=1, double[:, :] ex_points=None):
+          int n_points, int bf_refine=1, double[:, :] ex_points=None,
+          int n_attempts=5, double tol=0.03):
     """
     Distributes approximately n_points samples with a local density similar to
     that described by the pdf. Points will not be placed in the masked region.
 
-    Args:
-        pdf (ndarray): Probability density function describing the local target
-                       target density of the sample distribution
-        mask (ndarray): Binary mask indicating where points should not be placed
-                        A mask value of 0 indicates that points should ne be
-                        placed here.
-                        Must have the same dimensions as the input pdf
-        n_points (int): Approximate number of samples to place in the domain
-        bf_refine (int, optional): Ratio of number of pixels in the disk
-                                   buffer to the number of pixels in the domain.
-                                   Allows for more precise evaluation of disk
-                                   overlap at the expense of computational cost.
-                                   Defaults to 1.
-        ex_points (2D list int, optional): List of coordinates to seed the
-                                           distribution process with. Should
-                                           be a 2D array_like object (i.e. a
-                                           list or tuple of lists or tuples
-                                           containing the x and y location,
-                                           alternatively, a 2D numpy array).
-                                           If no seed points are given, the
-                                           seed point is randomly chosen.
-                                           Defaults to None.
+    Parameters
+    ----------
+    pdf : ndarray
+        Probability density function describing the local target target density 
+        of the sample distribution
+    mask : ndarray
+        Binary mask indicating where points should not be placed 
+        A mask value of 0 indicates that points should not be placed here.
+        Must have the same dimensions as the input pdf
+    n_points : int
+        Approximate number of samples to place in the domain
+    bf_refine : int, optional
+        Ratio of number of pixels in the disk buffer to the number of pixels 
+        in the domain.
+        Allows for more precise evaluation of disk overlap at the expense of 
+        computational cost.
+        Defaults to 1.                                
+    ex_points : 2D list int, optional
+        List of coordinates to seed the distribution process with. 
+        Should be a 2D array_like object (i.e. a list or tuple of lists or 
+        tuples containing the x and y location, alternatively, a 2D numpy 
+        array).
+        If no seed points are given, the seed point is randomly chosen.
+        Defaults to None.
+    n_attempts : int
+        Number of times to attempt to create the distribution, trying to get the
+        correct number of locations
+    tol : double
+        The percentage tolerance on the generated number of points vs the target
+        number of points
     """
 
     if not np.any(mask):
@@ -502,6 +511,60 @@ cpdef AIS(double[:, :] pdf, double[:, :] mask,
     cdef SummedAreaTable pdf_sat, mask_sat
     pdf_sat = SummedAreaTable(pdf)
     mask_sat = SummedAreaTable(mask)
+
+    out_list = _AIS(pdf_sat, mask, mask_sat, n_points, bf_refine, 
+                    ex_points, q, out_list, disk_buf)
+
+    cdef float n_win_out = np.shape(out_list)[0]
+    cdef int counter = 1
+    cdef int prev_req = n_points
+    cdef int new_delta
+    cdef int new_n_points
+    cdef double eff  # estimated fill factor
+    while abs(1 - (n_win_out/n_points)) > tol:
+        # if the number of points is out of tol
+        
+        if counter > n_attempts:
+            break
+        elif counter == 1:
+            # just bisect the diff, since we don't have other info
+            new_delta = int(1.5 * (prev_req - n_win_out))
+            eff = n_win_out / prev_req
+        else:
+            eff = (((eff * 1.03) * (counter-1) + (n_win_out / prev_req))/
+                    (counter*1.03))
+            new_delta = int((n_points / eff) - prev_req)
+        
+        if new_delta + prev_req < 0:
+            # if the new delta is too negative, just reduce the old request
+            new_n_points = int(prev_req * 0.7)
+        else:
+            new_n_points = prev_req + new_delta
+        
+        q, out_list, disk_buf = [], [], np.zeros((n_rows, n_cols)*bf_refine)
+        out_list = _AIS(pdf_sat, mask, mask_sat, new_n_points, bf_refine, 
+                        ex_points, q, out_list, disk_buf)
+        
+
+        prev_req = new_n_points
+        n_win_out = np.shape(out_list)[0]
+        counter += 1
+                
+    return out_list
+
+cdef _AIS(SummedAreaTable pdf_sat, double[:, :] mask, 
+          SummedAreaTable mask_sat, int n_points, 
+          int bf_refine, double[:, :] ex_points,
+          list q, list out_list,
+          double[:, :] disk_buf):
+    """Actual AIS algorithm
+
+    Mask is passed in standalone and as a SAT, to prevent having to re-calculate
+    the SAT
+    """
+
+    cdef int n_rows, n_cols
+    n_rows, n_cols = np.shape(mask)
 
     # determine the initial estimate for r1
     cdef double K, r1
