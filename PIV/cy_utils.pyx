@@ -4,7 +4,7 @@ cimport numpy as np
 
 cpdef spatial_var(double [:, ::1] f, double [:, ::1] mean, 
                 double [:, ::1] mask, double[:, ::1] area,
-                int kern_size):
+                int kern_size, int h):
     """Calculates the spatial variance of each pixel"""
 
     cdef int ii, jj, mm, nn
@@ -22,10 +22,10 @@ cpdef spatial_var(double [:, ::1] f, double [:, ::1] mean,
     cdef int ind, ind_in
 
 
-    for ii in range(dim_y):
+    for ii in range(0, dim_y, h):
         b = max(ii - rad, 0)
         t = min(ii + rad, dim_y-1)
-        for jj in range(dim_x):
+        for jj in range(0, dim_x, h):
             ind = ii*dim_x + jj
 
             if mask1[ind] == 0:

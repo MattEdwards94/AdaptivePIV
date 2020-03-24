@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import PIV.utilities as utils
+import PIV.distribution as distribution
 import scipy.io
 import h5py
 import cy_utils
@@ -539,7 +540,7 @@ class DensePredictor:
 
         return vdx - udy
 
-    def spatial_variance(self, kern_size=33):
+    def spatial_variance(self, kern_size=33, h=1):
         """Calculates the so-called spatial variance of the displacement field
 
         For each pixel, the variance of both u and v are calculated 
@@ -586,13 +587,23 @@ class DensePredictor:
         u_var = cy_utils.spatial_var(self.u,
                                      mn_u,
                                      self.mask,
-                                     area, kern_size)
+                                     area, kern_size, h)
         v_var = cy_utils.spatial_var(self.v,
                                      mn_v,
                                      self.mask,
-                                     area, kern_size)
-
+                                     area, kern_size, h)
         u_var, v_var = np.array(u_var), np.array(v_var)
+
+        if h != 1:
+            # interpolate back onto a structured grid
+            xx, yy = np.meshgrid(np.arange(0, self.n_cols, h),
+                                 np.arange(0, self.n_rows, h))
+            u_var, v_var = distribution.interp_disp_structured(xx, yy,
+                                                               u_var[::h, ::h],
+                                                               v_var[::h, ::h],
+                                                               (self.n_rows,
+                                                                self.n_cols),
+                                                               'struc_cub')
 
         u_var[inter] = 0
         v_var[inter] = 0
