@@ -17,6 +17,8 @@ extensions = [Extension("cyth_corr_window", ["PIV/cyth_corr_window" + ext],
                         include_dirs=[numpy.get_include()]),
               Extension("sym_filt", ["PIV/sym_filt" + ext]),
               Extension("ais_module", ["PIV/ais_module" + ext],
+                        include_dirs=[numpy.get_include()]),
+              Extension("cy_utils", ["PIV/cy_utils" + ext],
                         include_dirs=[numpy.get_include()])]
 
 
