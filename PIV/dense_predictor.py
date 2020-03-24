@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import PIV.utilities as utils
 import scipy.io
 import h5py
+import cy_utils
 
 
 class DensePredictor:
@@ -54,8 +55,8 @@ class DensePredictor:
             mask = np.ones(np.shape(u))
             self.has_mask = False
 
-        self.u = np.array(u, dtype=np.float_)
-        self.v = np.array(v, dtype=np.float_)
+        self.u = np.ascontiguousarray(u, dtype=np.float_)
+        self.v = np.ascontiguousarray(v, dtype=np.float_)
         self.mask = mask
         self.apply_mask()
         self.n_rows = np.shape(u)[0]
@@ -541,7 +542,7 @@ class DensePredictor:
     def spatial_variance(self, kern_size=33):
         """Calculates the so-called spatial variance of the displacement field
 
-        For each pixel, the standard deviation of both u and v are calculated 
+        For each pixel, the variance of both u and v are calculated 
         over a small region of space.
 
         Parameters
@@ -570,16 +571,30 @@ class DensePredictor:
         mn_u[~np.isfinite(mn_u)] = 0
         mn_v[~np.isfinite(mn_v)] = 0
 
-        # now we need to get the squared deviations of each pixel to the mean
-        sq_dev_u = utils.SummedAreaTable((self.u - mn_u)**2)
-        sq_dev_v = utils.SummedAreaTable((self.v - mn_v)**2)
+        inter = self.mask == 0
+        mn_u[inter] = 0
+        mn_v[inter] = 0
 
-        # get the sum over the kernel
-        sq_dev_u_sum = sq_dev_u.fixed_filter_convolution(kern_size)
-        sq_dev_v_sum = sq_dev_v.fixed_filter_convolution(kern_size)
+        # ensure the inputs are contiguous
+        if not self.u.flags['C_CONTIGUOUS']:
+            self.u = np.ascontiguousarray(self.u)
+        if not self.v.flags['C_CONTIGUOUS']:
+            self.v = np.ascontiguousarray(self.v)
+        if not self.mask.flags['C_CONTIGUOUS']:
+            self.mask = np.ascontiguousarray(self.mask)
 
-        # finally, normalise by the area
-        u_var = sq_dev_u_sum/area
-        v_var = sq_dev_v_sum/area
+        u_var = cy_utils.spatial_var(self.u,
+                                     mn_u,
+                                     self.mask,
+                                     area, kern_size)
+        v_var = cy_utils.spatial_var(self.v,
+                                     mn_v,
+                                     self.mask,
+                                     area, kern_size)
+
+        u_var, v_var = np.array(u_var), np.array(v_var)
+
+        u_var[inter] = 0
+        v_var[inter] = 0
 
         return u_var, v_var
