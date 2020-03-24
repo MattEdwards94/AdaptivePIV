@@ -604,6 +604,8 @@ class DensePredictor:
                                                                (self.n_rows,
                                                                 self.n_cols),
                                                                'struc_cub')
+        u_var[u_var < 0] = 0
+        v_var[v_var < 0] = 0
 
         u_var[inter] = 0
         v_var[inter] = 0
