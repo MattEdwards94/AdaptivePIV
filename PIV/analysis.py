@@ -520,7 +520,7 @@ def structured_adaptive_analysis(img, settings, **kwargs):
             h = init_h
         else:
             h = fin_h + ((_iter-1) / (settings.n_iter_main - 1)) * \
-                (fin_h - init_h)
+                (init_h-fin_h)
         vprint(BASIC, f"  sample spacing: {h}")
         xv, yv = (np.arange(0, img.n_cols, h),
                   np.arange(0, img.n_rows, h))
@@ -535,11 +535,14 @@ def structured_adaptive_analysis(img, settings, **kwargs):
                 ws_seed_init = utilities.round_to_odd(
                     np.sqrt(settings.target_init_NI / min_sd))
                 ws_seed_init[np.isnan(ws_seed_init)] = 97
+                xx = xx.ravel().astype(int)
+                yy = yy.ravel().astype(int)
 
                 # create correlation windows
                 dist = distribution.Distribution.from_locations(xx,
                                                                 yy,
-                                                                ws_seed_init[yy, xx])
+                                                                ws_seed_init[yy,
+                                                                             xx])
 
                 # analyse the windows
                 vprint(BASIC, "Analysing first iteration with AIW")
@@ -551,9 +554,10 @@ def structured_adaptive_analysis(img, settings, **kwargs):
                 # fig = plt.figure(figsize=(20, 10))
             else:
                 # just create and correlate the windows
+                ws_list = [settings.init_WS]*len(xx.ravel())
                 dist = distribution.Distribution.from_locations(xx,
                                                                 yy,
-                                                                settings.init_WS)
+                                                                ws_list)
 
                 ws_first_iter = np.ones(img_def.dim) * settings.init_WS
                 vprint(BASIC, "Analysing first iteration with uniform window size")
@@ -615,7 +619,7 @@ def structured_adaptive_analysis(img, settings, **kwargs):
     # reset verbosity
     PIV.utilities._verbosity = prev_verb
 
-    return dp, ws_first_iter
+    return dp, dist
 
 
 class AdaptStructSettings():
