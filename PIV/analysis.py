@@ -973,12 +973,11 @@ def adaptive_analysis(img, settings):
         np.zeros(img.dim), np.zeros(img.dim), img.mask)
 
     # if one of init/final WS are auto, we will need the seeding info
-    if 'auto' in [settings.init_WS, settings.final_WS]:
-        img.calc_seed_density(method=settings.part_detect,
-                              P_target=settings.sd_P_target)
-        min_sd = np.minimum(img.sd_IA, img.sd_IB)
-        # if ends up being 0, just assume it is some low value
-        min_sd[min_sd == 0] = 0.0021
+    img.calc_seed_density(method=settings.part_detect,
+                          P_target=settings.sd_P_target)
+    min_sd = np.minimum(img.sd_IA, img.sd_IB)
+    # if ends up being 0, just assume it is some low value
+    min_sd[min_sd == 0] = 0.0021
 
     if settings.final_WS == 'auto':
         # get WS based on seeding only.
@@ -999,6 +998,15 @@ def adaptive_analysis(img, settings):
                               (_iter-1)/(settings.n_iter_main-1)))
 
         vprint(BASIC, "Creating sampling distribution")
+        if _iter > 1:
+            [u_var, v_var] = dp.spatial_variance(33, 5)
+            phi_flow = np.sqrt(u_var + v_var)
+            phi_flow /= np.max(phi_flow)
+            bf = min_sd
+            bf[np.isnan(min_sd)] = 0
+            phi_seed = min_sd / (np.max(bf)*4)
+            phi_seed[img.mask == 0] = 0
+            phi = (phi_flow + phi_seed)
         if settings.distribution_method == "AIS":
             xy_dist = distribution.AIS(phi, img.mask, n_windows)
             xx, yy = xy_dist[:, 0], xy_dist[:, 1]
