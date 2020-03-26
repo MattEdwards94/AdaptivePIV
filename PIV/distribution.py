@@ -295,16 +295,12 @@ class Distribution:
             xy = np.append(xy, ex_points, axis=0)
             uv = np.append(uv, ex_vals, axis=0)
 
-            f_u = interp.CloughTocher2DInterpolator(xy, uv[:, 0])
-            f_v = interp.CloughTocher2DInterpolator(xy, uv[:, 1])
-
             xe, ye = np.meshgrid(np.arange(0, eval_dim[1], inter_h),
                                  np.arange(0, eval_dim[0], inter_h))
-            eval_coord_list = np.array([xe.ravel(), ye.ravel()]).T
 
-            u_int, v_int = f_u(eval_coord_list), f_v(eval_coord_list)
-            u_int = u_int.reshape(np.shape(xe))
-            v_int = v_int.reshape(np.shape(xe))
+            u_int, v_int = interp_cub_unstruc(xy, uv,
+                                              eval_dim, inter_h,
+                                              extend_hull=False)
 
             if inter_h > 1:
                 u_int, v_int = interp_disp_structured(xe, ye, u_int, v_int,
@@ -486,7 +482,6 @@ class Distribution:
                 # if the region is open, then we need to reflect the current
                 # point in both x and y. The current point has index ii
                 x, y = vor.points[ii, :]
-                f = uv[ii, :]
 
                 # reflect in x
                 if x <= dim[1]/2:
@@ -505,6 +500,130 @@ class Distribution:
                 ex_vals = np.append(ex_vals, [uv[ii, :]], axis=0)
 
         return ex_points, ex_vals
+
+
+def interp_cub_unstruc(xy, f, eval_dim, eval_h=1, extend_hull=False):
+    """Interpolates unstructured sample data onto a structured grid
+
+    Parameters
+    ----------
+    xy : N_in x 2 array
+        list of coordinates of all sample locations
+    f : N_in x ndim ndarray
+        The values at each of the locations in xy.
+    eval_dim : tuple
+        The dimensions of the domain to interpolate to. (height, width)
+    eval_h : int
+        The spacing between evaluation locations in the evaluation grid. 
+        Useful for reducing the computational cost of evaluation.
+    extend_hull : Bool
+        Indicates whether the convex hull should be reflected in the evaluation
+        domain first. 
+        If False, values outside the convex hull (but within the eval domain)
+        will become NaN
+        If True, values on the convex hull of the input locations are reflected
+        in the domain boundary, effectively resulting in a 'constant' 
+        extrapolation. 
+        Note that the extrapolation in this case is NOT strictly constant, since
+        the cubic interpolant will produce some oscilations here.
+
+    Returns
+    -------
+    f_int : list of ndarrays
+        Returns the interpolated values as an ndarray per ndim in f
+    """
+
+    # extend hull if needed
+    if extend_hull is True:
+        ex_points, ex_vals = extend_convex_hull(xy, f, eval_dim)
+        _xy = np.append(xy, ex_points, axis=0)
+        _f = np.append(f, ex_vals, axis=0)
+
+    else:
+        _xy, _f = xy, f
+
+    if _f.ndim == 1:
+        _f = _f[:, np.newaxis]
+
+    # interpolate each 'value' list in f
+    _f_out = []
+    for _fi in _f.T:
+        _f_out.append(interp.CloughTocher2DInterpolator(_xy, _fi.T))
+
+    xe, ye = np.meshgrid(np.arange(0, eval_dim[1], eval_h),
+                         np.arange(0, eval_dim[0], eval_h))
+    eval_coord_list = np.array([xe.ravel(), ye.ravel()]).T
+
+    # evaluate each value list
+    f_out = []
+    for _fi in _f_out:
+        f_out.append(_fi(eval_coord_list).reshape(np.shape(xe)))
+
+    return f_out
+
+
+def extend_convex_hull(xy, f, dim):
+    """Extends the convex hull by reflecting points in the domain boundaries
+
+    Parameters
+    ----------
+    xy : N_in x 2 array
+        list of coordinates of all sample locations
+    f : N_in x ndim ndarray
+        The values at each of the locations in xy.
+    dim : tuple
+        The dimensions of the domain to extend beyond. (height, width)
+
+    Returns
+    -------
+    ex_points : N_out x 2 array
+        list of additional points outside of the domain.
+        Does not include the input locations
+    ex_vals : ndarray
+        Array of reflected values.
+        Has shape of N_out x ndim
+    """
+
+    try:
+        ndim = np.shape(f)[1]
+    except IndexError:
+        ndim = 1
+        f = f[:, np.newaxis]
+    ex_points, ex_vals = np.empty((0, 2)), np.empty((0, ndim))
+    vor = Voronoi(xy)
+
+    # loop over regions relating to each point
+    # ind is the index of the region
+    # ii is the index of the point
+    for ii, ind in enumerate(vor.point_region):
+        region = vor.regions[ind]
+        # region contains the indices of the vertices forming the region
+        # if the region is open, it will contain a -1
+        if -1 in region:
+            # if the region is open, then we need to reflect the current
+            # point in both x and y. The current point has index ii
+            x, y = vor.points[ii, :]
+
+            # reflect in x
+            if x <= dim[1]/2:
+                ex_points = np.append(ex_points, [[-x, y]], axis=0)
+            else:
+                ex_points = np.append(ex_points, [[2*dim[1] - x, y]],
+                                      axis=0)
+            ex_vals = np.append(ex_vals, [f[ii, :]], axis=0)
+
+            # reflect in y
+            if y <= dim[0]/2:
+                ex_points = np.append(ex_points, [[x, -y]], axis=0)
+            else:
+                ex_points = np.append(ex_points, [[x, 2*dim[0] - y]],
+                                      axis=0)
+            ex_vals = np.append(ex_vals, [f[ii, :]], axis=0)
+
+    if ndim == 1:
+        ex_vals = ex_vals[:, 0]
+
+    return ex_points, ex_vals
 
 
 def interp_disp_structured(x, y, u, v, eval_dim, method):
