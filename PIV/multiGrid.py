@@ -279,7 +279,7 @@ class MultiGrid(distribution.Distribution):
 
         return out_list
 
-    def plot_grid(self, ax=None):
+    def plot_grid(self, ax=None, mask=None):
         """Plots the grid in the conventional manner
         """
 
@@ -292,7 +292,67 @@ class MultiGrid(distribution.Distribution):
             # rectangle for the bottom level cell
             bl, tr = cell.coordinates[0], cell.coordinates[2]
             height, width = tr[1] - bl[1], tr[0] - bl[0]
-            rects.append(patches.Rectangle(bl, width, height, fill=False))
+
+            # assess whether the cell is masked. If it is, we just want to
+            # draw a line.
+            blm, brm, tlm, trm = (cell.bl_win.is_masked,
+                                  cell.br_win.is_masked,
+                                  cell.tl_win.is_masked,
+                                  cell.tr_win.is_masked)
+
+            if np.all((blm, brm, tlm, trm)):
+                # all are masked, no plot
+                continue
+            elif np.any((blm, brm, tlm, trm)):
+                # at least one is masked.
+
+                # bottom left is masked, we
+                if blm:
+                    # can only print the top line or right hand line
+                    # try to plot top line
+                    if not np.any((tlm, trm)) and cell.north is None:
+                        rects.append(patches.Rectangle(
+                            [bl[0], tr[1]], width, 0.01, fill=False))
+                    # try to plot right line
+                    if not np.any((trm, brm)) and cell.east is None:
+                        rects.append(patches.Rectangle(
+                            [tr[0], bl[1]], 0.01, height, fill=False))
+
+                elif brm:
+                    # can only print the top line or left hand line
+                    # try to plot top line
+                    if not np.any((tlm, trm)) and cell.north is None:
+                        rects.append(patches.Rectangle(
+                            [bl[0], tr[1]], width, 0.01, fill=False))
+                    # try to plot left line
+                    if not np.any((blm, tlm)) and cell.west is None:
+                        rects.append(patches.Rectangle(
+                            bl, 0.01, height, fill=False))
+
+                elif tlm:
+                    # can only print the bottom line or right hand line
+                    # try to plot bottom line
+                    if not np.any((blm, brm)) and cell.south is None:
+                        rects.append(patches.Rectangle(
+                            bl, width, 0.01, fill=False))
+                    # try to plot right line
+                    if not np.any((brm, trm)) and cell.east is None:
+                        rects.append(patches.Rectangle(
+                            [tr[0], tr[1]], 0.01, height, fill=False))
+
+                elif trm:
+                     # can only print the bottom line or left hand line
+                    # try to plot bottom line
+                    if not np.any((blm, brm)) and cell.south is None:
+                        rects.append(patches.Rectangle(
+                            bl, width, 0.01, fill=False))
+                    # try to plot left line
+                    if not np.any((blm, tlm)) and cell.west is None:
+                        rects.append(patches.Rectangle(
+                            bl, 0.01, height, fill=False))
+
+            else:
+                rects.append(patches.Rectangle(bl, width, height, fill=False))
 
         rect_collection = collections.PatchCollection(
             rects, match_original=True)
