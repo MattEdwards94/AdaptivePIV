@@ -5,7 +5,7 @@ from PIV.utilities import vprint
 import PIV.corr_window as corr_window
 from scipy import interpolate as interp
 import skimage.segmentation as sk_seg
-from scipy.spatial import Delaunay, ConvexHull
+from scipy.spatial import Delaunay, ConvexHull, Voronoi
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import random
@@ -200,7 +200,7 @@ class Distribution:
         """
         return np.array([cw.flag for cw in self.windows])
 
-    def validation_NMT_8NN(self, threshold=2, eps=0.1):
+    def validation_NMT_8NN(self, threshold=2, eps=0.1, idw=False):
         """
         Performs a normalised median threshold test by comparing each vector to
         it's 8 nearest neighbours
@@ -215,11 +215,17 @@ class Distribution:
             "Universal Outlier Detection for PIV Data" - Westerweel and Scarano
 
 
-        Args:
-            threshold (int, optional): The threshold above which the norm
-                                       indicates an outlier. Refer to paper
-            eps (float, optional): The assumed background noise in px.
-                                   Refer to paper
+        Parameters
+        ----------
+        threshold : int, optional
+            The threshold above which the norm indicates an outlier.
+            Refer to paper
+            "Universal Outlier Detection for PIV Data" - Westerweel and Scarano
+        eps : float, optional
+            The assumed background noise in px.
+            Refer to paper.
+        idw : Boolean, optional
+            Indicates whether to perform distance weighting on validation
         """
 
         # detection
@@ -229,7 +235,10 @@ class Distribution:
         nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
         nb_dist, nb_ind = nbrs.kneighbors(xy)
 
-        norm = NMT_detection(u, v, nb_ind, eps)
+        if not idw:
+            norm = NMT_detection(u, v, nb_ind, eps)
+        else:
+            norm = NMT_idw_detection(u, v, nb_ind, nb_dist)
         flag = norm > threshold
         invalid = np.sum(flag)
         try:
@@ -251,7 +260,7 @@ class Distribution:
 
         return flag
 
-    def interp_to_densepred(self, method, eval_dim):
+    def interp_to_densepred(self, method, eval_dim, inter_h=1):
         """
         Interpolates the displacement vectors held by the distribution object
         onto a pixel grid from 0 to the output dimensions
@@ -269,7 +278,7 @@ class Distribution:
             ValueError: if the method or evaluation dimensions are not valid
         """
         # check the input method
-        acc_options = ["struc_lin", "struc_cub"]
+        acc_options = ["struc_lin", "struc_cub", "unstruc_cub"]
         if method not in acc_options:
             raise ValueError("Method not handled")
 
@@ -278,33 +287,33 @@ class Distribution:
             if (not np.all(dim == int(dim))) or np.any(dim < 1):
                 raise ValueError("Dimensions must be positive integer")
 
-        # reshape the data onto a structured grid
         xy, uv = self.get_all_xy(), self.get_all_uv()
-        x, y, u, v = xy[:, 0], xy[:, 1], uv[:, 0], uv[:, 1]
-        x2d, y2d, u2d, v2d = utilities.auto_reshape(x, y, u, v)
 
-        # now we need to handle extrapolation
-        x, y, u, v = (utilities.lin_extrap_edges(x2d),
-                      utilities.lin_extrap_edges(y2d),
-                      utilities.lin_extrap_edges(u2d),
-                      utilities.lin_extrap_edges(v2d), )
+        if method in ["struc_lin", "struc_cub"]:
+            # reshape the data onto a structured grid
+            x, y, u, v = xy[:, 0], xy[:, 1], uv[:, 0], uv[:, 1]
+            x2d, y2d, u2d, v2d = utilities.auto_reshape(x, y, u, v)
 
-        # calculate evaluation range
-        xe = np.arange(eval_dim[1])
-        ye = np.arange(eval_dim[0])
+            u_int, v_int = interp_disp_structured(x2d, y2d, u2d, v2d,
+                                                  eval_dim, method)
+        else:
+            # unstructured
 
-        if method == "struc_lin":
-            # interpolate using scipy
-            f_u = interp.interp2d(x[0, :], y[:, 0], u, kind='linear')
-            f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='linear')
-            u_int = f_u(xe, ye)
-            v_int = f_v(xe, ye)
-        elif method == "struc_cub":
-            # interpolate using scipy
-            f_u = interp.interp2d(x[0, :], y[:, 0], u, kind='cubic')
-            f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='cubic')
-            u_int = f_u(xe, ye)
-            v_int = f_v(xe, ye)
+            # extend convex hull
+            ex_points, ex_vals = self.extend_convex_hull(eval_dim)
+            xy = np.append(xy, ex_points, axis=0)
+            uv = np.append(uv, ex_vals, axis=0)
+
+            xe, ye = np.meshgrid(np.arange(0, eval_dim[1], inter_h),
+                                 np.arange(0, eval_dim[0], inter_h))
+
+            u_int, v_int = interp_cub_unstruc(xy, uv,
+                                              eval_dim, inter_h,
+                                              extend_hull=False)
+
+            if inter_h > 1:
+                u_int, v_int = interp_disp_structured(xe, ye, u_int, v_int,
+                                                      eval_dim, "struc_cub")
 
         return u_int, v_int
 
@@ -391,6 +400,26 @@ class Distribution:
                     # WS is ok
                     break
 
+    def interp_WS_unstructured(self, mask):
+        """Performs nearest neighbhour interpolation to get the WS
+
+        Parameters
+        ----------
+        mask : ndarray
+            Array containing zeros at the locations of the domain 
+            not to be considered. 
+
+        Returns
+        -------
+        WS_array : ndarray
+            The interpolated WS over the domain, zero where the mask is zero
+        """
+        xe, ye = np.meshgrid(np.arange(np.shape(mask)[1]),
+                             np.arange(np.shape(mask)[0]))
+        f_ws = interp.NearestNDInterpolator(self.get_all_xy(),
+                                            self.get_all_WS())
+        return f_ws((xe.ravel(), ye.ravel())).reshape(np.shape(mask))
+
     def interp_WS(self, mask):
         """Interpolates the windows sizes onto a domain with the same dimensions
         as the mask.       
@@ -427,6 +456,241 @@ class Distribution:
         return f_ws_interp(np.arange(np.shape(mask)[1]),
                            np.arange(np.shape(mask)[0])) * mask
 
+    def extend_convex_hull(self, dim):
+        """Extends the convex hull beyond the edge of the domain so that we 
+        don't have to extrapolate
+
+        By reflecting in x AND y, we guarantee that the whole domain will be 
+        within the convex hull of the new distribution
+
+        Parameters
+        ----------
+        dim : (int, int)
+            Dimensions of the domain in pixels
+
+        Returns
+        -------
+        ex_points : ndarray
+            The locations [x, y] of the points added beyond the domain
+        ex_vals : ndarray
+            The reflected values beyond the domain
+        """
+
+        ex_points, ex_vals = np.empty((0, 2)), np.empty((0, 2))
+        vor = Voronoi(self.get_all_xy())
+        uv = self.get_all_uv()
+
+        # loop over regions relating to each point
+        # ind is the index of the region
+        # ii is the index of the point
+        for ii, ind in enumerate(vor.point_region):
+            region = vor.regions[ind]
+            # region contains the indices of the vertices forming the region
+            # if the region is open, it will contain a -1
+            if -1 in region:
+                # if the region is open, then we need to reflect the current
+                # point in both x and y. The current point has index ii
+                x, y = vor.points[ii, :]
+
+                # reflect in x
+                if x <= dim[1]/2:
+                    ex_points = np.append(ex_points, [[-x, y]], axis=0)
+                else:
+                    ex_points = np.append(ex_points, [[2*dim[1] - x, y]],
+                                          axis=0)
+                ex_vals = np.append(ex_vals, [uv[ii, :]], axis=0)
+
+                # reflect in y
+                if y <= dim[0]/2:
+                    ex_points = np.append(ex_points, [[x, -y]], axis=0)
+                else:
+                    ex_points = np.append(ex_points, [[x, 2*dim[0] - y]],
+                                          axis=0)
+                ex_vals = np.append(ex_vals, [uv[ii, :]], axis=0)
+
+        return ex_points, ex_vals
+
+
+def interp_cub_unstruc(xy, f, eval_dim, eval_h=1, extend_hull=False):
+    """Interpolates unstructured sample data onto a structured grid
+
+    Parameters
+    ----------
+    xy : N_in x 2 array
+        list of coordinates of all sample locations
+    f : N_in x ndim ndarray
+        The values at each of the locations in xy.
+    eval_dim : tuple
+        The dimensions of the domain to interpolate to. (height, width)
+    eval_h : int
+        The spacing between evaluation locations in the evaluation grid. 
+        Useful for reducing the computational cost of evaluation.
+    extend_hull : Bool
+        Indicates whether the convex hull should be reflected in the evaluation
+        domain first. 
+        If False, values outside the convex hull (but within the eval domain)
+        will become NaN
+        If True, values on the convex hull of the input locations are reflected
+        in the domain boundary, effectively resulting in a 'constant' 
+        extrapolation. 
+        Note that the extrapolation in this case is NOT strictly constant, since
+        the cubic interpolant will produce some oscilations here.
+
+    Returns
+    -------
+    f_int : list of ndarrays
+        Returns the interpolated values as an ndarray per ndim in f
+    """
+
+    # extend hull if needed
+    if extend_hull is True:
+        ex_points, ex_vals = extend_convex_hull(xy, f, eval_dim)
+        _xy = np.append(xy, ex_points, axis=0)
+        _f = np.append(f, ex_vals, axis=0)
+
+    else:
+        _xy, _f = xy, f
+
+    if _f.ndim == 1:
+        _f = _f[:, np.newaxis]
+
+    # interpolate each 'value' list in f
+    _f_out = []
+    for _fi in _f.T:
+        _f_out.append(interp.CloughTocher2DInterpolator(_xy, _fi.T))
+
+    xe, ye = np.meshgrid(np.arange(0, eval_dim[1], eval_h),
+                         np.arange(0, eval_dim[0], eval_h))
+    eval_coord_list = np.array([xe.ravel(), ye.ravel()]).T
+
+    # evaluate each value list
+    f_out = []
+    for _fi in _f_out:
+        f_out.append(_fi(eval_coord_list).reshape(np.shape(xe)))
+
+    return f_out
+
+
+def extend_convex_hull(xy, f, dim):
+    """Extends the convex hull by reflecting points in the domain boundaries
+
+    Parameters
+    ----------
+    xy : N_in x 2 array
+        list of coordinates of all sample locations
+    f : N_in x ndim ndarray
+        The values at each of the locations in xy.
+    dim : tuple
+        The dimensions of the domain to extend beyond. (height, width)
+
+    Returns
+    -------
+    ex_points : N_out x 2 array
+        list of additional points outside of the domain.
+        Does not include the input locations
+    ex_vals : ndarray
+        Array of reflected values.
+        Has shape of N_out x ndim
+    """
+
+    try:
+        ndim = np.shape(f)[1]
+    except IndexError:
+        ndim = 1
+        f = f[:, np.newaxis]
+    ex_points, ex_vals = np.empty((0, 2)), np.empty((0, ndim))
+    vor = Voronoi(xy)
+
+    # loop over regions relating to each point
+    # ind is the index of the region
+    # ii is the index of the point
+    for ii, ind in enumerate(vor.point_region):
+        region = vor.regions[ind]
+        # region contains the indices of the vertices forming the region
+        # if the region is open, it will contain a -1
+        if -1 in region:
+            # if the region is open, then we need to reflect the current
+            # point in both x and y. The current point has index ii
+            x, y = vor.points[ii, :]
+
+            # reflect in x
+            if x <= dim[1]/2:
+                ex_points = np.append(ex_points, [[-x, y]], axis=0)
+            else:
+                ex_points = np.append(ex_points, [[2*dim[1] - x, y]],
+                                      axis=0)
+            ex_vals = np.append(ex_vals, [f[ii, :]], axis=0)
+
+            # reflect in y
+            if y <= dim[0]/2:
+                ex_points = np.append(ex_points, [[x, -y]], axis=0)
+            else:
+                ex_points = np.append(ex_points, [[x, 2*dim[0] - y]],
+                                      axis=0)
+            ex_vals = np.append(ex_vals, [f[ii, :]], axis=0)
+
+    if ndim == 1:
+        ex_vals = ex_vals[:, 0]
+
+    return ex_points, ex_vals
+
+
+def interp_disp_structured(x, y, u, v, eval_dim, method):
+    """Interpolates displacement values onto a pixel grid
+
+    Extrapolates values linearly beyond the convex hull of x,y 
+
+    Parameters
+    ----------
+    x : 2d array
+        Array of x coordinates of samples
+    y : 2d array
+        Array of y coordinates of samples
+    u : 2d array
+        Array of horizontal displacements
+    v : 2d array
+        Array of vertical displacements
+    eval_dim : (2 x 1) int
+        Tuple of dimensions indicating the number of pixels in each direction
+        that the displacement should be interpolated
+        Values beyond the convex hull of x, y are linearly extrapolated
+    method: str
+        Indicates how the values should be interpolated
+        Options: "struc_lin", "struc_cub"
+
+    Returns
+    -------
+    u, v : ndarray
+        Pixelwise displacement values
+    """
+
+    # now we need to handle extrapolation
+    x, y, u, v = (utilities.lin_extrap_edges(x),
+                  utilities.lin_extrap_edges(y),
+                  utilities.lin_extrap_edges(u),
+                  utilities.lin_extrap_edges(v), )
+
+    # calculate evaluation range
+    xe = np.arange(eval_dim[1])
+    ye = np.arange(eval_dim[0])
+
+    if method == "struc_lin":
+        # interpolate using scipy
+        f_u = interp.interp2d(x[0, :], y[:, 0], u, kind='linear')
+        f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='linear')
+        u_int = f_u(xe, ye)
+        v_int = f_v(xe, ye)
+    elif method == "struc_cub":
+        # interpolate using scipy
+        f_u = interp.interp2d(x[0, :], y[:, 0], u, kind='cubic')
+        f_v = interp.interp2d(x[0, :], y[:, 0], v, kind='cubic')
+        u_int = f_u(xe, ye)
+        v_int = f_v(xe, ye)
+    else:
+        raise ValueError("Bad method")
+
+    return u_int, v_int
+
 
 def NMT_detection(u, v, nb_ind, eps=0.1):
     """
@@ -462,6 +726,57 @@ def NMT_detection(u, v, nb_ind, eps=0.1):
 
     return norm
 
+
+def NMT_idw_detection(u, v, nb_ind, nb_dist, eps=0.1):
+    """
+    Detects outliers according to the normalised median threshold test of
+    Duncan, Dabiri, and Hove.
+    Returns the norm value
+
+    Parameters
+    ----------
+    u : list, float
+        list of the u displacement values
+    v : list, float
+        list of the v displacement values
+    nb_ind : ndarray, int
+        list of neighbour indices for each location
+    nb_dist : ndarray, float
+        list of distances to each neighbour defined nb_ind
+    eps : float, optional
+        background noise level, in px
+    thr : int, optional
+        threshold for an outlier
+    """
+
+    # calculate the denominator term, the median of neighbour distances plus ea
+    md_neighb = np.nanmedian(nb_dist[:, 1:], axis=1)
+    ea = 0.5*(-md_neighb + np.sqrt(md_neighb**2 + 4*eps))
+
+    # calculate the median of all neighbours
+    di_ea = (nb_dist[:, 1:] + ea[:, np.newaxis])
+    # nb_ind is (N, 9), u/v_med is (N, 1)
+    # bf_u = (nb_dist[:, 1:] + ea)[:, np.newaxis]
+    u_med, v_med = (np.nanmedian(u[nb_ind[:, 1:]]/di_ea, axis=1),
+                    np.nanmedian(v[nb_ind[:, 1:]]/di_ea, axis=1))
+
+    u_0_norm, v_0_norm = (u[nb_ind[:, 0]] / (md_neighb + ea),
+                          v[nb_ind[:, 0]] / (md_neighb + ea))
+
+    # fluctuations
+    # u_fluct_all is (N, 9)
+    u_fluct, v_fluct = (u[nb_ind[:, 1:]]/di_ea - u_med[:, np.newaxis],
+                        v[nb_ind[:, 1:]]/di_ea - v_med[:, np.newaxis])
+
+    # residual is (N, 1)
+    resu, resv = (np.nanmedian(np.abs(u_fluct), axis=1) + ea,
+                  np.nanmedian(np.abs(v_fluct), axis=1) + ea)
+
+    u_norm, v_norm = (np.abs(u_0_norm-u_med) / resu,
+                      np.abs(v_0_norm-v_med) / resv)
+    norm = np.sqrt(u_norm**2 + v_norm**2)
+
+    return norm
 
 def outlier_replacement(flag, u, v, nb_ind):
     """
@@ -892,6 +1207,9 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
                                            If no seed points are given, the
                                            seed point is randomly chosen.
                                            Defaults to None.
+    Returns:
+        out_list (N-by-2 ndarray): The x and y coordinates of the distribution's 
+                                samples
     """
 
     dim = np.shape(pdf)

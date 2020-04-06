@@ -452,7 +452,7 @@ def load_mask(flowtype):
         mask = np.asarray(Image.open(filenames[2]).convert('L')).copy()
         mask[mask > 0] = 1
 
-    return mask
+    return mask.astype(np.float64)
 
 
 def quintic_spline_image_filter(IA):

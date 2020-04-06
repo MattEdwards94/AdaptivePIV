@@ -290,7 +290,7 @@ def plot_adjacent_images(ia, ib,
                          cbar_pad=None,
                          cbar_location="right", cbar_mode="single",
                          **kwargs):
-    """Plots two figures nicely side by side, 
+    """Plots two figures nicely side by side,
     and returns the figure and axes handles
     """
 
@@ -342,9 +342,9 @@ class SummedAreaTable():
         """Gets the sum of the region defined by left/right/bottom/top
 
         The sum is inclusive of all pixels defined by l:r:b:t
-        This is DIFFERENT to the standard behaviour of numpy indexing. 
+        This is DIFFERENT to the standard behaviour of numpy indexing.
         For example:
-            The following is the sum of rows 1-9, inclusive, and 
+            The following is the sum of rows 1-9, inclusive, and
             columns 4-7 inclusive.
             a = np.sum(A[1:10, 4:8])
 
@@ -399,16 +399,16 @@ class SummedAreaTable():
 
     def fixed_filter_convolution(self, filt_size):
         """Gets the effective unity weighted fixed convolution of a filter over
-        the whole domain. 
+        the whole domain.
 
         Is equivalent to looping over every pixel and working out the sum within
-        a region equal to filter, centered on each pixel. 
+        a region equal to filter, centered on each pixel.
         Values outside of the domain are assumed to be 0
 
         Must be an odd filter size
 
         Arguments:
-            filt_size {int, odd} -- The size of the filter to apply over 
+            filt_size {int, odd} -- The size of the filter to apply over
                                     the domain
         """
 
@@ -460,7 +460,7 @@ def vprint(thr, *args, **kwargs):
     otherwise it doesn't print
 
     Args:
-        thr (int) -- Threshold for verbosity. If _verbosity is >= thr, then 
+        thr (int) -- Threshold for verbosity. If _verbosity is >= thr, then
                      vprint will behave as the builtin `print'. Otherwise
                      nothing will happen.
     """
@@ -468,6 +468,32 @@ def vprint(thr, *args, **kwargs):
 
     if _verbosity >= thr:
         print(*args, **kwargs)
+
+
+def franke_function(x, y, max_x=1, max_y=1):
+    """Returns the Franke function for all input locations
+
+    refer to https://www.sfu.ca/~ssurjano/franke2d.html for more
+
+    Parameters
+    ----------
+    x : array_like
+        The horizontal locations of each query point
+    y : array_like
+        The vertical locations of each query point
+    max_x : int, optional
+        The term used to scale the domain in x. By default, the domain is only
+        defined between 0 and 1. Above this and values get very small very quick
+        By default 1
+    max_y : int, optional
+        The term used to scale the domain in y. By default, the domain is only
+        defined between 0 and 1. Above this and values get very small very quick
+        By default 1
+    """
+    return (.75 * np.exp(-(9 * x/max_x - 2) ** 2 / 4.0 - (9 * y/max_y - 2) ** 2 / 4.0) +
+            .75 * np.exp(-(9 * x/max_x + 1) ** 2 / 49.0 - (9 * y/max_y + 1) / 10.0) +
+            .5 * np.exp(-(9 * x/max_x - 7) ** 2 / 4.0 - (9 * y/max_y - 3) ** 2 / 4.0) -
+            .2 * np.exp(-(9 * x/max_x - 4) ** 2 - (9 * y/max_y - 7) ** 2))
 
 
 if __name__ == '__main__':
