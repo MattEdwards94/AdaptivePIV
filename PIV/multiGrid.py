@@ -12,7 +12,7 @@ import PIV
 
 class MultiGrid(distribution.Distribution):
 
-    def __init__(self, img_dim, spacing, WS):
+    def __init__(self, img_dim, spacing, WS, mask=None):
         """Defines a multigrid object with an initial grid spacing
 
         Args:
@@ -20,6 +20,11 @@ class MultiGrid(distribution.Distribution):
                              (n_rows, n_cols)
             spacing (int): The initial spacing between samples
         """
+
+        if mask is None:
+            self.mask = np.ones(img_dim)
+        else:
+            self.mask = mask
 
         self.img_dim = img_dim
         self.spacing = spacing
@@ -37,6 +42,11 @@ class MultiGrid(distribution.Distribution):
                                 xx.ravel(),
                                 yy.ravel(),
                                 ws_grid.ravel()))
+        for window in self.windows:
+            if self.mask[window.y, window.x] == 0:
+                window.is_masked = True
+            else:
+                window.is_masked = False
 
         # create a new grid for the base tier
         self.grids = [Grid(img_dim, spacing)]
@@ -385,8 +395,8 @@ class GridCell():
         """
 
         # create the new windows at mid-points
-        ctr_x = (self.bl_win.x + self.br_win.x) / 2
-        ctr_y = (self.bl_win.y + self.tl_win.y) / 2
+        ctr_x = int((self.bl_win.x + self.br_win.x) / 2)
+        ctr_y = int((self.bl_win.y + self.tl_win.y) / 2)
 
         # check left
         if self.west is not None and self.west.has_children():
@@ -394,6 +404,10 @@ class GridCell():
         else:
             win = corr_window.CorrWindow(self.bl_win.x, ctr_y,
                                          self.bl_win.WS)
+            if self.multigrid.mask[ctr_y, self.bl_win.x] == 0:
+                win.is_masked = True
+            else:
+                win.is_masked = False
             self.cw_list.append(win)
             left_mid = self.multigrid.n_windows - 1
 
@@ -403,12 +417,20 @@ class GridCell():
         else:
             win = corr_window.CorrWindow(ctr_x, self.bl_win.y,
                                          self.bl_win.WS)
+            if self.multigrid.mask[self.bl_win.y, ctr_x] == 0:
+                win.is_masked = True
+            else:
+                win.is_masked = False
             self.cw_list.append(win)
             ctr_btm = self.multigrid.n_windows - 1
 
         # ctr_mid is the only window which is the only window guaranteed
         # to not already exist
         win = corr_window.CorrWindow(ctr_x, ctr_y, self.bl_win.WS)
+        if self.multigrid.mask[ctr_y, ctr_x] == 0:
+            win.is_masked = True
+        else:
+            win.is_masked = False
         self.cw_list.append(win)
         ctr_mid = self.multigrid.n_windows - 1
 
@@ -418,6 +440,10 @@ class GridCell():
         else:
             win = corr_window.CorrWindow(ctr_x, self.tl_win.y,
                                          self.bl_win.WS)
+            if self.multigrid.mask[self.tl_win.y, ctr_x] == 0:
+                win.is_masked = True
+            else:
+                win.is_masked = False
             self.cw_list.append(win)
             ctr_top = self.multigrid.n_windows - 1
 
@@ -427,6 +453,10 @@ class GridCell():
         else:
             win = corr_window.CorrWindow(self.br_win.x, ctr_y,
                                          self.bl_win.WS)
+            if self.multigrid.mask[ctr_y, self.br_win.x] == 0:
+                win.is_masked = True
+            else:
+                win.is_masked = False
             self.cw_list.append(win)
             right_mid = self.multigrid.n_windows - 1
 
