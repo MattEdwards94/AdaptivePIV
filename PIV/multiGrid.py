@@ -329,6 +329,13 @@ class GridCell():
         self.south = None
         self.west = None
 
+    def area(self):
+        """Return the area of the cell
+        """
+
+        l, r, b, t = self.bl_win.x, self.tr_win.x, self.bl_win.y, self.tr_win.y
+        return (r-l+1) * (t-b+1)
+
     def has_children(self):
         return False if self.children is None else True
 
