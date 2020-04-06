@@ -56,8 +56,8 @@ class DensePredictor:
             mask = np.ones(np.shape(u))
             self.has_mask = False
 
-        self.u = np.ascontiguousarray(u, dtype=np.float_)
-        self.v = np.ascontiguousarray(v, dtype=np.float_)
+        self.u = np.ascontiguousarray(np.array(u), dtype=np.float_)
+        self.v = np.ascontiguousarray(np.array(v), dtype=np.float_)
         self.mask = mask
         self.apply_mask()
         self.n_rows = np.shape(u)[0]
