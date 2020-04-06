@@ -333,12 +333,26 @@ class Distribution:
         for cw in self.windows:
             cw.correlate(img, dp)
 
-    def plot_locations(self, *args, **kwargs):
+    def plot_locations(self, handle=None, mask=None, *args, **kwargs):
         """Plots the locations of all the windows within the distribution
         """
-        fig = plt.figure()
-        plt.plot(self.x, self.y, *args, **kwargs)
-        fig.show()
+
+        if handle is None:
+            fig, ax = plt.subplots(1)
+        else:
+            ax = handle
+
+        if mask is not None:
+            x, y = [], []
+            for _x, _y in zip(self.x, self.y):
+                if mask[_y, _x] == 1:
+                    x.append(_x)
+                    y.append(_y)
+
+        else:
+            x, y = self.x, self.y
+
+        ax.plot(x, y, 'r*', *args, **kwargs)
 
     def plot_distribution(self):
         fig, ax = plt.subplots()
