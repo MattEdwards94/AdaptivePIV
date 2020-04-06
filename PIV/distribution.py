@@ -200,7 +200,7 @@ class Distribution:
         """
         return np.array([cw.flag for cw in self.windows])
 
-    def validation_NMT_8NN(self, threshold=2, eps=0.1):
+    def validation_NMT_8NN(self, threshold=2, eps=0.1, idw=False):
         """
         Performs a normalised median threshold test by comparing each vector to
         it's 8 nearest neighbours
@@ -215,11 +215,17 @@ class Distribution:
             "Universal Outlier Detection for PIV Data" - Westerweel and Scarano
 
 
-        Args:
-            threshold (int, optional): The threshold above which the norm
-                                       indicates an outlier. Refer to paper
-            eps (float, optional): The assumed background noise in px.
-                                   Refer to paper
+        Parameters
+        ----------
+        threshold : int, optional
+            The threshold above which the norm indicates an outlier.
+            Refer to paper
+            "Universal Outlier Detection for PIV Data" - Westerweel and Scarano
+        eps : float, optional
+            The assumed background noise in px.
+            Refer to paper.
+        idw : Boolean, optional
+            Indicates whether to perform distance weighting on validation
         """
 
         # detection
@@ -229,7 +235,10 @@ class Distribution:
         nbrs = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(xy)
         nb_dist, nb_ind = nbrs.kneighbors(xy)
 
-        norm = NMT_detection(u, v, nb_ind, eps)
+        if not idw:
+            norm = NMT_detection(u, v, nb_ind, eps)
+        else:
+            norm = NMT_idw_detection(u, v, nb_ind, nb_dist)
         flag = norm > threshold
         invalid = np.sum(flag)
         try:
@@ -717,6 +726,57 @@ def NMT_detection(u, v, nb_ind, eps=0.1):
 
     return norm
 
+
+def NMT_idw_detection(u, v, nb_ind, nb_dist, eps=0.1):
+    """
+    Detects outliers according to the normalised median threshold test of
+    Duncan, Dabiri, and Hove.
+    Returns the norm value
+
+    Parameters
+    ----------
+    u : list, float
+        list of the u displacement values
+    v : list, float
+        list of the v displacement values
+    nb_ind : ndarray, int
+        list of neighbour indices for each location
+    nb_dist : ndarray, float
+        list of distances to each neighbour defined nb_ind
+    eps : float, optional
+        background noise level, in px
+    thr : int, optional
+        threshold for an outlier
+    """
+
+    # calculate the denominator term, the median of neighbour distances plus ea
+    md_neighb = np.nanmedian(nb_dist[:, 1:], axis=1)
+    ea = 0.5*(-md_neighb + np.sqrt(md_neighb**2 + 4*eps))
+
+    # calculate the median of all neighbours
+    di_ea = (nb_dist[:, 1:] + ea[:, np.newaxis])
+    # nb_ind is (N, 9), u/v_med is (N, 1)
+    # bf_u = (nb_dist[:, 1:] + ea)[:, np.newaxis]
+    u_med, v_med = (np.nanmedian(u[nb_ind[:, 1:]]/di_ea, axis=1),
+                    np.nanmedian(v[nb_ind[:, 1:]]/di_ea, axis=1))
+
+    u_0_norm, v_0_norm = (u[nb_ind[:, 0]] / (md_neighb + ea),
+                          v[nb_ind[:, 0]] / (md_neighb + ea))
+
+    # fluctuations
+    # u_fluct_all is (N, 9)
+    u_fluct, v_fluct = (u[nb_ind[:, 1:]]/di_ea - u_med[:, np.newaxis],
+                        v[nb_ind[:, 1:]]/di_ea - v_med[:, np.newaxis])
+
+    # residual is (N, 1)
+    resu, resv = (np.nanmedian(np.abs(u_fluct), axis=1) + ea,
+                  np.nanmedian(np.abs(v_fluct), axis=1) + ea)
+
+    u_norm, v_norm = (np.abs(u_0_norm-u_med) / resu,
+                      np.abs(v_0_norm-v_med) / resv)
+    norm = np.sqrt(u_norm**2 + v_norm**2)
+
+    return norm
 
 def outlier_replacement(flag, u, v, nb_ind):
     """

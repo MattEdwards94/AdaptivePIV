@@ -1050,7 +1050,7 @@ def adaptive_analysis(img, settings):
 
             if settings.vec_val is not None:
                 vprint(BASIC, "Validate vectors")
-                dist.validation_NMT_8NN()
+                dist.validation_NMT_8NN(idw=settings.idw)
 
             vprint(BASIC, "Interpolating")
             u, v = dist.interp_to_densepred(settings.interp, img_def.dim,
@@ -1077,7 +1077,7 @@ def adaptive_analysis(img, settings):
 
             if settings.vec_val is not None:
                 vprint(BASIC, "Validate vectors")
-                dist.validation_NMT_8NN()
+                dist.validation_NMT_8NN(idw=settings.idw)
 
             vprint(BASIC, "Interpolating")
             u, v = dist.interp_to_densepred(settings.interp, img_def.dim,
@@ -1095,7 +1095,7 @@ def adaptive_analysis(img, settings):
 
         if settings.vec_val is not None:
             vprint(BASIC, "validate vectors")
-            dist.validation_NMT_8NN()
+            dist.validation_NMT_8NN(idw=settings.idw)
 
         vprint(BASIC, "Interpolating")
         u, v = dist.interp_to_densepred(settings.interp, img_def.dim,
@@ -1121,7 +1121,8 @@ class AdaptSettings():
                  init_N_windows=2500, final_N_windows=10000,
                  n_iter_main=3, n_iter_ref=2,
                  distribution_method='AIS',
-                 vec_val='NMT', interp='unstruc_cub',
+                 vec_val='NMT', idw=True,
+                 interp='unstruc_cub',
                  part_detect='simple',
                  sd_P_target=20,
                  target_init_NI=20, target_fin_NI=8,
@@ -1165,6 +1166,9 @@ class AdaptSettings():
             Type of vector validation to perform.
             Options: 'NMT', None
             Default: 'NMT'
+        idw : bool, optional
+            Whether to use inverse distance weighting for vector validation
+            Default True.
         interp (str, optional
             Type of interpolation to perform
             Options: 'struc_lin', 'struc_cub'
@@ -1200,6 +1204,7 @@ class AdaptSettings():
         self.n_iter_main = n_iter_main
         self.n_iter_ref = n_iter_ref
         self.vec_val = vec_val
+        self.idw = idw
         self.interp = interp
         self.part_detect = part_detect
         self.sd_P_target = sd_P_target
