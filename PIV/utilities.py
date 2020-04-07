@@ -496,5 +496,50 @@ def franke_function(x, y, max_x=1, max_y=1):
             .2 * np.exp(-(9 * x/max_x - 4) ** 2 - (9 * y/max_y - 7) ** 2))
 
 
+def WS_for_iter(_iter, settings):
+    """
+    Returns the WS to be used for iteration _iter for the current settings
+
+    The window size is calculated by finding what reduction factor (RF) would
+    need to be applied to init_WS, n_iter_main times
+    such that at the end
+
+    WS = init_WS*(RF^n_iter_main) = final_WS
+
+    _iter = 1 returns init_WS
+        UNLESS
+        iter_ = 1 and n_iter_main == 1, which returns final_WS
+    _iter >= n_iter_main returns final_WS
+
+    Args:
+        iter_ (int): The iteration to calculate the WS for.
+                     Must be 1 <= iter_ <= n_iter_main + n_iter_ref
+        settings (dict): Settings to be used, see 'widim_settings()'
+
+    Returns:
+        WS: Returns the WS rounded to the nearest odd integer
+    """
+
+    # check inputs for special cases
+    if _iter == 1:
+        if settings.n_iter_main == 1:
+            return settings.final_WS
+        else:
+            return settings.init_WS
+
+    if _iter >= settings.n_iter_main:
+        return settings.final_WS
+
+    # now calculate intermediate WS value
+    reduction_fact = np.exp(
+        np.log(settings.final_WS / settings.init_WS)
+        / (settings.n_iter_main - 1)
+    )
+    WS = settings.init_WS * (reduction_fact ** (_iter - 1))
+
+    # return the nearest odd integer
+    return round_to_odd(WS)
+
+
 if __name__ == '__main__':
     pass
