@@ -142,6 +142,16 @@ class MultiGrid(distribution.Distribution):
         else:
             raise ValueError("Grid refinement not possible")
 
+    def split_boundary_interfaces(self):
+        """Splits cells which overlap near a boundary.
+
+        Note that if the edge of a cell is perfectly on the boundary, it will
+        NOT be split. This is NOT boundary refinement.
+
+        """
+        for cell in self.get_all_leaf_cells():
+            if cell.mask_total(self.mask)/cell.area() < 1:
+                cell.split()
     def split_all_cells(self):
         """Split all cells, each into 4 new cells
         """
@@ -721,6 +731,22 @@ class GridCell():
         print("br", self.br_win)
         print("tl", self.tl_win)
         print("tr", self.tr_win)
+
+    def mask_total(self, mask):
+        """Calculates the sum of mask value within the boundaries of the cell
+
+        Inclusive of cell boundaries
+
+        Parameters
+        ----------
+        mask : ndarray
+            Binary array of the mask
+        """
+
+        # determine bounds of the cell
+        l, r, b, t = self.bl_win.x, self.tr_win.x, self.bl_win.y, self.tr_win.y
+
+        return np.sum(mask[b:t+1, l:r+1])
 
 
 class Grid():
