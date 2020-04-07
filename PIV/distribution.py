@@ -118,6 +118,25 @@ class Distribution:
         """
         return np.array([[cw.x, cw.y] for cw in self.windows])
 
+    def get_unmasked_win(self):
+        """
+        Returns a (N, 1) array of all unmasked stored locations where N is the
+        number of unmasked CorrWindows
+
+        If "is_masked" is not set then an error is raised.
+
+        Returns:
+            ndarray: (N, 2) array of all unmasked locations [x, y]
+        """
+        if self.windows[0].is_masked is None:
+            raise ValueError("Mask status not known")
+        out_list = []
+        for cw in self.windows:
+            if cw.is_masked is False and cw.is_halo is None:
+                out_list.append(cw)
+
+        return np.array(out_list)
+
     def get_unmasked_xy(self):
         """
         Returns a (N, 2) array of all unmasked stored locations where N is the
@@ -250,7 +269,7 @@ class Distribution:
         u, v = outlier_replacement(flag, u, v, nb_ind)
 
         # update values in CorrWindow objects
-        for (cw, outlier, u_i, v_i) in zip(self.windows, flag, u, v):
+        for (cw, outlier, u_i, v_i) in zip(self.get_unmasked_win(), flag, u, v):
             if cw.is_masked is True:
                 continue
             if outlier == 1:
