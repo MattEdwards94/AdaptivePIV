@@ -262,32 +262,43 @@ class MultiGrid(distribution.Distribution):
             except:
                 continue
 
-    def get_all_leaf_cells(self):
+    def get_all_leaf_cells(self, max_tier=None):
         """Returns a list of leaf cells in the domain, 
             i.e cells without any children
 
             loop over top cells, if the cell has no children then add to 
             the list. if it has children then recursively progress down the 
             cells adding those which have no children
+
+        Parameters
+        ----------
+        max_tier : int
+            The maximum tier of cells to return. If passed, the method will 
+            return all leaf cells up to that tier. 
+            Cells whose tier = max_tier, but have children, are still 
+            considered leafs in this case.
         """
+
+        if max_tier is None:
+            max_tier = self.max_tier
 
         out_list = []
 
-        def add_children(cell, out_list):
+        def add_children(cell, out_list, max_tier):
             """Allow for recursion
             """
-            if not cell.has_children():
+            if not cell.has_children() or cell.tier == max_tier:
                 out_list.append(cell)
             else:
                 for child_cell in cell.children.values():
-                    add_children(child_cell, out_list)
+                    add_children(child_cell, out_list, max_tier)
 
         for cell in self.cells[0:self.cells_in_top_tier]:
-            add_children(cell, out_list)
+            add_children(cell, out_list, max_tier)
 
         return out_list
 
-    def plot_grid(self, ax=None, mask=None):
+    def plot_grid(self, ax=None, mask=None, max_tier=None):
         """Plots the grid in the conventional manner
         """
 
@@ -295,8 +306,11 @@ class MultiGrid(distribution.Distribution):
             fig = plt.figure()
             ax = fig.add_subplot(111)
 
+        if mask is not None:
+            ax.imshow(mask, cmap='gray')
+
         rects = []
-        for cell in self.get_all_leaf_cells():
+        for cell in self.get_all_leaf_cells(max_tier=max_tier):
             # rectangle for the bottom level cell
             bl, tr = cell.coordinates[0], cell.coordinates[2]
             height, width = tr[1] - bl[1], tr[0] - bl[0]
