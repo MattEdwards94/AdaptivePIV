@@ -22,16 +22,17 @@ class MultiGrid(distribution.Distribution):
         """
 
         if mask is None:
-            self.mask = np.ones(img_dim)
+            self.mask = np.ones(img_dim+spacing)
         else:
-            self.mask = mask
+            # pads 0's
+            self.mask = np.pad(mask, ((0, spacing), (0, spacing)))
 
         self.img_dim = img_dim
         self.spacing = spacing
 
         # create the coordinate grid
-        x_vec = np.arange(0, img_dim[1], spacing)
-        y_vec = np.arange(0, img_dim[0], spacing)
+        x_vec = np.arange(0, img_dim[1]+spacing, spacing)
+        y_vec = np.arange(0, img_dim[0]+spacing, spacing)
         xx, yy = np.meshgrid(x_vec, y_vec)
         ws_grid = np.ones_like(xx) * WS
 
@@ -42,7 +43,10 @@ class MultiGrid(distribution.Distribution):
                                 xx.ravel(),
                                 yy.ravel(),
                                 ws_grid.ravel()))
+        # classify windows
         for window in self.windows:
+            if np.any((window.y >= img_dim[0], window.x >= img_dim[1])):
+                window.is_halo = True
             if self.mask[window.y, window.x] == 0:
                 window.is_masked = True
             else:
@@ -170,6 +174,8 @@ class MultiGrid(distribution.Distribution):
 
         # get coarse interpolation
         u0, v0 = self.grids[0].get_values()
+        u0[np.isnan(u0)] = 0
+        v0[np.isnan(v0)] = 0
         f0_u = interp.interp2d(self.grids[0].x_vec,
                                self.grids[0].y_vec,
                                u0, kind=method)
@@ -186,6 +192,8 @@ class MultiGrid(distribution.Distribution):
             h = self.grids[tn].spacing
             u_int = u_soln[::h, ::h]
             v_int = v_soln[::h, ::h]
+            u_int = np.pad(u_int, ((0, 1), (0, 1)), mode='edge')
+            v_int = np.pad(v_int, ((0, 1), (0, 1)), mode='edge')
 
             # get the delta to the assumed solution
             u1, v1 = self.grids[tn].get_values()
@@ -310,44 +318,44 @@ class MultiGrid(distribution.Distribution):
                 if blm:
                     # can only print the top line or right hand line
                     # try to plot top line
-                    if not np.any((tlm, trm)) and cell.north is None:
+                    if not np.any((tlm, trm)):
                         rects.append(patches.Rectangle(
                             [bl[0], tr[1]], width, 0.01, fill=False))
                     # try to plot right line
-                    if not np.any((trm, brm)) and cell.east is None:
+                    if not np.any((trm, brm)):
                         rects.append(patches.Rectangle(
                             [tr[0], bl[1]], 0.01, height, fill=False))
 
                 elif brm:
                     # can only print the top line or left hand line
                     # try to plot top line
-                    if not np.any((tlm, trm)) and cell.north is None:
+                    if not np.any((tlm, trm)):
                         rects.append(patches.Rectangle(
                             [bl[0], tr[1]], width, 0.01, fill=False))
                     # try to plot left line
-                    if not np.any((blm, tlm)) and cell.west is None:
+                    if not np.any((blm, tlm)):
                         rects.append(patches.Rectangle(
                             bl, 0.01, height, fill=False))
 
                 elif tlm:
                     # can only print the bottom line or right hand line
                     # try to plot bottom line
-                    if not np.any((blm, brm)) and cell.south is None:
+                    if not np.any((blm, brm)):
                         rects.append(patches.Rectangle(
                             bl, width, 0.01, fill=False))
                     # try to plot right line
-                    if not np.any((brm, trm)) and cell.east is None:
+                    if not np.any((brm, trm)):
                         rects.append(patches.Rectangle(
                             [tr[0], tr[1]], 0.01, height, fill=False))
 
                 elif trm:
                      # can only print the bottom line or left hand line
                     # try to plot bottom line
-                    if not np.any((blm, brm)) and cell.south is None:
+                    if not np.any((blm, brm)):
                         rects.append(patches.Rectangle(
                             bl, width, 0.01, fill=False))
                     # try to plot left line
-                    if not np.any((blm, tlm)) and cell.west is None:
+                    if not np.any((blm, tlm)):
                         rects.append(patches.Rectangle(
                             bl, 0.01, height, fill=False))
 
@@ -359,7 +367,24 @@ class MultiGrid(distribution.Distribution):
         ax.add_collection(rect_collection)
         ax.set_xlim([0, self.img_dim[1]])
         ax.set_ylim([0, self.img_dim[0]])
-        fig.show()
+
+    def plot_halo_locations(self, handle=None, mask=None, *args, **kwargs):
+        """Plots the locations of the windows outside of the domain which 
+        represent halo locations
+        """
+
+        if handle is None:
+            fig, ax = plt.subplots(1)
+        else:
+            ax = handle
+
+        x, y = [], []
+        for win in self.windows:
+            if win.is_halo:
+                x.append(win.x)
+                y.append(win.y)
+
+        ax.plot(x, y, 'rx', *args, **kwargs)
 
 
 class GridCell():
@@ -468,6 +493,10 @@ class GridCell():
                 win.is_masked = True
             else:
                 win.is_masked = False
+            if np.any((win.y >= self.multigrid.img_dim[0],
+                       win.x >= self.multigrid.img_dim[1])):
+                win.is_halo = True
+
             self.cw_list.append(win)
             left_mid = self.multigrid.n_windows - 1
 
@@ -481,6 +510,9 @@ class GridCell():
                 win.is_masked = True
             else:
                 win.is_masked = False
+            if np.any((win.y >= self.multigrid.img_dim[0],
+                       win.x >= self.multigrid.img_dim[1])):
+                win.is_halo = True
             self.cw_list.append(win)
             ctr_btm = self.multigrid.n_windows - 1
 
@@ -491,6 +523,9 @@ class GridCell():
             win.is_masked = True
         else:
             win.is_masked = False
+        if np.any((win.y >= self.multigrid.img_dim[0],
+                   win.x >= self.multigrid.img_dim[1])):
+            win.is_halo = True
         self.cw_list.append(win)
         ctr_mid = self.multigrid.n_windows - 1
 
@@ -504,6 +539,9 @@ class GridCell():
                 win.is_masked = True
             else:
                 win.is_masked = False
+            if np.any((win.y >= self.multigrid.img_dim[0],
+                       win.x >= self.multigrid.img_dim[1])):
+                win.is_halo = True
             self.cw_list.append(win)
             ctr_top = self.multigrid.n_windows - 1
 
@@ -517,6 +555,9 @@ class GridCell():
                 win.is_masked = True
             else:
                 win.is_masked = False
+            if np.any((win.y >= self.multigrid.img_dim[0],
+                       win.x >= self.multigrid.img_dim[1])):
+                win.is_halo = True
             self.cw_list.append(win)
             right_mid = self.multigrid.n_windows - 1
 
@@ -680,8 +721,8 @@ class Grid():
 
         self.img_dim = img_dim
         self.spacing = spacing
-        self.x_vec = np.arange(0, self.img_dim[1], self.spacing)
-        self.y_vec = np.arange(0, self.img_dim[0], self.spacing)
+        self.x_vec = np.arange(0, self.img_dim[1]+spacing, spacing)
+        self.y_vec = np.arange(0, self.img_dim[0]+spacing, spacing)
 
         # determine how many 'entries' we need to be able to accomodate
         self.ny = len(self.y_vec)
@@ -697,23 +738,29 @@ class Grid():
 
     def get_values(self):
         """Returns the u and v displacement values for all the windows in the 
-        domain. 
-        Returns 0 if there is no CorrWindow available
+        multigrid.
+        This includes values outside the domain.
+        Values outside of the domain are reflected
+
+        Returns nan if there is no CorrWindow available
 
         Returns:
             nd_array, nd_array: array of u and v values, respectively
         """
         # allocate space for 2 arrays of values
-        u_out, v_out = (np.empty((self.ny, self.nx)),
-                        np.empty((self.ny, self.nx)))
+        u_out, v_out = (np.empty((self.ny-1, self.nx-1)),
+                        np.empty((self.ny-1, self.nx-1)))
         u_out[:], v_out[:] = np.nan, np.nan
-        for yy in range(self.ny):
-            for xx in range(self.nx):
+        for yy in range(self.ny-1):
+            for xx in range(self.nx-1):
                 try:
                     u_out[yy][xx] = self._array[yy][xx].u
                     v_out[yy][xx] = self._array[yy][xx].v
                 except AttributeError:
                     pass
+
+        u_out = np.pad(u_out, ((0, 1), (0, 1)), mode='edge')
+        v_out = np.pad(v_out, ((0, 1), (0, 1)), mode='edge')
 
         return u_out, v_out
 

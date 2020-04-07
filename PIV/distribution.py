@@ -151,7 +151,7 @@ class Distribution:
             raise ValueError("Mask status not known")
         out_list = []
         for cw in self.windows:
-            if cw.is_masked is False:
+            if cw.is_masked is False and cw.is_halo is None:
                 out_list.append([cw.x, cw.y])
 
         return np.array(out_list)
@@ -179,7 +179,7 @@ class Distribution:
             raise ValueError("Mask status not known")
         out_list = []
         for cw in self.windows:
-            if cw.is_masked is False:
+            if cw.is_masked is False and cw.is_halo is None:
                 out_list.append([cw.u, cw.v])
 
         return np.array(out_list)
@@ -207,7 +207,7 @@ class Distribution:
             raise ValueError("Mask status not known")
         out_list = []
         for cw in self.windows:
-            if cw.is_masked is False:
+            if cw.is_masked is False and cw.is_halo is None:
                 out_list.append(cw.WS)
 
         return np.array(out_list)
@@ -350,6 +350,8 @@ class Distribution:
         """
 
         for cw in self.windows:
+            if cw.is_halo is True:
+                continue
             cw.correlate(img, dp)
 
     def plot_locations(self, handle=None, mask=None, *args, **kwargs):
@@ -363,18 +365,25 @@ class Distribution:
 
         if mask is not None:
             x, y = [], []
-            for _x, _y in zip(self.x, self.y):
-                if mask[_y, _x] == 1:
-                    x.append(_x)
-                    y.append(_y)
+            for _x, _y in self.get_unmasked_xy():
+                try:
+                    if mask[_y, _x] == 1:
+                        x.append(_x)
+                        y.append(_y)
+                except IndexError:
+                    continue
 
         else:
             x, y = self.x, self.y
 
         ax.plot(x, y, 'r*', *args, **kwargs)
+    def plot_distribution(self, handle=None):
 
-    def plot_distribution(self):
-        fig, ax = plt.subplots()
+        if handle is None:
+            fig, ax = plt.subplots(1)
+        else:
+            ax = handle
+
         xy, uv = self.get_all_xy(), self.get_all_uv()
         ax.quiver(xy[:, 0],
                   xy[:, 1],

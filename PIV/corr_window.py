@@ -65,6 +65,7 @@ class CorrWindow:
         self.v_pre_validation = np.NaN
         self.flag = np.NaN
         self.is_masked = None
+        self.is_halo = None
 
     def __eq__(self, other):
         """
