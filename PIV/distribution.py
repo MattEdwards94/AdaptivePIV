@@ -62,7 +62,14 @@ class Distribution:
         return len(self.windows)
 
     @staticmethod
-    def from_locations(x, y, WS):
+    def from_AIS(*args, **kwargs):
+        """Helper method to initialise a Distribution object from AIS
+        """
+        xy = AIS(*args, **kwargs)
+        return Distribution.from_locations(xy[:, 0], xy[:, 1])
+
+    @staticmethod
+    def from_locations(x, y, WS=None):
         """
         Creates a distribution of CorrWindow objects, made for each
         item in x, y and WS
@@ -78,6 +85,9 @@ class Distribution:
         Returns:
             Distribution: Distribution object containing the specified locations
         """
+
+        if WS is None:
+            WS = [None] * len(x)
 
         x, y, WS = np.array(x), np.array(y), np.array(WS)
 
