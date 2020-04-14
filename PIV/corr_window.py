@@ -158,6 +158,11 @@ class CorrWindow:
             value (int): Size of the correlation window in pixels
         """
 
+        if value is None:
+            self._WS = None
+            self.rad = None
+            return 0
+
         # check that WS is odd - also implicitly checks for integer
         if not value % 2 == 1:
             raise ValueError("Even sized windows are not allowed")
