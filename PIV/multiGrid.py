@@ -112,10 +112,6 @@ class MultiGrid(distribution.Distribution):
         self.cells_in_top_tier = len(self.cells)
 
     @property
-    def n_windows(self):
-        return len(self.windows)
-
-    @property
     def n_cells(self):
         return len(self.cells)
 
