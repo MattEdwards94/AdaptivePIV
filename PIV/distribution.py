@@ -1302,7 +1302,7 @@ def AIS(pdf, mask, n_points, bf_refine=1, ex_points=None):
 
     return np.array(ais_module.AIS(pdf.astype(np.float64),
                                    mask.astype(np.float64),
-                                   n_points, bf_refine, ex_points))
+                                   n_points, bf_refine, ex_points))[0]
 
 
 def pdf_transform_1d(pdf, n_points):
@@ -1319,7 +1319,7 @@ def pdf_transform_1d(pdf, n_points):
 
     # calculate the normalised cdf
     cdf = np.cumsum(pdf) / np.sum(pdf)
-    inv_y = np.linspace(np.min(cdf)+1e-9, 1, n_points)
+    inv_y = np.linspace(np.min(cdf)+1e-9, 1-1e-9, n_points)
     x_out = interp.interp1d(cdf, np.arange(len(pdf)))
     return x_out(inv_y).astype(int)
 
