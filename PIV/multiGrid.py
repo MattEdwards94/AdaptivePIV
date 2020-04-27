@@ -111,6 +111,20 @@ class MultiGrid(distribution.Distribution):
 
         self.cells_in_top_tier = len(self.cells)
 
+    def __iter__(self):
+        self._iter_counter = 0
+        return self
+
+    def __next__(self):
+        if self._iter_counter < self.n_windows():
+            win = self.windows[self._iter_counter]
+            self._iter_counter += 1
+            while win.is_halo:
+                win = self.__next__()
+            return win
+        else:
+            raise StopIteration
+
     @property
     def n_cells(self):
         return len(self.cells)

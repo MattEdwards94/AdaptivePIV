@@ -55,6 +55,18 @@ class Distribution:
 
         return True
 
+    def __iter__(self):
+        self._iter_counter = 0
+        return self
+
+    def __next__(self):
+        if self._iter_counter < self.n_windows():
+            win = self.windows[self._iter_counter]
+            self._iter_counter += 1
+            return win
+        else:
+            raise StopIteration
+
     def n_windows(self):
         """
         Returns the number of windows currently stored in the distribution
