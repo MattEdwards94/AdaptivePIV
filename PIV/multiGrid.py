@@ -251,7 +251,8 @@ class MultiGrid(distribution.Distribution):
         dp_lin = self.interp_to_densepred(method='linear')
         dp_splint = dp_cub - dp_lin
 
-        return dp_splint.magnitude()
+        return (dp_splint.magnitude() *
+                self.mask[:self.img_dim[0], :self.img_dim[1]])
 
     def adaptive_split_peak_value_cells(self, obj_func):
         """Split cells according to the input objective function.
