@@ -532,7 +532,7 @@ class GridCell():
                 win.is_halo = True
 
             self.cw_list.append(win)
-            left_mid = self.multigrid.n_windows - 1
+            left_mid = self.multigrid.n_windows() - 1
 
         # check down
         if self.south is not None and self.south.has_children():
@@ -548,7 +548,7 @@ class GridCell():
                        win.x >= self.multigrid.img_dim[1])):
                 win.is_halo = True
             self.cw_list.append(win)
-            ctr_btm = self.multigrid.n_windows - 1
+            ctr_btm = self.multigrid.n_windows() - 1
 
         # ctr_mid is the only window which is the only window guaranteed
         # to not already exist
@@ -561,7 +561,7 @@ class GridCell():
                    win.x >= self.multigrid.img_dim[1])):
             win.is_halo = True
         self.cw_list.append(win)
-        ctr_mid = self.multigrid.n_windows - 1
+        ctr_mid = self.multigrid.n_windows() - 1
 
         # check up
         if self.north is not None and self.north.has_children():
@@ -577,7 +577,7 @@ class GridCell():
                        win.x >= self.multigrid.img_dim[1])):
                 win.is_halo = True
             self.cw_list.append(win)
-            ctr_top = self.multigrid.n_windows - 1
+            ctr_top = self.multigrid.n_windows() - 1
 
         # check right
         if self.east is not None and self.east.has_children():
@@ -593,7 +593,7 @@ class GridCell():
                        win.x >= self.multigrid.img_dim[1])):
                 win.is_halo = True
             self.cw_list.append(win)
-            right_mid = self.multigrid.n_windows - 1
+            right_mid = self.multigrid.n_windows() - 1
 
         return left_mid, ctr_btm, ctr_mid, ctr_top, right_mid
 
