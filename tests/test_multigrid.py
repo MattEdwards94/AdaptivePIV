@@ -13,15 +13,15 @@ def mock_amg():
     img_dim = (4 * h + 1, 3 * h + 1)
     """
     h = 64
-    img_dim = (4 * h + 1, 3 * h + 1)
+    img_dim = (3 * h + 1, 2 * h + 1)
     amg = mg.MultiGrid(img_dim, h, WS=127)
     return amg
 
 
 @pytest.fixture
 def mock_grid():
-    img_dim, spacing = (193, 129), 64
-    return mg.Grid(img_dim, spacing)
+    img_dim, spacing = (129, 65), 64
+    return mg.Grid(img_dim, spacing, spacing)
 
 
 def test_init_multigrid():
@@ -35,8 +35,8 @@ def test_init_multigrid():
     h = 64
 
     # expected grid
-    xv, yv = (np.arange(0, img_dim[1], h),
-              np.arange(0, img_dim[0], h))
+    xv, yv = (np.arange(0, img_dim[1]+h, h),
+              np.arange(0, img_dim[0]+h, h))
     x_exp, y_exp = np.meshgrid(xv, yv)
 
     # actual
@@ -54,7 +54,7 @@ def test_multigrid_single_cell_has_no_neighbours():
 
     # only enough room for 1 cell
     img_dim = (65, 65)
-    h = 64
+    h = 128  # has to be bigger so that we account for halo cell creation
     amg = mg.MultiGrid(img_dim, h, WS=127)
 
     assert amg.cells[0].north == None
@@ -67,9 +67,9 @@ def test_multigrid_calculates_neighbours_correctly():
     """ Check that each cell has it's neighbours correctly added
     """
 
-    # create a grid which will result in 9 cells
+    # create a grid which will result in 9 cells (consider halo cells)
     h = 64
-    img_dim = (3 * h + 1, 3 * h + 1)
+    img_dim = (2 * h + 1, 2 * h + 1)
     amg = mg.MultiGrid(img_dim, h, WS=127)
 
     # check that each cell has the expected neighbours
@@ -133,7 +133,7 @@ def test_grid_cell_init_stores_corrWindows():
     reference to a single corr window object for each location
     """
 
-    amg = mg.MultiGrid([65, 65], 64, WS=127)
+    amg = mg.MultiGrid([32, 32], 64, WS=127)
 
     # get the grid cell
     gc = amg.cells[0]
@@ -611,12 +611,12 @@ def test_Grid_creates_array_space():
 
     # create dummy meshgrid
     img_dim, spacing = (193, 193), 64
-    x_vec = np.arange(0, img_dim[1], spacing)
-    y_vec = np.arange(0, img_dim[0], spacing)
+    x_vec = np.arange(0, img_dim[1]+spacing, spacing)
+    y_vec = np.arange(0, img_dim[0]+spacing, spacing)
     xx, yy = np.meshgrid(x_vec, y_vec)
 
     # create Grid
-    g = mg.Grid(img_dim, spacing)
+    g = mg.Grid(img_dim, spacing, spacing)
 
     assert g.ny == len(y_vec)
     assert g.nx == len(x_vec)
@@ -701,8 +701,8 @@ def test_get_values_with_sample_window_values(mock_grid):
 
     u, v = mock_grid.get_values()
 
-    assert np.allclose(u, randu)
-    assert np.allclose(v, randv)
+    assert np.allclose(u[:-1, :-1], randu[:-1, :-1])
+    assert np.allclose(v[:-1, :-1], randv[:-1, :-1])
 
 
 def test_get_values_from_within_MultiGrid_first_iter(mock_amg):
@@ -724,8 +724,8 @@ def test_get_values_from_within_MultiGrid_first_iter(mock_amg):
 
     gridu, gridv = mock_amg.grids[0].get_values()
 
-    assert np.allclose(gridu, randu)
-    assert np.allclose(gridv, randv)
+    assert np.allclose(gridu[:-1, :-1], randu[:-1, :-1])
+    assert np.allclose(gridv[:-1, :-1], randv[:-1, :-1])
 
 
 def test_get_values_from_new_grid(mock_amg):
@@ -784,8 +784,8 @@ def test_get_values_from_new_grid(mock_amg):
     uu, vv = mock_amg.grids[1].get_values()
     uu[np.isnan(uu)] = 0
     vv[np.isnan(vv)] = 0
-    assert np.allclose(uu, expu)
-    assert np.allclose(vv, expv)
+    assert np.allclose(uu[:1, :1], expu[:1, :1])
+    assert np.allclose(vv[:1, :1], expv[:1, :1])
 
 
 def test_cubic_interp_to_densepred_is_same_for_one_gridlevel(mock_amg):
@@ -797,7 +797,9 @@ def test_cubic_interp_to_densepred_is_same_for_one_gridlevel(mock_amg):
     # obtain the reference solution
     coarse_grid = mock_amg.grids[0]
     ny, nx = coarse_grid.ny, coarse_grid.nx
-    u_ref, v_ref = np.random.rand(ny, nx), np.random.rand(ny, nx)
+    u_ref, v_ref = np.random.rand(ny-1, nx-1), np.random.rand(ny-1, nx-1)
+    u_ref = np.pad(u_ref, ((0, 1), (0, 1)), mode='edge')
+    v_ref = np.pad(v_ref, ((0, 1), (0, 1)), mode='edge')
 
     # set the values of the windows to these values
     for ii in range(ny):
@@ -828,7 +830,9 @@ def test_linear_interp_to_densepred_is_same_for_one_gridlevel(mock_amg):
     # obtain the reference solution
     coarse_grid = mock_amg.grids[0]
     ny, nx = coarse_grid.ny, coarse_grid.nx
-    u_ref, v_ref = np.random.rand(ny, nx), np.random.rand(ny, nx)
+    u_ref, v_ref = np.random.rand(ny-1, nx-1), np.random.rand(ny-1, nx-1)
+    u_ref = np.pad(u_ref, ((0, 1), (0, 1)), mode='edge')
+    v_ref = np.pad(v_ref, ((0, 1), (0, 1)), mode='edge')
 
     # set the values of the windows to these values
     for ii in range(ny):
@@ -862,15 +866,17 @@ def test_cubic_interp_to_densepred_is_similar_for_two_levels(mock_amg):
 
     # obtain the reference solution for the whole domain
     nyf, nxf = fine_grid.ny, fine_grid.nx
-    u_ref, v_ref = np.random.rand(nyf, nxf), np.random.rand(nyf, nxf)
+    u_ref, v_ref = np.random.rand(nyf-1, nxf-1), np.random.rand(nyf-1, nxf-1)
+    u_ref = np.pad(u_ref, ((0, 1), (0, 1)), mode='edge')
+    v_ref = np.pad(v_ref, ((0, 1), (0, 1)), mode='edge')
 
     # set all the window values
-    for ii in range(nyf):
+    for ii in range(nyf-1):
         # determine if the value should go onto the coarse or fine tier
         # coarse tiers are 0, 2, 4, etc and so will return 0 (False) when
         # modded with 2
         coarse_i = False if ii % 2 else True
-        for jj in range(nxf):
+        for jj in range(nxf-1):
             # determine if the value should go onto the coarse or fine tier
             coarse_j = False if jj % 2 else True
             # if both coarse_i, coarse_j are True, then we are on the coarse
@@ -884,11 +890,13 @@ def test_cubic_interp_to_densepred_is_similar_for_two_levels(mock_amg):
 
     # get the expected interpolations
     xe, ye = np.arange(mock_amg.img_dim[1]), np.arange(mock_amg.img_dim[0])
-    f_u = interp.interp2d(fine_grid.x_vec, fine_grid.y_vec,
-                          u_ref, kind='cubic')
+    f_u = interp.interp2d(fine_grid.x_vec_one_extra(),
+                          fine_grid.y_vec_one_extra(),
+                          u_ref[:-1, :-1], kind='cubic')
     u_exp = f_u(xe, ye)
-    f_v = interp.interp2d(fine_grid.x_vec, fine_grid.y_vec,
-                          v_ref, kind='cubic')
+    f_v = interp.interp2d(fine_grid.x_vec_one_extra(),
+                          fine_grid.y_vec_one_extra(),
+                          v_ref[:-1, :-1], kind='cubic')
     v_exp = f_v(xe, ye)
 
     dp_soln = mock_amg.interp_to_densepred()
@@ -909,15 +917,17 @@ def test_linear_interp_to_densepred_is_similar_for_two_levels(mock_amg):
 
     # obtain the reference solution for the whole domain
     nyf, nxf = fine_grid.ny, fine_grid.nx
-    u_ref, v_ref = np.random.rand(nyf, nxf), np.random.rand(nyf, nxf)
+    u_ref, v_ref = np.random.rand(nyf-1, nxf-1), np.random.rand(nyf-1, nxf-1)
+    u_ref = np.pad(u_ref, ((0, 1), (0, 1)), mode='edge')
+    v_ref = np.pad(v_ref, ((0, 1), (0, 1)), mode='edge')
 
     # set all the window values
-    for ii in range(nyf):
+    for ii in range(nyf-1):
         # determine if the value should go onto the coarse or fine tier
         # coarse tiers are 0, 2, 4, etc and so will return 0 (False) when
         # modded with 2
         coarse_i = False if ii % 2 else True
-        for jj in range(nxf):
+        for jj in range(nxf-1):
             # determine if the value should go onto the coarse or fine tier
             coarse_j = False if jj % 2 else True
             # if both coarse_i, coarse_j are True, then we are on the coarse
@@ -931,11 +941,13 @@ def test_linear_interp_to_densepred_is_similar_for_two_levels(mock_amg):
 
     # get the expected interpolations
     xe, ye = np.arange(mock_amg.img_dim[1]), np.arange(mock_amg.img_dim[0])
-    f_u = interp.interp2d(fine_grid.x_vec, fine_grid.y_vec,
-                          u_ref, kind='linear')
+    f_u = interp.interp2d(fine_grid.x_vec_one_extra(),
+                          fine_grid.y_vec_one_extra(),
+                          u_ref[:-1, :-1], kind='linear')
     u_exp = f_u(xe, ye)
-    f_v = interp.interp2d(fine_grid.x_vec, fine_grid.y_vec,
-                          v_ref, kind='linear')
+    f_v = interp.interp2d(fine_grid.x_vec_one_extra(),
+                          fine_grid.y_vec_one_extra(),
+                          v_ref[:-1, :-1], kind='linear')
     v_exp = f_v(xe, ye)
 
     dp_soln = mock_amg.interp_to_densepred(method='linear')

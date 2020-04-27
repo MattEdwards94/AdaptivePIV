@@ -22,10 +22,9 @@ class MultiGrid(distribution.Distribution):
         """
 
         if mask is None:
-            self.mask = np.ones(img_dim+spacing)
-        else:
-            # pads 0's
-            self.mask = np.pad(mask, ((0, spacing), (0, spacing)))
+            mask = np.ones(img_dim)
+
+        self.mask = np.pad(mask, ((0, spacing), (0, spacing)))
 
         self.img_dim = img_dim
         self.spacing = spacing
@@ -53,7 +52,7 @@ class MultiGrid(distribution.Distribution):
                 window.is_masked = False
 
         # create a new grid for the base tier
-        self.grids = [Grid(img_dim, spacing)]
+        self.grids = [Grid(img_dim, spacing, spacing)]
         for ii in range(len(y_vec)):
             for jj in range(len(x_vec)):
                 self.grids[0]._array[ii][jj] = self.windows[jj + ii*len(x_vec)]
@@ -148,7 +147,7 @@ class MultiGrid(distribution.Distribution):
             # update the max tier setting
             self.max_tier += 1
             # create a new grid
-            self.grids.append(Grid(self.img_dim, int(h_new)))
+            self.grids.append(Grid(self.img_dim, int(h_new), self.spacing))
         else:
             raise ValueError("Grid refinement not possible")
 
@@ -760,19 +759,22 @@ class GridCell():
 
 
 class Grid():
-    def __init__(self, img_dim, spacing):
+    def __init__(self, img_dim, spacing, top_spacing):
         """A grid stores references to the relavent CorrWindows for given image
         dimensions and window spacing
+
+        The grid will include halo cells outside of the main image perimeter
 
         Arguments:
             img_dim {tuple, ints} -- (height, width) of the total grid domain
             spacing {int} -- Spacing between windows
+            top_spacing {int} -- The spacing between windows on the first tier
         """
 
         self.img_dim = img_dim
         self.spacing = spacing
-        self.x_vec = np.arange(0, self.img_dim[1]+spacing, spacing)
-        self.y_vec = np.arange(0, self.img_dim[0]+spacing, spacing)
+        self.x_vec = np.arange(0, self.img_dim[1]+top_spacing, spacing)
+        self.y_vec = np.arange(0, self.img_dim[0]+top_spacing, spacing)
 
         # determine how many 'entries' we need to be able to accomodate
         self.ny = len(self.y_vec)
@@ -797,20 +799,26 @@ class Grid():
         Returns:
             nd_array, nd_array: array of u and v values, respectively
         """
+
+        ny = len(np.arange(0, self.img_dim[0], self.spacing))
+        nx = len(np.arange(0, self.img_dim[1], self.spacing))
+
         # allocate space for 2 arrays of values
-        u_out, v_out = (np.empty((self.ny-1, self.nx-1)),
-                        np.empty((self.ny-1, self.nx-1)))
+        u_out, v_out = (np.empty((ny, nx)),
+                        np.empty((ny, nx)))
         u_out[:], v_out[:] = np.nan, np.nan
-        for yy in range(self.ny-1):
-            for xx in range(self.nx-1):
+        for yy in range(ny):
+            for xx in range(nx):
                 try:
                     u_out[yy][xx] = self._array[yy][xx].u
                     v_out[yy][xx] = self._array[yy][xx].v
                 except AttributeError:
                     pass
 
-        u_out = np.pad(u_out, ((0, 1), (0, 1)), mode='edge')
-        v_out = np.pad(v_out, ((0, 1), (0, 1)), mode='edge')
+        u_out = np.pad(u_out, ((0, 1), (0, 1)),
+                       mode='reflect', reflect_type='odd')
+        v_out = np.pad(v_out, ((0, 1), (0, 1)),
+                       mode='reflect', reflect_type='odd')
 
         return u_out, v_out
 
