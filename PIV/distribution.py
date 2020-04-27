@@ -3,6 +3,7 @@ from sklearn.neighbors import NearestNeighbors
 import PIV.utilities as utilities
 from PIV.utilities import vprint
 import PIV.corr_window as corr_window
+import PIV.dense_predictor as dense_predictor
 from scipy import interpolate as interp
 import skimage.segmentation as sk_seg
 from scipy.spatial import Delaunay, ConvexHull, Voronoi
@@ -328,9 +329,8 @@ class Distribution:
             if (not np.all(dim == int(dim))) or np.any(dim < 1):
                 raise ValueError("Dimensions must be positive integer")
 
-        xy, uv = self.get_all_xy(), self.get_all_uv()
-
         if method in ["struc_lin", "struc_cub"]:
+            xy, uv = self.get_all_xy(), self.get_all_uv()
             # reshape the data onto a structured grid
             x, y, u, v = xy[:, 0], xy[:, 1], uv[:, 0], uv[:, 1]
             x2d, y2d, u2d, v2d = utilities.auto_reshape(x, y, u, v)
@@ -338,6 +338,7 @@ class Distribution:
             u_int, v_int = interp_disp_structured(x2d, y2d, u2d, v2d,
                                                   eval_dim, method)
         else:
+            xy, uv = self.get_unmasked_xy(), self.get_unmasked_uv()
             # unstructured
 
             # extend convex hull
@@ -432,7 +433,7 @@ class Distribution:
                                        Defaults to 6.
         """
 
-        for cw in self.windows:
+        for cw in self:
             if store_hist:
                 history = np.empty((0, 4))
             # if WS is greater than max_WS to begin, we should just correlate
@@ -541,8 +542,8 @@ class Distribution:
         """
 
         ex_points, ex_vals = np.empty((0, 2)), np.empty((0, 2))
-        vor = Voronoi(self.get_all_xy())
-        uv = self.get_all_uv()
+        vor = Voronoi(self.get_unmasked_xy())
+        uv = self.get_unmasked_uv()
 
         # loop over regions relating to each point
         # ind is the index of the region
@@ -728,11 +729,10 @@ def interp_disp_structured(x, y, u, v, eval_dim, method):
         Pixelwise displacement values
     """
 
-    # now we need to handle extrapolation
-    x, y, u, v = (utilities.lin_extrap_edges(x),
-                  utilities.lin_extrap_edges(y),
-                  utilities.lin_extrap_edges(u),
-                  utilities.lin_extrap_edges(v), )
+    x = np.pad(x, ((0, 1), (0, 1)), mode='reflect', reflect_type='odd')
+    y = np.pad(y, ((0, 1), (0, 1)), mode='reflect', reflect_type='odd')
+    u = np.pad(u, ((0, 1), (0, 1)), mode='reflect', reflect_type='odd')
+    v = np.pad(v, ((0, 1), (0, 1)), mode='reflect', reflect_type='odd')
 
     # calculate evaluation range
     xe = np.arange(eval_dim[1])
