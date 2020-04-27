@@ -1,11 +1,12 @@
 import numpy as np
-import PIV.distribution as distribution
+from PIV.distribution import Distribution
 import PIV.utilities as utilities
 import math
 import PIV.corr_window as corr_window
-import PIV.dense_predictor as dense_predictor
+from PIV.dense_predictor import DensePredictor
 import PIV.ensemble_solution as es
 import PIV.multiGrid as mg
+from PIV.multiGrid import MultiGrid
 import PIV
 import matplotlib.pyplot as plt
 from PIV.utilities import vprint, WS_for_iter
@@ -30,8 +31,7 @@ def adaptive_analysis(img, settings):
     PIV.utilities._verbosity = settings.verbosity
 
     img_def = img
-    dp = PIV.dense_predictor.DensePredictor(
-        np.zeros(img.dim), np.zeros(img.dim), img.mask)
+    dp = DensePredictor(np.zeros(img.dim), np.zeros(img.dim), img.mask)
 
     # if one of init/final WS are auto, we will need the seeding info
     img.calc_seed_density(method=settings.part_detect,
@@ -69,12 +69,13 @@ def adaptive_analysis(img, settings):
             phi_seed[img.mask == 0] = 0
             phi = (phi_flow + phi_seed)
         if settings.distribution_method == "AIS":
-            xy_dist = distribution.AIS(phi, img.mask, n_windows)
-            xx, yy = xy_dist[0][:, 0], xy_dist[0][:, 1]
+            dist = Distribution.from_AIS(phi, img.mask, n_windows)
+        elif settings.distribution_method == "MG":
+            dist = MultiGrid.from_obj_func(phi, n_windows, img.mask)
         else:
             raise NotImplementedError("Distribution method not implemented")
 
-        vprint(BASIC, "{} windows".format(len(xx)))
+        vprint(BASIC, "{} windows".format(dist.n_windows()))
 
         # correlate using adaptive initial window size.
         if _iter == 1:
@@ -85,9 +86,9 @@ def adaptive_analysis(img, settings):
                     np.sqrt(settings.target_init_NI / min_sd))
                 ws_seed_init[np.isnan(ws_seed_init)] = 97
 
-                # create correlation windows
-                dist = distribution.Distribution.from_locations(xx, yy,
-                                                                ws_seed_init[yy, xx])
+                # initialise window size from seeding
+                for win in dist:
+                    win.WS = ws_seed_init[win.y, win.x]
 
                 # analyse the windows
                 vprint(BASIC, "Analysing first iteration with AIW")
@@ -96,10 +97,9 @@ def adaptive_analysis(img, settings):
                 # need to store the actual initial WS for subsequent iterations
                 ws_first_iter = dist.interp_WS_unstructured(img_def.mask)
             else:
-                # just create and correlate the windows
-                dist = distribution.Distribution.from_locations(xx,
-                                                                yy,
-                                                                settings.init_WS)
+                # set windows to a uniform size
+                for win in dist:
+                    win.WS = settings.init_WS
 
                 ws_first_iter = np.ones(img_def.dim) * settings.init_WS
                 vprint(BASIC, "Analysing first iteration with uniform window size")
@@ -112,7 +112,7 @@ def adaptive_analysis(img, settings):
             vprint(BASIC, "Interpolating")
             u, v = dist.interp_to_densepred(settings.interp, img_def.dim,
                                             inter_h=4)
-            dp = PIV.dense_predictor.DensePredictor(u, v, img_def.mask)
+            dp = DensePredictor(u, v, img_def.mask)
             # dp.plot_displacement_field()
 
             vprint(BASIC, "Deforming image")
@@ -124,10 +124,9 @@ def adaptive_analysis(img, settings):
                 (ws_final - ws_first_iter)
             ws = utilities.round_to_odd(ws)
             ws[np.isnan(ws)] = 5
-            ws = ws[yy, xx]
 
-            # create correlation windows
-            dist = distribution.Distribution.from_locations(xx, yy, ws)
+            for win in dist:
+                win.WS = ws[win.y, win.x]
 
             # correlate windows
             dist.correlate_all_windows(img_def, dp)
@@ -139,7 +138,7 @@ def adaptive_analysis(img, settings):
             vprint(BASIC, "Interpolating")
             u, v = dist.interp_to_densepred(settings.interp, img_def.dim,
                                             inter_h=4)
-            dp = PIV.dense_predictor.DensePredictor(u, v, img_def.mask)
+            dp = DensePredictor(u, v, img_def.mask)
 
             vprint(BASIC, "Deforming image")
             img_def = img.deform_image(dp)
@@ -157,7 +156,7 @@ def adaptive_analysis(img, settings):
         vprint(BASIC, "Interpolating")
         u, v = dist.interp_to_densepred(settings.interp, img_def.dim,
                                         inter_h=4)
-        dp = PIV.DensePredictor(u, v, img_def.mask)
+        dp = DensePredictor(u, v, img_def.mask)
 
         vprint(BASIC, "Deforming image")
         img_def = img.deform_image(dp)
