@@ -194,38 +194,45 @@ class MultiGrid(distribution.Distribution):
         u0, v0 = self.grids[0].get_values()
         u0[np.isnan(u0)] = 0
         v0[np.isnan(v0)] = 0
-        f0_u = interp.interp2d(self.grids[0].x_vec,
-                               self.grids[0].y_vec,
-                               u0, kind=method)
-        f0_v = interp.interp2d(self.grids[0].x_vec,
-                               self.grids[0].y_vec,
-                               v0, kind=method)
+        f_u = interp.interp2d(self.grids[0].x_vec,
+                              self.grids[0].y_vec,
+                              u0, kind=method)
+        f_v = interp.interp2d(self.grids[0].x_vec,
+                              self.grids[0].y_vec,
+                              v0, kind=method)
         u0_eval, v0_eval = f0_u(xe, ye), f0_v(xe, ye)
         u_soln, v_soln = u0_eval, v0_eval
+        if self.max_tier == 0:
+            return PIV.dense_predictor.DensePredictor(f_u(xe, ye), f_v(xe, ye))
 
         # loop over number of tiers
         for tn in range(1, self.max_tier+1):
 
             # get the interpolated values at each of the finer grid points
             h = self.grids[tn].spacing
-            u_int = u_soln[::h, ::h]
-            v_int = v_soln[::h, ::h]
-            u_int = np.pad(u_int, ((0, 1), (0, 1)), mode='edge')
-            v_int = np.pad(v_int, ((0, 1), (0, 1)), mode='edge')
+            xe_sub, ye_sub = xe[::h], ye[::h]
+            u_int = f_u(xe_sub, ye_sub)  # u_soln[::h, ::h]
+            v_int = f_v(xe_sub, ye_sub)  # v_soln[::h, ::h]
 
             # get the delta to the assumed solution
             u1, v1 = self.grids[tn].get_values()
-            u_delta = u1 - u_int
-            v_delta = v1 - v_int
+            u_delta = u1[:-1, :-1] - u_int
+            v_delta = v1[:-1, :-1] - v_int
             u_delta[np.isnan(u_delta)] = 0
             v_delta[np.isnan(v_delta)] = 0
+            u_delta += u_int
+            v_delta += v_int
+            u_delta = np.pad(u_delta, ((0, 1), (0, 1)),
+                             mode='reflect', reflect_type='odd')
+            v_delta = np.pad(v_delta, ((0, 1), (0, 1)),
+                             mode='reflect', reflect_type='odd')
 
             # interpolate the delta
-            f_u = interp.interp2d(self.grids[tn].x_vec,
-                                  self.grids[tn].y_vec,
+            f_u = interp.interp2d(self.grids[tn].x_vec_one_extra(),
+                                  self.grids[tn].y_vec_one_extra(),
                                   u_delta, kind=method)
-            f_v = interp.interp2d(self.grids[tn].x_vec,
-                                  self.grids[tn].y_vec,
+            f_v = interp.interp2d(self.grids[tn].x_vec_one_extra(),
+                                  self.grids[tn].y_vec_one_extra(),
                                   v_delta, kind=method)
 
             # evaluate the interpolant over the domain and update solution
@@ -233,7 +240,7 @@ class MultiGrid(distribution.Distribution):
             u_soln += u_eval
             v_soln += v_eval
 
-        return PIV.dense_predictor.DensePredictor(u_soln, v_soln)
+        return PIV.dense_predictor.DensePredictor(f_u(xe, ye), f_v(xe, ye))
 
     def splint(self):
         """Calculates the objective function by subtracting the linear 
@@ -781,6 +788,16 @@ class Grid():
 
         self._array = [[None for j in range(self.nx)]
                        for i in range(self.ny)]
+
+    def x_vec_one_extra(self):
+        """Returns the vector of x coordinates, extending one beyond the domain
+        """
+        return np.arange(0, self.img_dim[1]+self.spacing, self.spacing)
+
+    def y_vec_one_extra(self):
+        """Returns the vector of y coordinates, extending one beyond the domain
+        """
+        return np.arange(0, self.img_dim[0]+self.spacing, self.spacing)
 
     def get_meshgrid(self):
         """Returns the x and y coordinates in meshgrid form
