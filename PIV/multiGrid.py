@@ -6,6 +6,7 @@ import matplotlib.collections as collections
 import scipy.interpolate as interp
 import PIV.corr_window as corr_window
 import PIV.distribution as distribution
+from PIV.utilities import SummedAreaTable
 import numpy as np
 import PIV
 
@@ -123,6 +124,59 @@ class MultiGrid(distribution.Distribution):
             return win
         else:
             raise StopIteration
+
+    @staticmethod
+    def from_obj_func(pdf, n_points, mask=None):
+
+        img_dim = np.shape(pdf)
+
+        if mask is None:
+            mask = np.ones()
+
+        pdf = pdf / np.sum(pdf)
+
+        # convert pdf into distance grid
+        dist_pdf = np.sqrt(1/(n_points*pdf))
+        dist_pdf[mask == 0] = 0
+        # print(np.sum(dist_pdf))
+
+        # get the biggest distance in the domain, and pick the next pow 2
+        max_dist = np.max(dist_pdf)
+        h0_base = np.ceil(np.log2(max_dist))
+        h0 = int(2**h0_base)
+
+        dist_pad = np.pad(dist_pdf, ((0, h0), (0, h0)), mode='linear_ramp')
+        mask_pad = np.pad(mask, ((0, h0), (0, h0)), mode='constant')
+        dist_sat = SummedAreaTable(dist_pad)
+        mask_sat = SummedAreaTable(mask_pad)
+
+        mg = MultiGrid(img_dim, h0, 97, mask)
+        n_windows = mg.n_windows()
+
+        while mg.max_tier < h0_base:
+            for cell in mg.get_all_leaf_cells():
+                # pdf_total = cell.mask_total(dist_pad, inclusive=True)
+                # mask_tot = cell.mask_total(mask_pad, inclusive=True)
+                l, r = cell.bl_win.x, cell.tr_win.x
+                b, t = cell.bl_win.y, cell.tr_win.y
+                pdf_total = dist_sat.get_area_sum(l, r, b, t)
+                mask_tot = mask_sat.get_area_sum(l, r, b, t)
+                target_h = pdf_total/mask_tot
+                curr_h = cell.tr_win.x - cell.bl_win.x
+                if target_h <= 0.66*curr_h:
+                    cell.split()
+
+            if mg.n_windows() == n_windows:
+                break
+            else:
+                n_windows = mg.n_windows()
+
+        # area = 0
+        # for cell in mg.get_all_leaf_cells():
+        #     area += cell.mask_total(dist_pad)
+        # print(area)
+
+        return mg
 
     @property
     def n_cells(self):
