@@ -312,7 +312,7 @@ class MultiGrid(distribution.Distribution):
         def add_children(cell, out_list, max_tier):
             """Allow for recursion
             """
-            if not cell.has_children() or cell.tier == max_tier:
+            if not cell.has_children():
                 out_list.append(cell)
             else:
                 for child_cell in cell.children.values():
@@ -323,12 +323,15 @@ class MultiGrid(distribution.Distribution):
 
         return out_list
 
-    def plot_grid(self, ax=None, mask=None, max_tier=None):
+    def plot_grid(self, ax=None, mask=None,
+                  max_tier=None, figsize=None):
         """Plots the grid in the conventional manner
         """
 
         if ax is None:
-            fig = plt.figure()
+            if figsize is None:
+                figsize = (10, 7)
+            fig = plt.figure(figsize=figsize)
             ax = fig.add_subplot(111)
 
         if mask is not None:
@@ -399,7 +402,9 @@ class MultiGrid(distribution.Distribution):
                             bl, 0.01, height, fill=False))
 
             else:
-                rects.append(patches.Rectangle(bl, width, height, fill=False))
+                rects.append(patches.Rectangle(bl, width, height,
+                                               fill=False, color='k',
+                                               linewidth=0.75))
 
         rect_collection = collections.PatchCollection(
             rects, match_original=True)
@@ -677,6 +682,13 @@ class GridCell():
         self.multigrid.cells.append(br)
         self.multigrid.cells.append(tl)
         self.multigrid.cells.append(tr)
+
+    def center(self):
+        """Returns the central coordinate of the cell
+        """
+        ctr_x = int((self.bl_win.x + self.br_win.x) / 2)
+        ctr_y = int((self.bl_win.y + self.tl_win.y) / 2)
+        return ctr_x, ctr_y
 
     @property
     def coordinates(self):
