@@ -165,9 +165,8 @@ class MultiGrid(distribution.Distribution):
         """Split all cells, each into 4 new cells
         """
 
-        n = self.n_cells
-        for i in range(n):
-            self.cells[i].split()
+        for cell in self.get_all_leaf_cells():
+            cell.split()
 
     def interp_to_densepred(self, method='cubic'):
         """
