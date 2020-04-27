@@ -89,7 +89,7 @@ def widim(img, settings):
     # reset verbosity
     PIV.utilities._verbosity = prev_verb
 
-    return dp
+    return dp, dist
 
 
 class WidimSettings():
