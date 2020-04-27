@@ -609,7 +609,7 @@ class GridCell():
 
         # check the cell has not already been split
         if self.has_children():
-            raise ValueError("This cell has already been split")
+            return
 
         # if the cell is tier 0 then we definitely don't need to split neighbs
         if self.tier > 0:
