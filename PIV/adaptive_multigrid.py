@@ -49,7 +49,7 @@ def amg_refinement(img, settings, plotting=False):
 
     # perform AIW to get window sizes and initial displacement grid
     mg.AIW(img)
-    ws_first_iter = mg.interp_WS_unstructured(img.mask)*img.mask
+    ws_first_iter = mg.interp_WS_structured(img.mask)*img.mask
 
     if plotting:
         fig, ax1, ax2 = utilities.plot_adjacent_images(ws_first_iter,
@@ -60,10 +60,6 @@ def amg_refinement(img, settings, plotting=False):
                                                        figsize=(35, 35),
                                                        axes_pad=0.5,
                                                        )
-        ax1.set_xlim((0, 1280))
-        ax2.set_xlim((0, 1280))
-        ax1.set_ylim((0, 640))
-        ax2.set_ylim((0, 640))
         mg.plot_distribution(handle=ax2)
 
     # Validate vectors
@@ -79,16 +75,13 @@ def amg_refinement(img, settings, plotting=False):
                                                        figsize=(35, 35),
                                                        axes_pad=0.5,
                                                        )
-        ax1.set_xlim((0, 1280))
-        ax2.set_xlim((0, 1280))
-        ax1.set_ylim((0, 640))
-        ax2.set_ylim((0, 640))
         mg.plot_distribution(handle=ax2)
 
     # interpolate for cubic and linear
     dp_cub = mg.interp_to_densepred(method='cubic')
     dp_lin = mg.interp_to_densepred(method='linear')
     dp_splint = dp_cub - dp_lin
+    del dp_lin
     dp_splint.mask = img.mask
     dp_splint.apply_mask()
 
@@ -136,6 +129,7 @@ def amg_refinement(img, settings, plotting=False):
         cb = im[-1].colorbar
         a = cb.ax.figure
         a.delaxes(cb.ax)
+    del dp_splint
 
     peak_values = []
     for cell in mg.get_all_leaf_cells():
@@ -163,7 +157,7 @@ def amg_refinement(img, settings, plotting=False):
     img_def = img.deform_image(dp_cub)
 
     # Now loop over the remaining iters
-    for _iter in range(n_iter-1):
+    for _iter in range(2, n_iter+1):
         if plotting:
             # plot new grid
             mg.plot_grid(ax=ax2, mask=img.mask)
@@ -173,10 +167,11 @@ def amg_refinement(img, settings, plotting=False):
         if settings.final_WS == 'auto':
             ws_final = utilities.round_to_odd(np.sqrt(15 / min_sd))
         else:
-            ws_final = settings.final_WS * np.ones(img_def.dim)
+            raise ValueError("error")
 
-        ws = ws_first_iter + ((_iter) / (n_iter - 1)) * \
-            (ws_final - ws_first_iter)
+        ws = (ws_first_iter +
+              ((_iter-1) / (n_iter - 1)) *
+              (ws_final - ws_first_iter))
         ws = utilities.round_to_odd(ws)
         ws[np.isnan(ws)] = 5
 
@@ -195,10 +190,6 @@ def amg_refinement(img, settings, plotting=False):
                                                            figsize=(35, 35),
                                                            axes_pad=0.5
                                                            )
-            ax1.set_xlim((0, 1280))
-            ax2.set_xlim((0, 1280))
-            ax1.set_ylim((0, 640))
-            ax2.set_ylim((0, 640))
             mg.plot_distribution(handle=ax2)
 
         # Validate vectors
@@ -214,21 +205,15 @@ def amg_refinement(img, settings, plotting=False):
                                                            figsize=(35, 35),
                                                            axes_pad=0.5
                                                            )
-            ax1.set_xlim((0, 1280))
-            ax2.set_xlim((0, 1280))
-            ax1.set_ylim((0, 640))
-            ax2.set_ylim((0, 640))
             mg.plot_distribution(handle=ax2)
 
         # interpolate for cubic and linear
         dp_cub = mg.interp_to_densepred(method='cubic')
         dp_lin = mg.interp_to_densepred(method='linear')
         dp_splint = dp_cub - dp_lin
+        del dp_lin
         dp_splint.mask = img.mask
         dp_splint.apply_mask()
-
-        nanmask = np.copy(img.mask)
-        nanmask[img.mask == 0] = np.nan
 
         mx = np.max(np.maximum(dp_splint.u, dp_splint.v))
 
@@ -275,7 +260,9 @@ def amg_refinement(img, settings, plotting=False):
             a = cb.ax.figure
             a.delaxes(cb.ax)
 
-        if _iter < n_iter-2:
+        del dp_splint
+
+        if _iter < n_iter:
             peak_values = []
             for cell in mg.get_all_leaf_cells():
                 bl, tr = cell.coordinates[0], cell.coordinates[2]

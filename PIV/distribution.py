@@ -100,7 +100,7 @@ class Distribution:
         """
 
         if WS is None:
-            WS = [None] * len(x)
+            WS = [None] * np.size(x)
 
         x, y, WS = np.array(x), np.array(y), np.array(WS)
 
@@ -284,9 +284,9 @@ class Distribution:
         flag = norm > threshold
         invalid = np.sum(flag)
         try:
-            vprint(2, f"  {invalid}/{self.n_windows()} vectors replaced")
+            vprint(1, f"  {invalid}/{len(flag)} vectors replaced")
         except:
-            vprint(2, f"  {invalid}/{self.n_windows} vectors replaced")
+            vprint(1, f"  {invalid}/{len(flag)} vectors replaced")
 
         # replacement
         u, v = outlier_replacement(flag, u, v, nb_ind)
@@ -400,6 +400,7 @@ class Distribution:
             x, y = self.x, self.y
 
         ax.plot(x, y, 'r*', *args, **kwargs)
+
     def plot_distribution(self, handle=None):
 
         if handle is None:
@@ -412,11 +413,12 @@ class Distribution:
                   xy[:, 1],
                   uv[:, 0],
                   uv[:, 1])
-        plt.show()
+        # plt.show()
 
-    def AIW(self, img, dp,
+    def AIW(self, img,
             step_size=6, SNR_thr=1.4,
-            max_WS=117, store_hist=True):
+            max_WS=117, store_hist=True,
+            init_NI=20):
         """
         Analyses the contained distribution using Adaptive Initial Window sizing. 
         Correlates the windows and stores the results inside the class, as it
@@ -433,18 +435,29 @@ class Distribution:
                                        Defaults to 6.
         """
 
+        if img.sd_IA is None or img.sd_IB is None:
+            img.calc_seed_density()
+
+        min_sd = np.minimum(img.sd_IA, img.sd_IB)
+        # if ends up being 0 or NaN, just assume it is some low value
+        min_sd[min_sd == 0] = 0.0021
+        min_sd[np.isnan(min_sd)] = 0.0021
+
+        ws_seed_init = utilities.round_to_odd(np.sqrt(init_NI / min_sd))
+
         for cw in self:
+            cw.WS = ws_seed_init[cw.y, cw.x]
             if store_hist:
                 history = np.empty((0, 4))
             # if WS is greater than max_WS to begin, we should just correlate
             # this indicates the seeding is extremely poor and is likely to
             # yield a poor correlation
             if cw.WS >= max_WS:
-                cw.correlate(img, dp)
+                cw.correlate(img)
                 continue
 
             while cw.WS < max_WS:
-                cw.correlate(img, dp)
+                cw.correlate(img)
                 if store_hist and cw.disp_mag() <= cw.WS*0.25:
                     history = np.vstack((history, [cw.WS, cw.u, cw.v, cw.SNR]))
 
@@ -481,8 +494,8 @@ class Distribution:
         """
         xe, ye = np.meshgrid(np.arange(np.shape(mask)[1]),
                              np.arange(np.shape(mask)[0]))
-        f_ws = interp.NearestNDInterpolator(self.get_all_xy(),
-                                            self.get_all_WS())
+        f_ws = interp.NearestNDInterpolator(self.get_unmasked_xy(),
+                                            self.get_unmasked_WS())
         return f_ws((xe.ravel(), ye.ravel())).reshape(np.shape(mask))
 
     def interp_WS(self, mask):
@@ -841,6 +854,7 @@ def NMT_idw_detection(u, v, nb_ind, nb_dist, eps=0.1):
     norm = np.sqrt(u_norm**2 + v_norm**2)
 
     return norm
+
 
 def outlier_replacement(flag, u, v, nb_ind):
     """

@@ -14,6 +14,118 @@ import pdb
 ESSENTIAL, BASIC, TERSE = 1, 2, 3
 
 
+def widim_AIW(img, settings):
+    """
+    Performs a widim analysis on the PIVImage object, img, with the settings
+    defined in settings
+
+    Args:
+        img (PIVImage): PIVImage object containing the images to be analysed
+        settings (dict): dictionary of settings obtained by using
+                         'widim_settings()'
+    """
+
+    # set the verbosity level
+    prev_verb = PIV.utilities._verbosity
+    PIV.utilities._verbosity = settings.verbosity
+
+    img_def = img
+    dp = dense_predictor.DensePredictor(
+        np.zeros(img.dim), np.zeros(img.dim), img.mask)
+
+    # main iterations
+    for _iter in range(1, settings.n_iter_main + 1):
+        vprint(BASIC, "Starting main iteration, {}".format(_iter))
+
+        # calculate spacing and create sample grid
+        vprint(BASIC, "Calculating WS and spacing")
+        WS = WS_for_iter(_iter, settings)
+        vprint(BASIC, "WS: {}".format(WS))
+        h = max(1, math.floor((1 - settings.WOR) * WS))
+        vprint(BASIC, h)
+
+        vprint(BASIC, "Creating grid and windows")
+        xv, yv = (np.arange(0, img.n_cols, h),
+                  np.arange(0, img.n_rows, h))
+        xx, yy = np.meshgrid(xv, yv)
+        vprint(BASIC, "{} windows".format(len(xx.ravel())))
+
+        # create distribution of correlation windows
+        if _iter == 1:
+            # calc seeding
+            img.calc_seed_density()
+
+            min_sd = np.minimum(img.sd_IA, img.sd_IB)
+            # if ends up being 0 or NaN, just assume it is some low value
+            min_sd[min_sd == 0] = 0.0021
+            min_sd[np.isnan(min_sd)] = 0.0021
+            dist = distribution.Distribution.from_locations(xx, yy)
+            vprint(BASIC, "Performing AIW and correlating")
+            for win in dist:
+                if img.mask[win.y, win.x] == 1:
+                    win.is_masked = False
+                else:
+                    win.is_masked = True
+            dist.AIW(img_def)
+            ws_first_iter = dist.interp_WS_unstructured(img.mask)*img.mask
+            # plt.matshow(ws_first_iter)
+            # plt.colorbar()
+        else:
+            ws_final = utilities.round_to_odd(np.sqrt(15 / min_sd))
+            ws = (ws_first_iter +
+                  ((_iter-1) / (settings.n_iter_main - 1)) *
+                  (ws_final - ws_first_iter))
+            # print("iter", _iter)
+            # print("ratio", ((_iter-1) / (settings.n_iter_main - 1)))
+            ws = utilities.round_to_odd(ws)
+            # plt.matshow(ws)
+            # plt.colorbar()
+            ws[np.isnan(ws)] = 5
+            dist = distribution.Distribution.from_locations(xx, yy)
+            for win in dist:
+                win.WS = ws[win.y, win.x]
+                if img.mask[win.y, win.x] == 1:
+                    win.is_masked = False
+                else:
+                    win.is_masked = True
+            vprint(BASIC, "Correlating all windows")
+            dist.correlate_all_windows(img_def, dp)
+
+        if settings.vec_val is not None:
+            vprint(BASIC, "Validate vectors")
+            dist.validation_NMT_8NN(idw=True)
+
+        vprint(BASIC, "Interpolating")
+        u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+        dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+
+        vprint(BASIC, "Deforming image")
+        img_def = img.deform_image(dp)
+
+    vprint(BASIC, "Starting refinement iterations")
+
+    for _iter in range(1, settings.n_iter_ref + 1):
+
+        vprint(BASIC, "Correlating all windows")
+        dist.correlate_all_windows(img_def, dp)
+
+        if settings.vec_val is not None:
+            vprint(BASIC, "validate vectors")
+            dist.validation_NMT_8NN(idw=True)
+
+        vprint(BASIC, "Interpolating")
+        u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
+        dp = dense_predictor.DensePredictor(u, v, img_def.mask)
+
+        vprint(2, "Deforming image")
+        img_def = img.deform_image(dp)
+
+    # reset verbosity
+    PIV.utilities._verbosity = prev_verb
+
+    return dp, dist
+
+
 def widim(img, settings):
     """
     Performs a widim analysis on the PIVImage object, img, with the settings
@@ -30,7 +142,7 @@ def widim(img, settings):
     PIV.utilities._verbosity = settings.verbosity
 
     img_def = img
-    dp = PIV.DensePredictor(
+    dp = dense_predictor.DensePredictor(
         np.zeros(img.dim), np.zeros(img.dim), img.mask)
 
     # main iterations
@@ -52,7 +164,7 @@ def widim(img, settings):
         vprint(BASIC, "{} windows".format(len(xx.ravel())))
 
         # create distribution of correlation windows
-        dist = PIV.Distribution.from_locations(xx, yy, ws_grid)
+        dist = distribution.Distribution.from_locations(xx, yy, ws_grid)
 
         vprint(BASIC, "Correlating all windows")
         dist.correlate_all_windows(img_def, dp)
@@ -63,7 +175,7 @@ def widim(img, settings):
 
         vprint(BASIC, "Interpolating")
         u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
-        dp = PIV.DensePredictor(u, v, img_def.mask)
+        dp = dense_predictor.DensePredictor(u, v, img_def.mask)
 
         vprint(BASIC, "Deforming image")
         img_def = img.deform_image(dp)
@@ -81,7 +193,7 @@ def widim(img, settings):
 
         vprint(BASIC, "Interpolating")
         u, v = dist.interp_to_densepred(settings.interp, img_def.dim)
-        dp = PIV.DensePredictor(u, v, img_def.mask)
+        dp = dense_predictor.DensePredictor(u, v, img_def.mask)
 
         vprint(2, "Deforming image")
         img_def = img.deform_image(dp)

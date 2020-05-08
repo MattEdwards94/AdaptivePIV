@@ -4,9 +4,9 @@ import PIV
 import matplotlib.pyplot as plt
 from PIV.utilities import vprint, WS_for_iter
 from .adaptive_unstruc import adaptive_analysis, AdaptSettings
-from .widim_algorithm import widim, WidimSettings
+from .widim_algorithm import widim, widim_AIW, WidimSettings
 from .adaptive_struc import structured_adaptive_analysis, AdaptStructSettings
-from .adaptive_multigrid import adapt_multi_grid, MultiGridSettings
+from .adaptive_multigrid import amg_refinement, adapt_multi_grid, MultiGridSettings
 
 ESSENTIAL, BASIC, TERSE = 1, 2, 3
 

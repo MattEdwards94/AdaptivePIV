@@ -13,7 +13,7 @@ import PIV
 
 class MultiGrid(distribution.Distribution):
 
-    def __init__(self, img_dim, spacing, WS, mask=None):
+    def __init__(self, img_dim, spacing, WS=None, mask=None):
         """Defines a multigrid object with an initial grid spacing
 
         Args:
@@ -34,15 +34,21 @@ class MultiGrid(distribution.Distribution):
         x_vec = np.arange(0, img_dim[1]+spacing, spacing)
         y_vec = np.arange(0, img_dim[0]+spacing, spacing)
         xx, yy = np.meshgrid(x_vec, y_vec)
-        ws_grid = np.ones_like(xx) * WS
+        if WS is None:
+            self.windows = list(map(corr_window.CorrWindow,
+                                    xx.ravel(),
+                                    yy.ravel(),
+                                    [None]*np.size(xx)))
+        else:
+            ws_grid = np.ones_like(xx) * WS
+            self.windows = list(map(corr_window.CorrWindow,
+                                    xx.ravel(),
+                                    yy.ravel(),
+                                    ws_grid.ravel()))
 
         # turn each of the coordinates into a corrwindow object
         # note that this flattens the grid row by row
 
-        self.windows = list(map(corr_window.CorrWindow,
-                                xx.ravel(),
-                                yy.ravel(),
-                                ws_grid.ravel()))
         # classify windows
         for window in self.windows:
             if np.any((window.y >= img_dim[0], window.x >= img_dim[1])):
@@ -184,9 +190,9 @@ class MultiGrid(distribution.Distribution):
 
     def new_tier(self):
         """
-        Adds a new tier to the multigrid. 
+        Adds a new tier to the multigrid.
 
-        This method first checks that a new tier can be added - the spacing 
+        This method first checks that a new tier can be added - the spacing
         must be halved and must still result in integer locations
 
         The method then creates a new grid for the required level
@@ -215,6 +221,7 @@ class MultiGrid(distribution.Distribution):
         for cell in self.get_all_leaf_cells():
             if cell.mask_total(self.mask)/cell.area() < 1:
                 cell.split()
+
     def split_all_cells(self):
         """Split all cells, each into 4 new cells
         """
@@ -224,19 +231,19 @@ class MultiGrid(distribution.Distribution):
 
     def interp_to_densepred(self, method='cubic'):
         """
-        Interpolate the multigrid onto a pixelwise densepredictor using 
+        Interpolate the multigrid onto a pixelwise densepredictor using
         multi-level interpolation
 
-        Works by interpolating the coarse mesh to obtain the baseline. 
-        Refinements are then treated as a delta to the coarse interpolant.        
+        Works by interpolating the coarse mesh to obtain the baseline.
+        Refinements are then treated as a delta to the coarse interpolant.
 
         Args:
              method (string): Either linear or cubic
-                              Cubic represents a cubic spline which is 
+                              Cubic represents a cubic spline which is
                               c2 continuous
 
         Returns:
-            interpolation (DensePredictor): solution interpolated onto a 
+            interpolation (DensePredictor): solution interpolated onto a
                                             densepredictor
 
         """
@@ -254,7 +261,7 @@ class MultiGrid(distribution.Distribution):
         f_v = interp.interp2d(self.grids[0].x_vec,
                               self.grids[0].y_vec,
                               v0, kind=method)
-        u0_eval, v0_eval = f0_u(xe, ye), f0_v(xe, ye)
+        u0_eval, v0_eval = f_u(xe, ye), f_v(xe, ye)
         u_soln, v_soln = u0_eval, v0_eval
         if self.max_tier == 0:
             return PIV.dense_predictor.DensePredictor(f_u(xe, ye), f_v(xe, ye))
@@ -297,7 +304,7 @@ class MultiGrid(distribution.Distribution):
         return PIV.dense_predictor.DensePredictor(f_u(xe, ye), f_v(xe, ye))
 
     def splint(self):
-        """Calculates the objective function by subtracting the linear 
+        """Calculates the objective function by subtracting the linear
         interpolant from the cubic interpolant
         """
 
@@ -307,6 +314,29 @@ class MultiGrid(distribution.Distribution):
 
         return (dp_splint.magnitude() *
                 self.mask[:self.img_dim[0], :self.img_dim[1]])
+
+    def interp_WS_structured(self, mask):
+        """Performs linear interpolation to get the WS
+
+        Parameters
+        ----------
+        mask : ndarray
+            Array containing zeros at the locations of the domain
+            not to be considered.
+
+        Returns
+        -------
+        WS_array : ndarray
+            The interpolated WS over the domain, zero where the mask is zero
+        """
+
+        xe = np.arange(np.shape(mask)[1])
+        ye = np.arange(np.shape(mask)[0])
+        xs, ys = self.grids[0].get_meshgrid()
+        ws = self.grids[0].get_WS()
+
+        f_ws = interp.interp2d(xs, ys, ws)
+        return f_ws(xe, ye)
 
     def adaptive_split_peak_value_cells(self, obj_func):
         """Split cells according to the input objective function.
@@ -343,19 +373,19 @@ class MultiGrid(distribution.Distribution):
                 continue
 
     def get_all_leaf_cells(self, max_tier=None):
-        """Returns a list of leaf cells in the domain, 
+        """Returns a list of leaf cells in the domain,
             i.e cells without any children
 
-            loop over top cells, if the cell has no children then add to 
-            the list. if it has children then recursively progress down the 
+            loop over top cells, if the cell has no children then add to
+            the list. if it has children then recursively progress down the
             cells adding those which have no children
 
         Parameters
         ----------
         max_tier : int
-            The maximum tier of cells to return. If passed, the method will 
-            return all leaf cells up to that tier. 
-            Cells whose tier = max_tier, but have children, are still 
+            The maximum tier of cells to return. If passed, the method will
+            return all leaf cells up to that tier.
+            Cells whose tier = max_tier, but have children, are still
             considered leafs in this case.
         """
 
@@ -390,7 +420,7 @@ class MultiGrid(distribution.Distribution):
             ax = fig.add_subplot(111)
 
         if mask is not None:
-            ax.imshow(mask, cmap='gray')
+            ax.imshow(mask, cmap='gray', vmin=0, vmax=1)
 
         rects = []
         for cell in self.get_all_leaf_cells(max_tier=max_tier):
@@ -904,6 +934,37 @@ class Grid():
                        mode='reflect', reflect_type='odd')
 
         return u_out, v_out
+
+    def get_WS(self):
+        """Returns the window size values for all the windows in the 
+        multigrid.
+        This includes values outside the domain.
+        Values outside of the domain are reflected
+
+        Returns nan if there is no CorrWindow available
+
+        Returns:
+            nd_array: array of WS values
+        """
+
+        ny = len(np.arange(0, self.img_dim[0], self.spacing))
+        nx = len(np.arange(0, self.img_dim[1], self.spacing))
+
+        # allocate space for 2 arrays of values
+        ws_out = np.empty((ny, nx))
+
+        ws_out[:] = np.nan
+        for yy in range(ny):
+            for xx in range(nx):
+                try:
+                    ws_out[yy][xx] = self._array[yy][xx].u
+                except AttributeError:
+                    pass
+
+        ws_out = np.pad(ws_out, ((0, 1), (0, 1)),
+                        mode='reflect', reflect_type='odd')
+
+        return ws_out
 
 
 if __name__ == "__main__":
