@@ -3,7 +3,7 @@ This repository is for the analysis of PIV images using adaptive PIV image analy
 
 ## pre-requisites
 It is assumed that you have python set up on your machine already. If that is not the case, then look [here](https://www.python.org/about/gettingstarted/) to get started.
-Before installing cross_corr_interview, you will require a Python 3.7 environment with numpy installed. During installation a number of other packages will be installed - see below.
+Before installing AdaptivePIV, you will require a Python 3.7 environment with numpy installed. During installation a number of other packages will be installed - see below.
 
 I would strongly recommend to use a virtual environment for this:
 
@@ -37,7 +37,7 @@ or
 ## Installation
 Checkout the repository using  
 
-    git clone https://github.com/MattEdwards94/cross_corr_interview.git
+    git clone https://github.com/MattEdwards94/AdaptivePIV.git
 
 There are 2 options to install AdaptivePIV:
 
@@ -84,7 +84,7 @@ If no settings are passed to this function, the following pre-configured default
                   vec_val='NMT',
                   interp='struc_cub')
 
-There are two ways to see this function in action. Calling `python example.py` will run both the experimental example and the synthetic example (below) one after another. Alternatively, to just run one, launch a `python` session from within the `cross_corr_interview` directory and `import example`, followed by running the desired function `example.experimental_example()` or `example.synthetic_example()`.
+There are two ways to see this function in action. Calling `python example.py` will run both the experimental example and the synthetic example (below) one after another. Alternatively, to just run one, launch a `python` session from within the `AdaptivePIV` directory and `import example`, followed by running the desired function `example.experimental_example()` or `example.synthetic_example()`.
 
 If you would like to play about with the various settings, run `help(PIV.analysis.WidimSettings.__init__)` (with `PIV` imported) to see what each value can accept.
 
