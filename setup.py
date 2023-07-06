@@ -43,7 +43,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/MattEdwards94/pivDevPython",
     install_requires=[
-        'scipy==1.3.2',
+        'scipy==1.10.0',
         'numpy',
         'h5py',
         'pillow',
